@@ -4,7 +4,7 @@ import { parseArgs } from 'node:util';
 import { loadCatalog } from './catalog.ts';
 import { toDrawio } from './drawio.ts';
 import { layoutDiagram } from './layout.ts';
-import { DiagramError, loadDiagram } from './load.ts';
+import { DiagramError, formatProblem, loadDiagram } from './load.ts';
 import { exportPng } from './png.ts';
 
 const USAGE = `Usage:
@@ -50,13 +50,11 @@ switch (command) {
       await build(input);
     } catch (error) {
       if (!(error instanceof DiagramError)) throw error;
-      console.error(`${input}:`);
-      for (const problem of error.problems) console.error(`  ${problem}`);
+      for (const problem of error.problems) console.error(formatProblem(problem, input));
       process.exitCode = 1;
     }
     break;
   }
-  case undefined:
   default:
     console.log(USAGE);
 }

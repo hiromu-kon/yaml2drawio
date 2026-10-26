@@ -1,72 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { load, problemsOf } from './helpers.ts';
 
+const lines = (...rows: string[]) => `${rows.join('\n')}\n`;
+
 describe('loadDiagram', () => {
   it('uses the shape title as the label when none is given', () => {
-    const diagram = load('nodes:\n  - { id: fn, icon: aws.lambda }\n');
+    const diagram = load(lines('nodes:', '  - { id: fn, icon: aws.lambda }'));
     expect(diagram.root.children[0]).toMatchObject({ kind: 'leaf', label: 'Lambda' });
   });
 
   it('defaults every direction to horizontal', () => {
     const diagram = load(
-      'nodes:\n  - group: aws.vpc\n    children:\n      - { id: fn, icon: aws.lambda }\n',
+      lines(
+        'nodes:',
+        '  - group: aws.vpc',
+        '    children:',
+        '      - { id: fn, icon: aws.lambda }',
+      ),
     );
     expect(diagram.root.direction).toBe('horizontal');
     expect(diagram.root.children[0]).toMatchObject({ kind: 'group', direction: 'horizontal' });
   });
 
-  it('reports schema errors with their line and column', () => {
-    const problems = problemsOf('nodes:\n  - { id: fn, icn: aws.lambda }\n');
-    expect(problems[0]).toMatch(/^2:5 nodes\.0: /);
-  });
-
-  it('reports an unknown icon with close names', () => {
-    expect(problemsOf('nodes:\n  - { id: fn, icon: aws.lamda }\n')).toEqual([
-      expect.stringMatching(/^unknown icon "aws\.lamda" \(did you mean aws\.lambda/),
-    ]);
-  });
-
-  it('reports a link to an unknown id', () => {
-    const problems = problemsOf(
-      'nodes:\n  - { id: fn, icon: aws.lambda }\nlinks:\n  - [fn.e, db.w]\n',
-    );
-    expect(problems).toEqual(['link endpoint "db.w" refers to unknown id "db"']);
-  });
-
-  it('reports duplicate ids', () => {
-    const problems = problemsOf(
-      'nodes:\n  - { id: fn, icon: aws.lambda }\n  - { id: fn, icon: aws.sqs }\n',
-    );
-    expect(problems).toEqual(['duplicate id "fn"']);
-  });
-
-  it('rejects border children until they are supported', () => {
-    const problems = problemsOf(
-      [
-        'nodes:',
-        '  - group: aws.vpc',
-        '    id: vpc',
-        '    border:',
-        '      n: { id: igw, icon: aws.igw }',
-        '    children:',
-        '      - { id: fn, icon: aws.lambda }',
-        '',
-      ].join('\n'),
-    );
-    expect(problems).toEqual(['group "vpc": border is not supported yet']);
-  });
-
   it('turns both link forms into the same structure', () => {
     const diagram = load(
-      [
+      lines(
         'nodes:',
         '  - { id: a, icon: aws.lambda }',
         '  - { id: b, icon: aws.sqs }',
         'links:',
         '  - [a.e, b]',
         '  - { from: b, to: a.e, style: dashed, label: poll, arrow: both }',
-        '',
-      ].join('\n'),
+      ),
     );
     expect(diagram.links).toEqual([
       {
@@ -86,5 +51,84 @@ describe('loadDiagram', () => {
         arrow: 'both',
       },
     ]);
+  });
+});
+
+describe('loadDiagram errors', () => {
+  it('reports YAML syntax errors with their location', () => {
+    expect(problemsOf(lines('nodes:', '  - { id: a, icon: aws.lambda'))[0]).toMatch(/^3:1: /);
+  });
+
+  it('suggests the intended key for a misspelled one', () => {
+    expect(problemsOf(lines('nodes:', '  - { id: fn, icon: aws.lambda, labl: Fn }'))).toEqual([
+      '2:33: unknown key "labl" (did you mean "label"?)',
+    ]);
+  });
+
+  it('says which keys make a node when it has none of them', () => {
+    expect(problemsOf(lines('nodes:', '  - { id: fn, icn: aws.lambda }'))).toEqual([
+      '2:5: a node needs one of "icon", "group", "row", "column"',
+      '2:15: unknown key "icn" (did you mean "icon"?)',
+    ]);
+  });
+
+  it('reports only the errors of the kind of node that was meant', () => {
+    expect(problemsOf(lines('nodes:', '  - { icon: aws.lambda }'))).toEqual([
+      '2:5: missing required key "id"',
+    ]);
+  });
+
+  it('reports an empty list of children', () => {
+    expect(problemsOf(lines('nodes:', '  - { group: aws.vpc, children: [] }'))).toEqual([
+      '2:33: "children" must not be empty',
+    ]);
+  });
+
+  it('reports a malformed link endpoint at the endpoint', () => {
+    const problems = problemsOf(
+      lines('nodes:', '  - { id: a, icon: aws.lambda }', 'links:', '  - [a.up, a]'),
+    );
+    expect(problems).toEqual([expect.stringMatching(/^4:6: item 1: endpoint must be/)]);
+  });
+
+  it('reports an unknown icon with close names', () => {
+    expect(problemsOf(lines('nodes:', '  - { id: fn, icon: aws.lamda }'))).toEqual([
+      expect.stringMatching(/^2:21: unknown icon "aws\.lamda" \(did you mean aws\.lambda,/),
+    ]);
+  });
+
+  it('reports a link to an unknown id', () => {
+    const problems = problemsOf(
+      lines('nodes:', '  - { id: fn, icon: aws.lambda }', 'links:', '  - [fn.e, db.w]'),
+    );
+    expect(problems).toEqual(['4:12: unknown id "db" in link "db.w"']);
+  });
+
+  it('reports duplicate ids with where the first one is', () => {
+    const problems = problemsOf(
+      lines('nodes:', '  - { id: fn, icon: aws.lambda }', '  - { id: fn, icon: aws.sqs }'),
+    );
+    expect(problems).toEqual(['3:11: duplicate id "fn" (first defined at 2:11)']);
+  });
+
+  it('rejects border children until they are supported', () => {
+    const problems = problemsOf(
+      lines(
+        'nodes:',
+        '  - group: aws.vpc',
+        '    border:',
+        '      n: { id: igw, icon: aws.igw }',
+        '    children:',
+        '      - { id: fn, icon: aws.lambda }',
+      ),
+    );
+    expect(problems).toEqual(['4:7: border is not supported yet']);
+  });
+
+  it('lists problems in the order they appear in the file', () => {
+    const problems = problemsOf(
+      lines('nodes:', '  - group: aws.vpcc', '    children:', '      - { id: a, icon: aws.lamda }'),
+    );
+    expect(problems.map((problem) => problem.split(':', 1)[0])).toEqual(['2', '4']);
   });
 });
