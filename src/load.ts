@@ -1,85 +1,221 @@
-import { LineCounter, parseDocument, isNode, type Document } from 'yaml';
+import { LineCounter, isMap, isNode, isScalar, parseDocument, type Document } from 'yaml';
 import type { z } from 'zod';
 import type { Catalog } from './catalog.ts';
 import type { Diagram, DiagramNode, Endpoint, Link, StackNode } from './model.ts';
 import {
   DocumentSchema,
+  KNOWN_KEYS,
+  NODE_BRANCHES,
   POSITIONS,
   type DocumentInput,
   type NodeInput,
   type Position,
 } from './schema.ts';
+import { closestMatch } from './suggest.ts';
+
+export interface Problem {
+  message: string;
+  line?: number;
+  column?: number;
+}
 
 export class DiagramError extends Error {
-  readonly problems: string[];
+  readonly problems: Problem[];
 
-  constructor(problems: string[]) {
-    super(problems.join('\n'));
+  constructor(problems: Problem[]) {
+    const sorted = problems.toSorted(
+      (a, b) => (a.line ?? 0) - (b.line ?? 0) || (a.column ?? 0) - (b.column ?? 0),
+    );
+    super(sorted.map((problem) => formatProblem(problem)).join('\n'));
     this.name = 'DiagramError';
-    this.problems = problems;
+    this.problems = sorted;
   }
 }
 
-export function loadDiagram(source: string, catalog: Catalog): Diagram {
-  const lineCounter = new LineCounter();
-  const document = parseDocument(source, { lineCounter });
-  if (document.errors.length > 0) {
-    throw new DiagramError(document.errors.map((error) => error.message));
+/** Formats a problem as `file:line:column: message`, the form editors and terminals link to. */
+export function formatProblem(problem: Problem, file?: string): string {
+  const location =
+    problem.line === undefined ? undefined : `${problem.line}:${problem.column ?? 1}`;
+  const prefix = [file, location].filter((part) => part !== undefined).join(':');
+  return prefix === '' ? problem.message : `${prefix}: ${problem.message}`;
+}
+
+type Path = (string | number)[];
+
+class Source {
+  readonly #document: Document;
+  readonly #lines: LineCounter;
+
+  constructor(document: Document, lines: LineCounter) {
+    this.#document = document;
+    this.#lines = lines;
   }
 
-  const parsed = DocumentSchema.safeParse(document.toJS());
-  if (!parsed.success) {
+  problem(path: Path, message: string): Problem {
+    const node = this.#document.getIn(path, true);
+    if (isNode(node) && node.range) return this.#at(node.range[0], message);
+    // A missing key has no node of its own, so point at the closest ancestor that exists
+    return path.length > 0 ? this.problem(path.slice(0, -1), message) : { message };
+  }
+
+  /** Points at a key rather than its value, for problems about the key itself. */
+  keyProblem(path: Path, key: string, message: string): Problem {
+    const parent = this.#document.getIn(path, true);
+    if (isMap(parent)) {
+      const pair = parent.items.find((item) => isScalar(item.key) && item.key.value === key);
+      if (pair && isNode(pair.key) && pair.key.range) return this.#at(pair.key.range[0], message);
+    }
+    return this.problem([...path, key], message);
+  }
+
+  #at(offset: number, message: string): Problem {
+    const { line, col } = this.#lines.linePos(offset);
+    return { message, line, column: col };
+  }
+}
+
+export function loadDiagram(text: string, catalog: Catalog): Diagram {
+  const lines = new LineCounter();
+  const document = parseDocument(text, { lineCounter: lines, prettyErrors: false });
+  if (document.errors.length > 0) {
     throw new DiagramError(
-      parsed.error.issues.map((issue) => describeIssue(issue, document, lineCounter)),
+      document.errors.map((error) => {
+        const { line, col } = lines.linePos(error.pos[0]);
+        return { message: error.message, line, column: col };
+      }),
     );
   }
-  return resolve(parsed.data, catalog);
+
+  const source = new Source(document, lines);
+  const data: unknown = document.toJS();
+  const parsed = DocumentSchema.safeParse(data);
+  if (!parsed.success)
+    throw new DiagramError(describeIssues(parsed.error.issues, [], data, source));
+  return resolve(parsed.data, catalog, source);
 }
 
-function describeIssue(issue: z.core.$ZodIssue, document: Document, lines: LineCounter): string {
-  const path = issue.path.filter((key) => typeof key !== 'symbol');
-  const node = document.getIn(path, true);
-  const location =
-    isNode(node) && node.range ? `${formatPosition(lines.linePos(node.range[0]))} ` : '';
-  const where = path.length > 0 ? `${path.join('.')}: ` : '';
-  return `${location}${where}${issue.message}`;
+function describeIssues(
+  issues: readonly z.core.$ZodIssue[],
+  base: Path,
+  data: unknown,
+  source: Source,
+): Problem[] {
+  return issues.flatMap((issue) => {
+    const path = [...base, ...issue.path.filter((key) => typeof key !== 'symbol')];
+    switch (issue.code) {
+      case 'invalid_union':
+        return describeUnion(issue.errors, path, data, source);
+      case 'unrecognized_keys':
+        return issue.keys.map((key) => source.keyProblem(path, key, unknownKey(key)));
+      case 'invalid_type':
+        if (valueAt(data, path) === undefined) {
+          return [source.problem(path, `missing required key "${String(path.at(-1))}"`)];
+        }
+        return [source.problem(path, `${nameOf(path)}: ${withoutPrefix(issue.message)}`)];
+      case 'too_small':
+        if (issue.origin === 'array')
+          return [source.problem(path, `${nameOf(path)} must not be empty`)];
+        return [source.problem(path, `${nameOf(path)}: ${issue.message}`)];
+      default:
+        return [source.problem(path, `${nameOf(path)}: ${withoutPrefix(issue.message)}`)];
+    }
+  });
 }
 
-function formatPosition({ line, col }: { line: number; col: number }): string {
-  return `${line}:${col}`;
+// zod reports a union failure with the issues of every branch. Only the branch the author meant is
+// useful, so pick it from the shape of the value: a node by its kind key, a link by tuple or object.
+function describeUnion(
+  branches: readonly (readonly z.core.$ZodIssue[])[],
+  path: Path,
+  data: unknown,
+  source: Source,
+): Problem[] {
+  const value = valueAt(data, path);
+  if (path[0] === 'links' && path.length === 2) {
+    return describeIssues(branches[Array.isArray(value) ? 0 : 1] ?? [], path, data, source);
+  }
+
+  const kinds = NODE_BRANCHES.map((branch) => `"${branch.key}"`).join(', ');
+  if (!isRecord(value))
+    return [source.problem(path, `a node must be a mapping with one of ${kinds}`)];
+  const index = NODE_BRANCHES.findIndex((branch) => branch.key in value);
+  if (index >= 0) return describeIssues(branches[index] ?? [], path, data, source);
+
+  return [
+    ...Object.keys(value)
+      .filter((key) => !KNOWN_KEYS.has(key))
+      .map((key) => source.keyProblem(path, key, unknownKey(key))),
+    source.problem(path, `a node needs one of ${kinds}`),
+  ];
 }
 
-function resolve(input: DocumentInput, catalog: Catalog): Diagram {
-  const problems: string[] = [];
-  const ids = new Set<string>();
+function unknownKey(key: string): string {
+  const hint = closestMatch(key, KNOWN_KEYS);
+  return `unknown key "${key}"${hint === undefined ? '' : ` (did you mean "${hint}"?)`}`;
+}
+
+function nameOf(path: Path): string {
+  const last = path.at(-1);
+  return typeof last === 'number' ? `item ${last + 1}` : `"${last ?? 'document'}"`;
+}
+
+function withoutPrefix(message: string): string {
+  return message.replace(/^Invalid (input|option): /, '');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function valueAt(data: unknown, path: Path): unknown {
+  let current = data;
+  for (const key of path) {
+    if (Array.isArray(current) && typeof key === 'number') current = current[key];
+    else if (isRecord(current) && typeof key === 'string') current = current[key];
+    else return undefined;
+  }
+  return current;
+}
+
+function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagram {
+  const problems: Problem[] = [];
+  const ids = new Map<string, Problem>();
   let groupCount = 0;
 
-  const claimId = (id: string) => {
-    if (ids.has(id)) problems.push(`duplicate id "${id}"`);
-    ids.add(id);
+  const claimId = (id: string, path: Path) => {
+    const first = ids.get(id);
+    if (first === undefined) {
+      ids.set(id, source.problem(path, ''));
+      return;
+    }
+    const where =
+      first.line === undefined ? '' : ` (first defined at ${first.line}:${first.column})`;
+    problems.push(source.problem(path, `duplicate id "${id}"${where}`));
   };
 
-  const unknown = (kind: 'icon' | 'group', key: string): undefined => {
+  const unknown = (kind: 'icon' | 'group', key: string, path: Path): undefined => {
     const suggestions = catalog.suggest(key, kind);
     const hint = suggestions.length > 0 ? ` (did you mean ${suggestions.join(', ')}?)` : '';
-    problems.push(`unknown ${kind} "${key}"${hint}`);
+    problems.push(source.problem(path, `unknown ${kind} "${key}"${hint}`));
     return undefined;
   };
 
-  const toNode = (node: NodeInput): DiagramNode | undefined => {
+  const toNode = (node: NodeInput, path: Path): DiagramNode | undefined => {
     if ('icon' in node) {
-      claimId(node.id);
+      claimId(node.id, [...path, 'id']);
       const shape = catalog.icon(node.icon);
-      if (!shape) return unknown('icon', node.icon);
+      if (!shape) return unknown('icon', node.icon, [...path, 'icon']);
       return { kind: 'leaf', id: node.id, shape, label: node.label ?? shape.title };
     }
     if ('group' in node) {
       const id = node.id ?? `group-${++groupCount}`;
-      claimId(id);
-      if (node.border) problems.push(`group "${id}": border is not supported yet`);
+      if (node.id !== undefined) claimId(id, [...path, 'id']);
+      if (node.border) {
+        problems.push(source.problem([...path, 'border'], 'border is not supported yet'));
+      }
       const shape = catalog.group(node.group);
-      const children = toNodes(node.children);
-      if (!shape) return unknown('group', node.group);
+      const children = toNodes(node.children, [...path, 'children']);
+      if (!shape) return unknown('group', node.group, [...path, 'group']);
       return {
         kind: 'group',
         id,
@@ -90,35 +226,43 @@ function resolve(input: DocumentInput, catalog: Catalog): Diagram {
         children,
       };
     }
-    const [direction, children] =
-      'row' in node ? (['horizontal', node.row] as const) : (['vertical', node.column] as const);
-    return { kind: 'stack', direction, align: node.align ?? 'center', children: toNodes(children) };
+    const [key, direction, children] =
+      'row' in node
+        ? (['row', 'horizontal', node.row] as const)
+        : (['column', 'vertical', node.column] as const);
+    return {
+      kind: 'stack',
+      direction,
+      align: node.align ?? 'center',
+      children: toNodes(children, [...path, key]),
+    };
   };
 
-  const toNodes = (nodes: NodeInput[]): DiagramNode[] =>
-    nodes.map(toNode).filter((node) => node !== undefined);
+  const toNodes = (nodes: NodeInput[], path: Path): DiagramNode[] =>
+    nodes.map((node, index) => toNode(node, [...path, index])).filter((node) => node !== undefined);
 
   const root: StackNode = {
     kind: 'stack',
     direction: input.direction ?? 'horizontal',
     align: 'center',
-    children: toNodes(input.nodes),
+    children: toNodes(input.nodes, ['nodes']),
   };
 
-  const toEndpoint = (text: string): Endpoint => {
+  const toEndpoint = (text: string, path: Path): Endpoint => {
     const [id = '', position] = text.split('.');
-    if (!ids.has(id)) problems.push(`link endpoint "${text}" refers to unknown id "${id}"`);
+    if (!ids.has(id)) problems.push(source.problem(path, `unknown id "${id}" in link "${text}"`));
     return { id, position: POSITIONS.find((p): p is Position => p === position) };
   };
 
   const links = (input.links ?? []).map((link, index): Link => {
     const id = `link-${index + 1}`;
+    const path = ['links', index];
     if (Array.isArray(link)) {
       const [from, to] = link;
       return {
         id,
-        from: toEndpoint(from),
-        to: toEndpoint(to),
+        from: toEndpoint(from, [...path, 0]),
+        to: toEndpoint(to, [...path, 1]),
         label: '',
         dashed: false,
         arrow: 'end',
@@ -126,8 +270,8 @@ function resolve(input: DocumentInput, catalog: Catalog): Diagram {
     }
     return {
       id,
-      from: toEndpoint(link.from),
-      to: toEndpoint(link.to),
+      from: toEndpoint(link.from, [...path, 'from']),
+      to: toEndpoint(link.to, [...path, 'to']),
       label: link.label ?? '',
       dashed: link.style === 'dashed',
       arrow: link.arrow ?? 'end',

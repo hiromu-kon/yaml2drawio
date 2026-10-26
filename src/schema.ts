@@ -59,7 +59,7 @@ export interface ColumnInput {
 
 export type NodeInput = LeafInput | GroupInput | RowInput | ColumnInput;
 
-const GroupSchema: z.ZodType<GroupInput> = z.strictObject({
+const GroupObject = z.strictObject({
   id: Id.optional(),
   group: z.string(),
   label: z.string().optional(),
@@ -70,29 +70,38 @@ const GroupSchema: z.ZodType<GroupInput> = z.strictObject({
     return z.array(NodeSchema).min(1);
   },
 });
+const GroupSchema: z.ZodType<GroupInput> = GroupObject;
 
-const RowSchema: z.ZodType<RowInput> = z.strictObject({
+const RowObject = z.strictObject({
   align: Align.optional(),
   get row() {
     return z.array(NodeSchema).min(1);
   },
 });
+const RowSchema: z.ZodType<RowInput> = RowObject;
 
-const ColumnSchema: z.ZodType<ColumnInput> = z.strictObject({
+const ColumnObject = z.strictObject({
   align: Align.optional(),
   get column() {
     return z.array(NodeSchema).min(1);
   },
 });
+const ColumnSchema: z.ZodType<ColumnInput> = ColumnObject;
 
-// Keep the order in sync with NODE_KEYS, which tells which branch a node was meant to match
+// Keep the order in sync with NODE_BRANCHES, which load.ts uses to pick the branch a node was
+// meant to match when reporting errors
 export const NodeSchema: z.ZodType<NodeInput> = z.union([
   LeafSchema,
   GroupSchema,
   RowSchema,
   ColumnSchema,
 ]);
-export const NODE_KEYS = ['icon', 'group', 'row', 'column'] as const;
+export const NODE_BRANCHES = [
+  { key: 'icon', keys: Object.keys(LeafSchema.shape) },
+  { key: 'group', keys: Object.keys(GroupObject.shape) },
+  { key: 'row', keys: Object.keys(RowObject.shape) },
+  { key: 'column', keys: Object.keys(ColumnObject.shape) },
+] as const;
 
 const Endpoint = z
   .string()
@@ -101,16 +110,16 @@ const Endpoint = z
     `endpoint must be "<id>" or "<id>.<position>" (position: ${POSITIONS.join(', ')})`,
   );
 
-const LinkSchema = z.union([
-  z.tuple([Endpoint, Endpoint]),
-  z.strictObject({
-    from: Endpoint,
-    to: Endpoint,
-    label: z.string().optional(),
-    style: z.enum(['solid', 'dashed']).optional(),
-    arrow: z.enum(['end', 'start', 'both', 'none']).optional(),
-  }),
-]);
+const LinkObject = z.strictObject({
+  from: Endpoint,
+  to: Endpoint,
+  label: z.string().optional(),
+  style: z.enum(['solid', 'dashed']).optional(),
+  arrow: z.enum(['end', 'start', 'both', 'none']).optional(),
+});
+
+// The tuple comes first; load.ts relies on this order when reporting errors
+const LinkSchema = z.union([z.tuple([Endpoint, Endpoint]), LinkObject]);
 
 export const DocumentSchema = z.strictObject({
   title: z.string().optional(),
@@ -120,3 +129,10 @@ export const DocumentSchema = z.strictObject({
 });
 
 export type DocumentInput = z.infer<typeof DocumentSchema>;
+
+/** Every key the schema accepts anywhere, used to suggest a fix for a misspelled key. */
+export const KNOWN_KEYS: ReadonlySet<string> = new Set([
+  ...NODE_BRANCHES.flatMap((branch) => branch.keys),
+  ...Object.keys(LinkObject.shape),
+  ...Object.keys(DocumentSchema.shape),
+]);
