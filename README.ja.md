@@ -2,12 +2,42 @@
 
 [English](README.md) | **日本語**
 
-インフラ構成図（まずは AWS）を YAML で書くと、配置を計算した [draw.io](https://www.drawio.com/) のファイルを出力します。
-書くのは構造（何の中に何があるか、どの順に並べるか、何と何がつながっているか）だけで、座標は yaml2drawio が計算します。
+[![CI](https://github.com/hiromu-kon/yaml2drawio/actions/workflows/ci.yml/badge.svg)](https://github.com/hiromu-kon/yaml2drawio/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-> 状況: 開発中です。今あるのはアイコン辞書と入力の書き方の定義だけです。
+**インフラ構成図をコードで書き、編集できる draw.io のファイルとして出力する。**
 
-## 書き方の例（予定）
+yaml2drawio は、YAML で書いたインフラの構成から、配置を計算した [draw.io](https://www.drawio.com/) の図を作ります。
+書くのは構造（何の中に何があるか、どの順に並べるか、何と何がつながっているか）だけで、座標はすべて yaml2drawio が計算します。
+
+> [!NOTE]
+> 開発中です。今あるのはアイコン辞書と入力の書き方の定義で、配置の計算と draw.io への出力はこれから作ります。[ロードマップ](#ロードマップ)を参照してください。
+
+yaml2drawio は図を描くだけです。クラウドのリソースを読み取ったり変更したりはしません。
+
+## なぜ作るのか
+
+- **手作業や AI で描いた図は崩れやすい。** 作り直すたびに配置が変わり、アイコンが間違い、線がラベルに重なります。
+- **図をコードで書くツールの多くは画像を出力する。** PNG や SVG になるので、draw.io で細かく直したり、チームで編集し続けたりできません。
+
+yaml2drawio は、図を読みやすいテキストとしてバージョン管理しつつ、draw.io でそのまま開ける `.drawio` ファイルを出力します。
+
+## 特徴
+
+- **座標ではなく構造を書く**（予定）
+  入れ子・並び順・向きで配置が決まるので、同じ YAML からは毎回同じ図ができます。
+- **draw.io 公式の図形を使う**
+  アイコンは draw.io の図形ライブラリから抜き出した辞書（AWS のアイコン 930 個とグループ 20 種）から選びます。辞書にない名前は推測せず、候補を添えてエラーにします。
+- **編集できる出力**（予定）
+  出力は `.drawio` ファイルなので、draw.io や VS Code の拡張機能でそのまま開けます。
+- **AI エージェントでも扱いやすい**（予定）
+  短く書ける YAML と厳密な検証により、エージェントが図を書き、確かめ、推測せずに直せます。
+- **AWS 以外にも広げられる**
+  アイコン名に名前空間（`aws.ecs`、`aws.vpc`）があるので、他のクラウドのアイコンを並べて追加できます。
+
+## 書き方の例
+
+> 出力の画像は、draw.io への出力ができたら追加します。
 
 ```yaml
 direction: vertical
@@ -28,20 +58,33 @@ links:
   - { from: api.e, to: db.w, style: dashed }
 ```
 
-## 開発
+## 他のツールとの比較
 
-[mise](https://mise.jdx.dev/) が必要です（Node と pnpm のバージョンは `mise.toml` で固定しています）。
+|                    | yaml2drawio             | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
+| ------------------ | ----------------------- | ---------------------------------------------------- | -------------------------------------------------- | --------------------------------------- |
+| 入力               | YAML                    | YAML                                                 | Python                                             | D2 言語                                 |
+| 出力               | `.drawio`（編集できる） | PNG                                                  | PNG、JPG、SVG、PDF、DOT                            | SVG、PNG、GIF、PDF、PPTX                |
+| 配置               | 入れ子と並び順から計算  | 入れ子と並び順から計算                               | Graphviz                                           | Dagre、ELK、TALA から選ぶ               |
+| クラウドのアイコン | AWS（今後追加予定）     | AWS（定義ファイルで追加できる）                      | AWS、Azure、GCP、Kubernetes など                   | 任意の画像                              |
 
-```sh
-pnpm install
-pnpm check              # 型チェック・リント・テスト・フォーマットの確認
-pnpm dev icons redis    # アイコン辞書を検索する
-pnpm catalog            # draw.io のソースから catalog/aws.json を作り直す
-```
+## ロードマップ
 
-アイコンは draw.io のサイドバー定義（[jgraph/drawio](https://github.com/jgraph/drawio)、Apache-2.0）から抜き出しています。
-yaml2drawio は draw.io や JGraph とは関係のない非公式のツールです。
+- [x] draw.io から抜き出した AWS のアイコン辞書
+- [x] 入力の書き方の定義
+- [ ] 行番号と候補つきの検証エラー
+- [ ] 配置の計算
+- [ ] draw.io への出力
+- [ ] draw.io Desktop による PNG のプレビュー
+- [ ] npm パッケージ
+- [ ] GCP、Azure、Kubernetes のアイコン
+
+## 開発に参加する
+
+[CONTRIBUTING.md](CONTRIBUTING.md)（英語）を参照してください。
 
 ## ライセンス
 
-MIT
+[MIT](LICENSE)
+
+アイコンは draw.io のサイドバー定義（[jgraph/drawio](https://github.com/jgraph/drawio)、Apache-2.0）から抜き出しています。
+yaml2drawio は draw.io や JGraph とは関係のない非公式のツールです。
