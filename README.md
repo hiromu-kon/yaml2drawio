@@ -1,3 +1,5 @@
+<img src="docs/images/logo.svg" alt="yaml2drawio logo" width="96">
+
 # yaml2drawio
 
 **English** | [日本語](README.ja.md)
