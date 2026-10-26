@@ -11,6 +11,11 @@ export interface LeafNode {
   label: string;
 }
 
+export interface BorderChild {
+  position: Position;
+  node: LeafNode;
+}
+
 export interface GroupNode {
   kind: 'group';
   id: string;
@@ -18,6 +23,7 @@ export interface GroupNode {
   label: string;
   direction: Direction;
   align: Align;
+  border: BorderChild[];
   children: DiagramNode[];
 }
 

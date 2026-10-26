@@ -1,32 +1,15 @@
-import type { Rect, Layout } from './layout.ts';
+import { GROUP_PADDING, type Layout, type Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
-import type { Position } from './schema.ts';
+import { POSITION_POINTS, sideOf } from './position.ts';
 import { LINE_HEIGHT } from './text.ts';
-
-const PORTS: Record<Position, [number, number]> = {
-  n: [0.5, 0],
-  nne: [0.75, 0],
-  ne: [1, 0],
-  ene: [1, 0.25],
-  e: [1, 0.5],
-  ese: [1, 0.75],
-  se: [1, 1],
-  sse: [0.75, 1],
-  s: [0.5, 1],
-  ssw: [0.25, 1],
-  sw: [0, 1],
-  wsw: [0, 0.75],
-  w: [0, 0.5],
-  wnw: [0, 0.25],
-  nw: [0, 0],
-  nnw: [0.25, 0],
-};
 
 export function toDrawio(diagram: Diagram, layout: Layout): string {
   const cells: string[] = [];
   const leaves = new Map<string, LeafNode>();
+  // The group each leaf sits inside; border children are left out because they sit on its edge
+  const enclosing = new Map<string, GroupNode>();
 
-  const visit = (node: DiagramNode, parent: GroupNode | undefined): void => {
+  const visit = (node: DiagramNode, parent: GroupNode | undefined, onBorder = false): void => {
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child, parent);
       return;
@@ -34,15 +17,20 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     const geometry = relativeTo(cellRect(layout, node), parent && cellRect(layout, parent));
     if (node.kind === 'leaf') {
       leaves.set(node.id, node);
+      if (parent && !onBorder) enclosing.set(node.id, parent);
       cells.push(vertex(node.id, node.label, node.shape.style, parent?.id, geometry));
       return;
     }
     cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), parent?.id, geometry));
     for (const child of node.children) visit(child, node);
+    // Border children belong to the group so that moving it in draw.io moves them too
+    for (const { node: child } of node.border) visit(child, node, true);
   };
   visit(diagram.root, undefined);
 
-  for (const link of diagram.links) cells.push(edge(link, leaves));
+  for (const link of diagram.links) {
+    cells.push(edge(link, leaves, sideEntryBend(link, layout, leaves, enclosing)));
+  }
 
   return [
     '<mxfile host="yaml2drawio">',
@@ -88,7 +76,49 @@ function groupStyle(style: string): string {
   return style.includes('container=1') ? style : `${style}container=1;collapsible=0;`;
 }
 
-function edge(link: Link, leaves: Map<string, LeafNode>): string {
+interface Point {
+  x: number;
+  y: number;
+}
+
+// draw.io bends a line about 20px before the side it enters, which is right where the label of
+// the enclosing group sits. Bend it in the gap just outside that group instead.
+function sideEntryBend(
+  link: Link,
+  layout: Layout,
+  leaves: Map<string, LeafNode>,
+  enclosing: Map<string, GroupNode>,
+): Point | undefined {
+  const { position, id } = link.to;
+  if (!position) return undefined;
+  const side = sideOf(position);
+  const leaf = leaves.get(id);
+  const group = enclosing.get(id);
+  const source = leaves.get(link.from.id);
+  if ((side !== 'left' && side !== 'right') || !leaf || !group) return undefined;
+
+  const box = cellRect(layout, group);
+  // A line from inside the same group would have to leave it and come back
+  if (source && contains(box, center(cellRect(layout, source)))) return undefined;
+
+  const target = cellRect(layout, leaf);
+  const [, py] = POSITION_POINTS[position];
+  const gap = GROUP_PADDING / 2;
+  return {
+    x: side === 'left' ? box.x - gap : box.x + box.width + gap,
+    y: Math.round(target.y + py * target.height),
+  };
+}
+
+function center({ x, y, width, height }: Rect): Point {
+  return { x: x + width / 2, y: y + height / 2 };
+}
+
+function contains(box: Rect, { x, y }: Point): boolean {
+  return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height;
+}
+
+function edge(link: Link, leaves: Map<string, LeafNode>, bend: Point | undefined): string {
   const style = [
     'edgeStyle=orthogonalEdgeStyle',
     'rounded=0',
@@ -105,7 +135,10 @@ function edge(link: Link, leaves: Map<string, LeafNode>): string {
   ].join(';');
   return (
     `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="1" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
-    '<mxGeometry relative="1" as="geometry" /></mxCell>'
+    (bend
+      ? `<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${bend.x}" y="${bend.y}" /></Array></mxGeometry>`
+      : '<mxGeometry relative="1" as="geometry" />') +
+    '</mxCell>'
   );
 }
 
@@ -115,7 +148,7 @@ function port(
   leaves: Map<string, LeafNode>,
 ): string[] {
   if (!endpoint.position) return [];
-  const [x, y] = PORTS[endpoint.position];
+  const [x, y] = POSITION_POINTS[endpoint.position];
   // A leaf's label hangs below its icon, so a line leaving from the bottom starts under the label
   const leaf = leaves.get(endpoint.id);
   const lines = leaf && leaf.label !== '' ? leaf.label.split('\n').length : 0;

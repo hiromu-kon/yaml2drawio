@@ -28,6 +28,22 @@ function contains(outer: Rect, inner: Rect): boolean {
   );
 }
 
+function vpcWithBorder(border: string): string {
+  return [
+    'direction: vertical',
+    'nodes:',
+    '  - { id: above, icon: aws.users }',
+    '  - group: aws.vpc',
+    '    id: vpc',
+    '    direction: vertical',
+    '    border:',
+    border,
+    '    children:',
+    '      - { id: alb, icon: aws.alb }',
+    '',
+  ].join('\n');
+}
+
 describe('layoutDiagram', () => {
   it('places the children of a row left to right without overlapping', () => {
     const diagram = load(
@@ -92,6 +108,38 @@ describe('layoutDiagram', () => {
     // two label lines (15px each) and the gap must fit between the icons
     expect(cellOf(layout, 'b').y - (a.y + a.height)).toBeGreaterThanOrEqual(34);
     expect(findNode(diagram.root.children, 'a')).toMatchObject({ label: 'Line 1\nLine 2' });
+  });
+
+  it('centers a border child on its edge of the group', () => {
+    const layout = layoutDiagram(load(vpcWithBorder('      n: { id: igw, icon: aws.igw }')).root);
+    const vpc = cellOf(layout, 'vpc');
+    const igw = cellOf(layout, 'igw');
+    expect(igw.y + igw.height / 2).toBe(vpc.y);
+    expect(igw.x + igw.width / 2).toBe(vpc.x + vpc.width / 2);
+  });
+
+  it('keeps the content and the neighbors clear of a border child', () => {
+    const layout = layoutDiagram(
+      load(vpcWithBorder('      n: { id: igw, icon: aws.igw, label: IGW }')).root,
+    );
+    const igw = cellOf(layout, 'igw');
+    const labelBottom = igw.y + igw.height + 19;
+    expect(cellOf(layout, 'alb').y).toBeGreaterThan(labelBottom);
+    const above = cellOf(layout, 'above');
+    expect(above.y + above.height).toBeLessThan(igw.y);
+  });
+
+  it('keeps the content centered under the top edge when only one side has a border child', () => {
+    const layout = layoutDiagram(
+      load(
+        vpcWithBorder(
+          '      n: { id: igw, icon: aws.igw }\n      e: { id: endpoint, icon: aws.vpc_endpoint }',
+        ),
+      ).root,
+    );
+    const igw = cellOf(layout, 'igw');
+    const alb = cellOf(layout, 'alb');
+    expect(alb.x + alb.width / 2).toBe(igw.x + igw.width / 2);
   });
 
   it('produces the same coordinates every time', () => {

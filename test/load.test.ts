@@ -111,18 +111,21 @@ describe('loadDiagram errors', () => {
     expect(problems).toEqual(['3:11: duplicate id "fn" (first defined at 2:11)']);
   });
 
-  it('rejects border children until they are supported', () => {
+  it('resolves border children like any other icon', () => {
     const problems = problemsOf(
       lines(
         'nodes:',
         '  - group: aws.vpc',
         '    border:',
-        '      n: { id: igw, icon: aws.igw }',
+        '      n: { id: igw, icon: aws.igww }',
         '    children:',
-        '      - { id: fn, icon: aws.lambda }',
+        '      - { id: igw, icon: aws.lambda }',
       ),
     );
-    expect(problems).toEqual(['4:7: border is not supported yet']);
+    expect(problems).toEqual([
+      expect.stringMatching(/^4:27: unknown icon "aws\.igww"/),
+      '6:15: duplicate id "igw" (first defined at 4:16)',
+    ]);
   });
 
   it('lists problems in the order they appear in the file', () => {

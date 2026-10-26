@@ -1,13 +1,22 @@
 import { LineCounter, isMap, isNode, isScalar, parseDocument, type Document } from 'yaml';
 import type { z } from 'zod';
 import type { Catalog } from './catalog.ts';
-import type { Diagram, DiagramNode, Endpoint, Link, StackNode } from './model.ts';
+import type {
+  BorderChild,
+  Diagram,
+  DiagramNode,
+  Endpoint,
+  LeafNode,
+  Link,
+  StackNode,
+} from './model.ts';
 import {
   DocumentSchema,
   KNOWN_KEYS,
   NODE_BRANCHES,
   POSITIONS,
   type DocumentInput,
+  type LeafInput,
   type NodeInput,
   type Position,
 } from './schema.ts';
@@ -200,19 +209,23 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
     return undefined;
   };
 
+  const toLeaf = (node: LeafInput, path: Path): LeafNode | undefined => {
+    claimId(node.id, [...path, 'id']);
+    const shape = catalog.icon(node.icon);
+    if (!shape) return unknown('icon', node.icon, [...path, 'icon']);
+    return { kind: 'leaf', id: node.id, shape, label: node.label ?? shape.title };
+  };
+
   const toNode = (node: NodeInput, path: Path): DiagramNode | undefined => {
-    if ('icon' in node) {
-      claimId(node.id, [...path, 'id']);
-      const shape = catalog.icon(node.icon);
-      if (!shape) return unknown('icon', node.icon, [...path, 'icon']);
-      return { kind: 'leaf', id: node.id, shape, label: node.label ?? shape.title };
-    }
+    if ('icon' in node) return toLeaf(node, path);
     if ('group' in node) {
       const id = node.id ?? `group-${++groupCount}`;
       if (node.id !== undefined) claimId(id, [...path, 'id']);
-      if (node.border) {
-        problems.push(source.problem([...path, 'border'], 'border is not supported yet'));
-      }
+      const border = POSITIONS.flatMap((position): BorderChild[] => {
+        const leaf = node.border?.[position];
+        const resolved = leaf && toLeaf(leaf, [...path, 'border', position]);
+        return resolved ? [{ position, node: resolved }] : [];
+      });
       const shape = catalog.group(node.group);
       const children = toNodes(node.children, [...path, 'children']);
       if (!shape) return unknown('group', node.group, [...path, 'group']);
@@ -223,6 +236,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
         label: node.label ?? shape.title,
         direction: node.direction ?? 'horizontal',
         align: node.align ?? 'center',
+        border,
         children,
       };
     }
