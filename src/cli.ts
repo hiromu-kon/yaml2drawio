@@ -36,8 +36,9 @@ async function build(input: string): Promise<void> {
 
 switch (command) {
   case 'icons': {
-    for (const shape of loadCatalog().search(args.join(' '))) {
-      console.log(`${shape.key}\t${shape.kind}\t${shape.title}`);
+    for (const { name, shape } of loadCatalog().search(args.join(' '))) {
+      const alias = name === shape.key ? '' : `\t(= ${shape.key})`;
+      console.log(`${name}\t${shape.kind}\t${shape.title}${alias}`);
     }
     break;
   }

@@ -44,7 +44,14 @@ describe('catalog', () => {
   });
 
   it('searches shapes whose key, title or category contain every word', () => {
-    const keys = catalog.search('elasticache redis').map((shape) => shape.key);
-    expect(keys).toContain('aws.elasticache_for_redis');
+    const names = catalog.search('elasticache redis').map((result) => result.name);
+    expect(names).toContain('aws.elasticache_for_redis');
+  });
+
+  it('finds aliases by their short name', () => {
+    expect(catalog.search('sqs')).toContainEqual({
+      name: 'aws.sqs',
+      shape: catalog.icon('aws.simple_queue_service'),
+    });
   });
 });
