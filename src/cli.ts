@@ -1,26 +1,61 @@
 #!/usr/bin/env node
+import { readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { loadCatalog } from './catalog.ts';
+import { toDrawio } from './drawio.ts';
+import { layoutDiagram } from './layout.ts';
+import { DiagramError, loadDiagram } from './load.ts';
+import { exportPng } from './png.ts';
 
 const USAGE = `Usage:
   yaml2drawio build <input.yaml> [-o <output.drawio>] [--png]
   yaml2drawio icons <query...>`;
 
-const { positionals } = parseArgs({ allowPositionals: true, strict: false });
+const { positionals, values } = parseArgs({
+  allowPositionals: true,
+  options: {
+    output: { type: 'string', short: 'o' },
+    png: { type: 'boolean' },
+  },
+});
 const [command, ...args] = positionals;
+
+async function build(input: string): Promise<void> {
+  const output = values.output ?? input.replace(/\.ya?ml$/, '') + '.drawio';
+  const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog());
+  await writeFile(output, toDrawio(diagram, layoutDiagram(diagram.root)));
+  console.log(`wrote ${output}`);
+  if (values.png) {
+    const png = output.replace(/\.drawio$/, '') + '.png';
+    await exportPng(output, png);
+    console.log(`wrote ${png}`);
+  }
+}
 
 switch (command) {
   case 'icons': {
-    const catalog = loadCatalog();
-    for (const shape of catalog.search(args.join(' '))) {
+    for (const shape of loadCatalog().search(args.join(' '))) {
       console.log(`${shape.key}\t${shape.kind}\t${shape.title}`);
     }
     break;
   }
-  case 'build':
-    console.error('build is not implemented yet');
-    process.exitCode = 1;
+  case 'build': {
+    const [input] = args;
+    if (!input) {
+      console.error(USAGE);
+      process.exitCode = 1;
+      break;
+    }
+    try {
+      await build(input);
+    } catch (error) {
+      if (!(error instanceof DiagramError)) throw error;
+      console.error(`${input}:`);
+      for (const problem of error.problems) console.error(`  ${problem}`);
+      process.exitCode = 1;
+    }
     break;
+  }
   case undefined:
   default:
     console.log(USAGE);
