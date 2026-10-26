@@ -1,0 +1,52 @@
+title: Web application
+direction: vertical
+nodes:
+  - { id: users, icon: aws.users, label: Users }
+  - group: aws.cloud
+    direction: vertical
+    children:
+      - { id: cdn, icon: aws.cloudfront, label: CloudFront }
+      - group: aws.region
+        label: ap-northeast-1
+        direction: vertical
+        children:
+          - group: aws.vpc
+            label: Production VPC
+            direction: vertical
+            children:
+              - { id: alb, icon: aws.alb, label: ALB }
+              - row:
+                  - group: aws.az
+                    label: ap-northeast-1a
+                    direction: vertical
+                    align: expand
+                    children:
+                      - group: aws.private_subnet
+                        label: App
+                        children:
+                          - { id: api_a, icon: aws.ecs, label: API }
+                      - group: aws.private_subnet
+                        label: Data
+                        children:
+                          - { id: db_writer, icon: aws.aurora, label: Aurora Writer }
+                  - group: aws.az
+                    label: ap-northeast-1c
+                    direction: vertical
+                    align: expand
+                    children:
+                      - group: aws.private_subnet
+                        label: App
+                        children:
+                          - { id: api_c, icon: aws.ecs, label: API }
+                      - group: aws.private_subnet
+                        label: Data
+                        children:
+                          - { id: db_reader, icon: aws.aurora, label: Aurora Reader }
+links:
+  - [users.s, cdn.n]
+  - [cdn.s, alb.n]
+  - [alb.w, api_a.n]
+  - [alb.e, api_c.n]
+  - [api_a.s, db_writer.n]
+  - [api_c.s, db_reader.n]
+  - { from: db_writer.e, to: db_reader.w, style: dashed, label: replication }
