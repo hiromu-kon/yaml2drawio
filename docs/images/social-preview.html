@@ -1,0 +1,53 @@
+<!doctype html>
+<!-- Source of social-preview.png. Render it at 1280x640, for example:
+     chrome --headless=new --window-size=1280,640 --screenshot=social-preview.png social-preview.html -->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 1280px;
+        height: 640px;
+      }
+      body {
+        background: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 72px;
+        padding: 0 112px;
+        box-sizing: border-box;
+        font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      }
+      img {
+        width: 280px;
+        height: 280px;
+        flex: none;
+      }
+      h1 {
+        margin: 0;
+        color: #f8fafc;
+        font-size: 104px;
+        font-weight: 700;
+        letter-spacing: -2px;
+      }
+      h1 span {
+        color: #22d3ee;
+      }
+      p {
+        margin: 24px 0 0;
+        color: #94a3b8;
+        font-size: 34px;
+        line-height: 1.35;
+      }
+    </style>
+  </head>
+  <body>
+    <img src="logo.svg" alt="" />
+    <div>
+      <h1>yaml<span>2</span>drawio</h1>
+      <p>Infrastructure diagrams as code,<br />output as editable draw.io files.</p>
+    </div>
+  </body>
+</html>
