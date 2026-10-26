@@ -64,6 +64,14 @@ links:
 
 More examples are in [examples/](examples/).
 
+### Editor support
+
+Point your YAML file at the JSON Schema to get completion for keys, icon names and group names, and to see mistakes before you build. In VS Code this needs the [YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml).
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hiromu-kon/yaml2drawio/main/schema.json
+```
+
 ## Comparison
 
 |             | yaml2drawio                     | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
@@ -81,6 +89,7 @@ More examples are in [examples/](examples/).
 - [x] Layout engine (nesting, order, alignment, border children)
 - [x] draw.io writer
 - [x] PNG preview through draw.io Desktop
+- [x] JSON Schema for editor completion
 - [ ] npm package
 - [ ] GCP, Azure and Kubernetes icons
 

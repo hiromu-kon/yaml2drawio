@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node src/cli.ts",
     "catalog": "node scripts/extract-drawio-icons.ts",
+    "schema": "node scripts/generate-json-schema.ts",
     "docs:images": "node src/cli.ts build examples/quick-start.yaml -o docs/images/quick-start.drawio --png && node src/cli.ts build examples/ecommerce.yaml -o docs/images/ecommerce.drawio --png",
     "typecheck": "tsc",
     "lint": "oxlint --type-aware --deny-warnings",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "ajv": "^8.20.0",
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2005",

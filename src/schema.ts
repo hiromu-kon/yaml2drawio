@@ -29,11 +29,19 @@ const Id = z
 const Direction = z.enum(['vertical', 'horizontal']);
 const Align = z.enum(['start', 'center', 'end', 'expand']);
 
-const LeafSchema = z.strictObject({
-  id: Id,
-  icon: z.string(),
-  label: z.string().optional(),
-});
+const describeDirection = 'How the children are laid out. Defaults to horizontal.';
+const describeAlign =
+  'How the children line up across the direction. expand gives them all the same size. Defaults to center.';
+
+const LeafSchema = z
+  .strictObject({
+    id: Id.describe('Unique id, used by links.'),
+    icon: z
+      .string()
+      .describe('Icon from the catalog, such as aws.ecs. Search with `yaml2drawio icons <word>`.'),
+    label: z.string().optional().describe("Text under the icon. Defaults to the icon's title."),
+  })
+  .meta({ id: 'Leaf', description: 'An icon.' });
 
 export type LeafInput = z.infer<typeof LeafSchema>;
 
@@ -60,42 +68,51 @@ export interface ColumnInput {
 export type NodeInput = LeafInput | GroupInput | RowInput | ColumnInput;
 
 const GroupObject = z.strictObject({
-  id: Id.optional(),
-  group: z.string(),
-  label: z.string().optional(),
-  direction: Direction.optional(),
-  align: Align.optional(),
-  border: z.partialRecord(z.enum(POSITIONS), LeafSchema).optional(),
+  id: Id.optional().describe('Unique id, needed only to link to the group.'),
+  group: z.string().describe('Group style, such as aws.vpc, aws.az or aws.private_subnet.'),
+  label: z.string().optional().describe("Title of the group. Defaults to the style's title."),
+  direction: Direction.optional().describe(describeDirection),
+  align: Align.optional().describe(describeAlign),
+  border: z
+    .partialRecord(z.enum(POSITIONS), LeafSchema)
+    .optional()
+    .describe('Icons placed on the edge of the group, keyed by position (n, ne, e, ...).'),
   get children() {
-    return z.array(NodeSchema).min(1);
+    return z.array(NodeSchema).min(1).describe('What the group contains.');
   },
 });
-const GroupSchema: z.ZodType<GroupInput> = GroupObject;
+const GroupSchema: z.ZodType<GroupInput> = GroupObject.meta({
+  id: 'Group',
+  description: 'A box around other nodes, such as a VPC or a subnet.',
+});
 
 const RowObject = z.strictObject({
-  align: Align.optional(),
+  align: Align.optional().describe(describeAlign),
   get row() {
-    return z.array(NodeSchema).min(1);
+    return z.array(NodeSchema).min(1).describe('Nodes laid out left to right.');
   },
 });
-const RowSchema: z.ZodType<RowInput> = RowObject;
+const RowSchema: z.ZodType<RowInput> = RowObject.meta({
+  id: 'Row',
+  description: 'Nodes laid out left to right without a box.',
+});
 
 const ColumnObject = z.strictObject({
-  align: Align.optional(),
+  align: Align.optional().describe(describeAlign),
   get column() {
-    return z.array(NodeSchema).min(1);
+    return z.array(NodeSchema).min(1).describe('Nodes laid out top to bottom.');
   },
 });
-const ColumnSchema: z.ZodType<ColumnInput> = ColumnObject;
+const ColumnSchema: z.ZodType<ColumnInput> = ColumnObject.meta({
+  id: 'Column',
+  description: 'Nodes laid out top to bottom without a box.',
+});
 
 // Keep the order in sync with NODE_BRANCHES, which load.ts uses to pick the branch a node was
 // meant to match when reporting errors
-export const NodeSchema: z.ZodType<NodeInput> = z.union([
-  LeafSchema,
-  GroupSchema,
-  RowSchema,
-  ColumnSchema,
-]);
+export const NodeSchema: z.ZodType<NodeInput> = z
+  .union([LeafSchema, GroupSchema, RowSchema, ColumnSchema])
+  .meta({ id: 'Node', description: 'An icon, a group, a row or a column.' });
 export const NODE_BRANCHES = [
   { key: 'icon', keys: Object.keys(LeafSchema.shape) },
   { key: 'group', keys: Object.keys(GroupObject.shape) },
@@ -108,25 +125,37 @@ const Endpoint = z
   .regex(
     new RegExp(`^[A-Za-z][A-Za-z0-9_-]*(\\.(${POSITIONS.join('|')}))?$`),
     `endpoint must be "<id>" or "<id>.<position>" (position: ${POSITIONS.join(', ')})`,
-  );
+  )
+  .meta({
+    id: 'Endpoint',
+    description:
+      'An id, optionally followed by the side the line leaves or enters, such as alb.s (n, ne, e, se, s, sw, w, nw and the points between them).',
+  });
 
 const LinkObject = z.strictObject({
   from: Endpoint,
   to: Endpoint,
-  label: z.string().optional(),
-  style: z.enum(['solid', 'dashed']).optional(),
-  arrow: z.enum(['end', 'start', 'both', 'none']).optional(),
+  label: z.string().optional().describe('Text on the line.'),
+  style: z.enum(['solid', 'dashed']).optional().describe('Defaults to solid.'),
+  arrow: z
+    .enum(['end', 'start', 'both', 'none'])
+    .optional()
+    .describe('Which ends get an arrowhead. Defaults to end.'),
 });
 
 // The tuple comes first; load.ts relies on this order when reporting errors
-const LinkSchema = z.union([z.tuple([Endpoint, Endpoint]), LinkObject]);
+const LinkSchema = z
+  .union([z.tuple([Endpoint, Endpoint]), LinkObject])
+  .meta({ id: 'Link', description: 'A line: [from, to], or an object for a label or style.' });
 
-export const DocumentSchema = z.strictObject({
-  title: z.string().optional(),
-  direction: Direction.optional(),
-  nodes: z.array(NodeSchema).min(1),
-  links: z.array(LinkSchema).optional(),
-});
+export const DocumentSchema = z
+  .strictObject({
+    title: z.string().optional().describe('Name of the draw.io page.'),
+    direction: Direction.optional().describe(describeDirection),
+    nodes: z.array(NodeSchema).min(1).describe('What the diagram contains.'),
+    links: z.array(LinkSchema).optional().describe('Lines between ids.'),
+  })
+  .meta({ title: 'yaml2drawio diagram' });
 
 export type DocumentInput = z.infer<typeof DocumentSchema>;
 

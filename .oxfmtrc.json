@@ -2,5 +2,5 @@
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "singleQuote": true,
   "printWidth": 100,
-  "ignorePatterns": ["catalog/*.json", "pnpm-lock.yaml"]
+  "ignorePatterns": ["catalog/*.json", "schema.json", "pnpm-lock.yaml"]
 }

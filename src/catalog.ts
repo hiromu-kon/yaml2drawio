@@ -36,6 +36,8 @@ export const AliasFileSchema = z.object({
 export interface Catalog {
   icon(key: string): Shape | undefined;
   group(key: string): Shape | undefined;
+  /** Every name that resolves to a shape, aliases included. */
+  names(type: 'icon' | 'group'): string[];
   suggest(key: string, type: 'icon' | 'group'): string[];
   search(query: string): Shape[];
 }
@@ -82,12 +84,15 @@ export function loadCatalog(): Catalog {
   return {
     icon: (key) => resolve(icons, aliases.icon, key),
     group: (key) => resolve(groups, aliases.group, key),
-    suggest(key, type) {
+    names(type) {
       const names =
         type === 'icon'
           ? [...icons.keys(), ...aliases.icon.keys()]
           : [...groups.keys(), ...aliases.group.keys()];
-      return rankByCloseness(key, names).slice(0, 3);
+      return names.toSorted();
+    },
+    suggest(key, type) {
+      return rankByCloseness(key, this.names(type)).slice(0, 3);
     },
     search(query) {
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);

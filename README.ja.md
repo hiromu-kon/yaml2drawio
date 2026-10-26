@@ -64,6 +64,14 @@ links:
 
 ほかの例は [examples/](examples/) にあります。
 
+### エディタでの補完
+
+YAML ファイルの先頭で JSON Schema を指定すると、キー・アイコン名・グループ名を補完でき、図を作る前に書き間違いに気づけます。VS Code では [YAML 拡張機能](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml)が必要です。
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hiromu-kon/yaml2drawio/main/schema.json
+```
+
 ## 他のツールとの比較
 
 |                    | yaml2drawio             | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
@@ -81,6 +89,7 @@ links:
 - [x] 配置の計算（入れ子・並び順・揃え方・枠の上の要素）
 - [x] draw.io への出力
 - [x] draw.io Desktop による PNG のプレビュー
+- [x] エディタで補完するための JSON Schema
 - [ ] npm パッケージ
 - [ ] GCP、Azure、Kubernetes のアイコン
 
