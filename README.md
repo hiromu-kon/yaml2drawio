@@ -11,7 +11,7 @@ yaml2drawio turns a YAML description of your infrastructure into a laid-out [dra
 You describe the structure — what sits inside what, in which order, and what connects to what — and yaml2drawio computes every coordinate.
 
 > [!NOTE]
-> Work in progress. The icon catalog and the input schema exist; layout and draw.io output come next. See the [roadmap](#roadmap).
+> Work in progress. You can build diagrams from a clone of this repository; an npm package and more providers come next. See the [roadmap](#roadmap).
 
 yaml2drawio only draws diagrams. It does not read or change your cloud resources.
 
@@ -24,13 +24,13 @@ yaml2drawio keeps the diagram in version control as readable text and still give
 
 ## Features
 
-- **Structure, not coordinates** (planned)
+- **Structure, not coordinates**
   Nesting, order and direction decide the layout, so the same YAML always produces the same diagram.
 - **Official draw.io shapes**
   Icons come from a catalog extracted from draw.io's own shape library (930 AWS icons and 20 groups). An unknown name is an error with suggestions, never a guess.
-- **Editable output** (planned)
+- **Editable output**
   The result is a native `.drawio` file you can open in draw.io or the VS Code extension.
-- **Made for AI agents too** (planned)
+- **Made for AI agents too**
   Compact YAML and strict validation let an agent write a diagram, check it, and fix it without guessing.
 - **Beyond AWS**
   Icon names are namespaced (`aws.ecs`, `aws.vpc`) so other providers can be added side by side.
@@ -71,10 +71,10 @@ links:
 
 - [x] AWS icon catalog extracted from draw.io
 - [x] Input schema
-- [ ] Validation errors with line numbers and suggestions
-- [ ] Layout engine
-- [ ] draw.io writer
-- [ ] PNG preview through draw.io Desktop
+- [x] Validation errors with line numbers and suggestions
+- [x] Layout engine (nesting, order, alignment, border children)
+- [x] draw.io writer
+- [x] PNG preview through draw.io Desktop
 - [ ] npm package
 - [ ] GCP, Azure and Kubernetes icons
 

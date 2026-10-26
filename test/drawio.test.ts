@@ -9,7 +9,7 @@ function render(source: string): string {
 }
 
 function cellTag(xml: string, id: string): string {
-  const match = new RegExp(`<mxCell id="${id}"[^>]*>(<mxGeometry[^>]*>)?`).exec(xml);
+  const match = new RegExp(`<mxCell id="${id}"[^>]*>.*?</mxCell>`).exec(xml);
   if (!match) throw new Error(`no cell "${id}"`);
   return match[0];
 }
@@ -60,6 +60,50 @@ describe('toDrawio', () => {
     expect(cellTag(render(NESTED), 'queue')).toContain(
       'value="Orders &amp;amp; &amp;lt;Jobs&amp;gt;"',
     );
+  });
+
+  it('nests a border child under its group', () => {
+    const xml = render(
+      [
+        'nodes:',
+        '  - group: aws.vpc',
+        '    id: vpc',
+        '    border:',
+        '      n: { id: igw, icon: aws.igw }',
+        '    children:',
+        '      - { id: fn, icon: aws.lambda }',
+        '',
+      ].join('\n'),
+    );
+    expect(cellTag(xml, 'igw')).toContain('parent="vpc"');
+  });
+
+  const ACROSS_GROUPS = [
+    'direction: vertical',
+    'nodes:',
+    '  - { id: alb, icon: aws.alb }',
+    '  - group: aws.private_subnet',
+    '    id: subnet',
+    '    children:',
+    '      - { id: api, icon: aws.ecs }',
+    '      - { id: worker, icon: aws.ecs }',
+    'links:',
+    '  - [alb.w, api.w]',
+    '  - [api.e, worker.w]',
+    '',
+  ].join('\n');
+
+  it('bends a line entering a leaf from the side just outside the group around the leaf', () => {
+    const diagram = load(ACROSS_GROUPS);
+    const layout = layoutDiagram(diagram.root);
+    const subnet = [...layout.cells].find(([node]) => node.id === 'subnet')?.[1];
+    if (!subnet) throw new Error('missing subnet');
+    const xml = toDrawio(diagram, layout);
+    expect(cellTag(xml, 'link-1')).toMatch(new RegExp(`<mxPoint x="${subnet.x - 12}" `));
+  });
+
+  it('does not bend a line between leaves in the same group', () => {
+    expect(cellTag(render(ACROSS_GROUPS), 'link-2')).not.toContain('mxPoint');
   });
 
   it('produces the same file for the same input', () => {
