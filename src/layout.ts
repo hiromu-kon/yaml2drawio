@@ -95,9 +95,11 @@ export function layoutDiagram(root: StackNode): Layout {
     } else if (node.kind === 'group') {
       const content = measureChildren(node.direction, node.children.map(measure));
       const { outside, padding } = frameOf(node);
+      const labelEnd = GROUP_ICON_AREA + textWidth(node.label);
       const width = Math.max(
         content.width + padding.x * 2,
-        GROUP_ICON_AREA + textWidth(node.label) + GROUP_PADDING,
+        labelEnd + GROUP_PADDING,
+        widthToClearLabel(node, labelEnd),
       );
       const height = content.height + padding.top + padding.bottom;
       size = { width: width + outside.x * 2, height: height + outside.top + outside.bottom };
@@ -174,6 +176,17 @@ export function layoutDiagram(root: StackNode): Layout {
   const size = measure(root);
   place(root, { x: 0, y: 0, ...size });
   return { cells, ...size };
+}
+
+// The group label sits at the top left, so a border child on the top edge needs the group to be
+// wide enough to start right of it. A child in the top-left corner cannot clear it and is ignored.
+function widthToClearLabel(group: GroupNode, labelEnd: number): number {
+  const widths = group.border
+    .filter(({ position }) => sideOf(position) === 'top')
+    .map(({ position }) => POSITION_POINTS[position][0])
+    .filter((px) => px > 0)
+    .map((px) => Math.ceil((labelEnd + BORDER_GAP + ICON_SIZE / 2) / px));
+  return Math.max(0, ...widths);
 }
 
 function max(values: number[]): number {
