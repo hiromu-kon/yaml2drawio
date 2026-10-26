@@ -10,7 +10,6 @@
     "iam": "identity_access_management",
     "igw": "internet_gateway",
     "kms": "key_management_service",
-    "logs": "cloudwatch_logs",
     "nat": "nat_gateway",
     "nlb": "network_load_balancer",
     "redis": "elasticache_for_redis",
