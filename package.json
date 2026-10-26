@@ -23,7 +23,7 @@
     "url": "git+https://github.com/hiromu-kon/yaml2drawio.git"
   },
   "bin": {
-    "yaml2drawio": "./dist/cli.mjs"
+    "yaml2drawio": "dist/cli.mjs"
   },
   "files": [
     "dist",
