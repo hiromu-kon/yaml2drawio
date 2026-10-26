@@ -13,7 +13,10 @@ nodes:
           - group: aws.vpc
             label: Production VPC
             direction: vertical
+            border:
+              n: { id: igw, icon: aws.igw, label: IGW }
             children:
+              # The ALB runs in the public subnets of both AZs, so it is drawn above them
               - { id: alb, icon: aws.alb, label: ALB }
               - row:
                   - group: aws.az
@@ -21,6 +24,10 @@ nodes:
                     direction: vertical
                     align: expand
                     children:
+                      - group: aws.public_subnet
+                        label: Public
+                        children:
+                          - { id: nat_a, icon: aws.nat, label: NAT gateway }
                       - group: aws.private_subnet
                         label: App
                         children:
@@ -34,6 +41,10 @@ nodes:
                     direction: vertical
                     align: expand
                     children:
+                      - group: aws.public_subnet
+                        label: Public
+                        children:
+                          - { id: nat_c, icon: aws.nat, label: NAT gateway }
                       - group: aws.private_subnet
                         label: App
                         children:
@@ -44,9 +55,12 @@ nodes:
                           - { id: db_reader, icon: aws.aurora, label: Aurora Reader }
 links:
   - [users.s, cdn.n]
-  - [cdn.s, alb.n]
-  - [alb.w, api_a.n]
-  - [alb.e, api_c.n]
+  - [cdn.s, igw.n]
+  - [igw.s, alb.n]
+  - [alb.w, api_a.w]
+  - [alb.e, api_c.e]
+  - { from: api_a.n, to: nat_a.s, label: outbound }
+  - { from: api_c.n, to: nat_c.s, label: outbound }
   - [api_a.s, db_writer.n]
   - [api_c.s, db_reader.n]
   - { from: db_writer.e, to: db_reader.w, style: dashed, label: replication }
