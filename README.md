@@ -10,6 +10,10 @@
 yaml2drawio turns a YAML description of your infrastructure into a laid-out [draw.io](https://www.drawio.com/) diagram.
 You describe the structure — what sits inside what, in which order, and what connects to what — and yaml2drawio computes every coordinate.
 
+![An e-commerce platform drawn by yaml2drawio](docs/images/ecommerce.png)
+
+<sub>Generated from [examples/ecommerce.yaml](examples/ecommerce.yaml) and rendered with draw.io.</sub>
+
 > [!NOTE]
 > Work in progress. You can build diagrams from a clone of this repository; an npm package and more providers come next. See the [roadmap](#roadmap).
 
@@ -37,8 +41,6 @@ yaml2drawio keeps the diagram in version control as readable text and still give
 
 ## Example
 
-> The output image will be added once the draw.io writer is ready.
-
 ```yaml
 direction: vertical
 nodes:
@@ -57,6 +59,10 @@ links:
   - [alb.s, api.n]
   - { from: api.e, to: db.w, style: dashed }
 ```
+
+![The diagram generated from the YAML above](docs/images/quick-start.png)
+
+More examples are in [examples/](examples/).
 
 ## Comparison
 

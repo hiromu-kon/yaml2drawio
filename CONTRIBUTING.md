@@ -15,13 +15,14 @@ If your shell does not activate mise, prefix commands with `mise exec --`.
 
 ## Commands
 
-| Command              | What it does                                              |
-| -------------------- | --------------------------------------------------------- |
-| `pnpm check`         | Typecheck, lint, test and format check. CI runs the same. |
-| `pnpm format`        | Format files with oxfmt.                                  |
-| `pnpm test`          | Run tests with Vitest.                                    |
-| `pnpm dev icons <q>` | Search the icon catalog, e.g. `pnpm dev icons redis`.     |
-| `pnpm catalog`       | Regenerate `catalog/aws.json` from draw.io sources.       |
+| Command              | What it does                                                            |
+| -------------------- | ----------------------------------------------------------------------- |
+| `pnpm check`         | Typecheck, lint, test and format check. CI runs the same.               |
+| `pnpm format`        | Format files with oxfmt.                                                |
+| `pnpm test`          | Run tests with Vitest.                                                  |
+| `pnpm dev icons <q>` | Search the icon catalog, e.g. `pnpm dev icons redis`.                   |
+| `pnpm catalog`       | Regenerate `catalog/aws.json` from draw.io sources.                     |
+| `pnpm docs:images`   | Regenerate the README images in `docs/images/` (needs draw.io Desktop). |
 
 ## Icon catalog
 

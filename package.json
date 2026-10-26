@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node src/cli.ts",
     "catalog": "node scripts/extract-drawio-icons.ts",
+    "docs:images": "node src/cli.ts build examples/quick-start.yaml -o docs/images/quick-start.drawio --png && node src/cli.ts build examples/ecommerce.yaml -o docs/images/ecommerce.drawio --png",
     "typecheck": "tsc",
     "lint": "oxlint --type-aware --deny-warnings",
     "test": "vitest run",

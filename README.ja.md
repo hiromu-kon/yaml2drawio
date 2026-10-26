@@ -10,6 +10,10 @@
 yaml2drawio は、YAML で書いたインフラの構成から、配置を計算した [draw.io](https://www.drawio.com/) の図を作ります。
 書くのは構造（何の中に何があるか、どの順に並べるか、何と何がつながっているか）だけで、座標はすべて yaml2drawio が計算します。
 
+![yaml2drawio で描いた EC サイトの構成図](docs/images/ecommerce.png)
+
+<sub>[examples/ecommerce.yaml](examples/ecommerce.yaml) から生成し、draw.io で PNG にしたものです。</sub>
+
 > [!NOTE]
 > 開発中です。このリポジトリを clone すれば図を作れます。npm パッケージと他のクラウドへの対応はこれからです。[ロードマップ](#ロードマップ)を参照してください。
 
@@ -37,8 +41,6 @@ yaml2drawio は、図を読みやすいテキストとしてバージョン管�
 
 ## 書き方の例
 
-> 出力の画像は、draw.io への出力ができたら追加します。
-
 ```yaml
 direction: vertical
 nodes:
@@ -57,6 +59,10 @@ links:
   - [alb.s, api.n]
   - { from: api.e, to: db.w, style: dashed }
 ```
+
+![上の YAML から生成した図](docs/images/quick-start.png)
+
+ほかの例は [examples/](examples/) にあります。
 
 ## 他のツールとの比較
 

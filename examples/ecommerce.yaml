@@ -1,0 +1,209 @@
+title: E-commerce platform
+direction: horizontal
+nodes:
+  - { id: developers, icon: aws.user, label: Developers }
+  - column:
+      - row:
+          - { id: web_users, icon: aws.users, label: Web users }
+          - { id: mobile, icon: aws.mobile_client, label: Mobile app }
+      - group: aws.cloud
+        direction: vertical
+        children:
+          - group: aws.generic
+            label: Edge / Auth / Static delivery
+            children:
+              - { id: route53, icon: aws.route_53, label: Route 53 }
+              - { id: shield, icon: aws.shield_advanced, label: Shield Advanced }
+              - { id: waf, icon: aws.waf, label: WAF }
+              - { id: cloudfront, icon: aws.cloudfront, label: CloudFront }
+              - { id: static_assets, icon: aws.s3, label: Static assets }
+              - { id: acm, icon: aws.acm, label: ACM }
+              - { id: cognito, icon: aws.cognito, label: Cognito }
+          - align: expand
+            row:
+              # Tokyo: production
+              - group: aws.region
+                label: ap-northeast-1 (Tokyo) - Primary
+                children:
+                  - group: aws.generic
+                    label: CI/CD
+                    direction: vertical
+                    children:
+                      - { id: codedeploy, icon: aws.codedeploy, label: CodeDeploy }
+                      - { id: ecr, icon: aws.ecr, label: ECR }
+                      - { id: codebuild, icon: aws.codebuild, label: CodeBuild }
+                      - { id: codepipeline, icon: aws.codepipeline, label: CodePipeline }
+                      - { id: codecommit, icon: aws.codecommit, label: CodeCommit }
+                  - group: aws.vpc
+                    label: Production VPC (10.0.0.0/16)
+                    direction: vertical
+                    border:
+                      n: { id: igw, icon: aws.igw, label: IGW }
+                    children:
+                      # The ALB runs in the public subnets of both AZs, so it is drawn above them
+                      - { id: alb, icon: aws.alb, label: ALB }
+                      - row:
+                          - group: aws.az
+                            label: ap-northeast-1a
+                            direction: vertical
+                            align: expand
+                            children:
+                              - group: aws.public_subnet
+                                label: Public 10.0.0.0/24
+                                children:
+                                  - { id: nat_a, icon: aws.nat, label: NAT gateway }
+                              - group: aws.private_subnet
+                                label: App 10.0.10.0/24
+                                children:
+                                  - { id: worker_a, icon: aws.ecs, label: ECS Worker }
+                                  - { id: api_a, icon: aws.ecs, label: ECS API }
+                              - group: aws.private_subnet
+                                label: Data 10.0.20.0/24
+                                children:
+                                  - { id: redis_primary, icon: aws.redis, label: Redis Primary }
+                                  - {
+                                      id: aurora_writer,
+                                      icon: aws.aurora_instance,
+                                      label: Aurora Writer,
+                                    }
+                          - group: aws.az
+                            label: ap-northeast-1c
+                            direction: vertical
+                            align: expand
+                            children:
+                              - group: aws.public_subnet
+                                label: Public 10.0.1.0/24
+                                children:
+                                  - { id: nat_c, icon: aws.nat, label: NAT gateway }
+                              - group: aws.private_subnet
+                                label: App 10.0.11.0/24
+                                children:
+                                  - { id: api_c, icon: aws.ecs, label: ECS API }
+                                  - { id: worker_c, icon: aws.ecs, label: ECS Worker }
+                              - group: aws.private_subnet
+                                label: Data 10.0.21.0/24
+                                children:
+                                  - {
+                                      id: aurora_reader,
+                                      icon: aws.aurora_instance,
+                                      label: Aurora Reader,
+                                    }
+                                  - { id: redis_replica, icon: aws.redis, label: Redis Replica }
+                          - group: aws.generic
+                            label: VPC Endpoints
+                            direction: vertical
+                            children:
+                              - {
+                                  id: interface_endpoints,
+                                  icon: aws.vpc_endpoint,
+                                  label: Interface endpoints,
+                                }
+                              - {
+                                  id: s3_endpoint,
+                                  icon: aws.vpc_endpoint,
+                                  label: S3 gateway endpoint,
+                                }
+                  - column:
+                      - group: aws.generic
+                        label: Async processing
+                        children:
+                          - { id: eventbridge, icon: aws.eventbridge, label: EventBridge }
+                          - column:
+                              - { id: sqs, icon: aws.sqs, label: SQS }
+                              - row:
+                                  - { id: lambda, icon: aws.lambda, label: Lambda }
+                                  - column:
+                                      - { id: dynamodb, icon: aws.dynamodb, label: DynamoDB }
+                                      - { id: ses, icon: aws.ses, label: SES }
+                      - group: aws.generic
+                        label: Storage
+                        children:
+                          - { id: uploads, icon: aws.s3, label: User uploads }
+                      - group: aws.generic
+                        label: Security
+                        children:
+                          - { id: secrets, icon: aws.secrets_manager, label: Secrets Manager }
+                          - { id: kms, icon: aws.kms, label: KMS }
+                          - { id: guardduty, icon: aws.guardduty, label: GuardDuty }
+                      - group: aws.generic
+                        label: Observability
+                        children:
+                          - { id: cloudtrail, icon: aws.cloudtrail, label: CloudTrail }
+                          - { id: xray, icon: aws.x_ray, label: X-Ray }
+                          - { id: cloudwatch, icon: aws.cloudwatch, label: CloudWatch }
+                          - { id: alerts, icon: aws.sns, label: SNS alerts }
+              # Osaka: disaster recovery
+              - group: aws.region
+                label: ap-northeast-3 (Osaka) - DR
+                children:
+                  - { id: replica, icon: aws.s3, label: Upload replica }
+                  - group: aws.vpc
+                    label: DR VPC
+                    direction: vertical
+                    border:
+                      n: { id: igw_osaka, icon: aws.igw, label: IGW }
+                    children:
+                      - { id: alb_osaka, icon: aws.alb, label: ALB }
+                      - group: aws.private_subnet
+                        label: App 10.1.10.0/24
+                        children:
+                          - { id: api_osaka, icon: aws.ecs, label: ECS API (pilot light) }
+                      - group: aws.private_subnet
+                        label: Data 10.1.20.0/24
+                        children:
+                          - {
+                              id: aurora_secondary,
+                              icon: aws.aurora_instance,
+                              label: Aurora Global DB (secondary),
+                            }
+      - { id: oncall, icon: aws.users, label: On-call engineers }
+links:
+  # Requests
+  - [web_users.s, route53.n]
+  - [web_users.s, cloudfront.n]
+  - [mobile.s, cloudfront.n]
+  - { from: mobile.s, to: cognito.n, label: Sign-in }
+  - { from: shield.e, to: waf.w, style: dashed, arrow: none }
+  - { from: waf.e, to: cloudfront.w, style: dashed, arrow: none }
+  - [cloudfront.e, static_assets.w]
+  - [cloudfront.s, igw.n]
+  - { from: cloudfront.s, to: igw_osaka.n, style: dashed, label: failover }
+  - [igw.s, alb.n]
+  - [alb.w, api_a.n]
+  - [alb.e, api_c.w]
+  - [igw_osaka.s, alb_osaka.n]
+  - [alb_osaka.s, api_osaka.n]
+  # Data
+  - [api_a.s, aurora_writer.n]
+  - [worker_a.s, redis_primary.n]
+  - [api_c.s, aurora_reader.n]
+  - [worker_c.s, redis_replica.n]
+  - { from: aurora_writer.e, to: aurora_reader.w, style: dashed, label: replication }
+  - { from: redis_primary.s, to: redis_replica.s, style: dashed }
+  - [api_osaka.s, aurora_secondary.n]
+  - { from: aurora_reader.s, to: aurora_secondary.s, style: dashed, label: Global Database }
+  - { from: worker_a.n, to: nat_a.s, label: outbound }
+  # AWS services through VPC endpoints
+  - [worker_c.e, interface_endpoints.w]
+  - [worker_c.e, s3_endpoint.w]
+  - [interface_endpoints.e, eventbridge.w]
+  - [interface_endpoints.e, sqs.w]
+  - { from: interface_endpoints.e, to: secrets.w, style: dashed }
+  - [s3_endpoint.e, uploads.w]
+  - { from: uploads.e, to: replica.w, style: dashed, label: CRR }
+  # Async processing
+  - [eventbridge.e, sqs.w]
+  - [eventbridge.e, lambda.w]
+  - [lambda.e, dynamodb.w]
+  - [lambda.e, ses.w]
+  # CI/CD
+  - { from: developers.e, to: codecommit.w, label: git push }
+  - [codecommit.n, codepipeline.s]
+  - [codepipeline.n, codebuild.s]
+  - [codebuild.n, ecr.s]
+  - [ecr.n, codedeploy.s]
+  - { from: codedeploy.e, to: worker_a.w, label: deploy }
+  - { from: ecr.e, to: worker_a.w, style: dashed, label: image pull }
+  # Monitoring
+  - [cloudwatch.e, alerts.w]
+  - { from: alerts.s, to: oncall.e, label: alarm }
