@@ -1,14 +1,39 @@
 {
   "name": "yaml2drawio",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Describe infrastructure diagrams in YAML and get a laid-out draw.io file",
-  "license": "MIT",
-  "bin": {
-    "yaml2drawio": "./src/cli.ts"
+  "keywords": [
+    "architecture",
+    "aws",
+    "cli",
+    "diagram",
+    "diagram-as-code",
+    "draw.io",
+    "drawio",
+    "yaml"
+  ],
+  "homepage": "https://github.com/hiromu-kon/yaml2drawio#readme",
+  "bugs": {
+    "url": "https://github.com/hiromu-kon/yaml2drawio/issues"
   },
+  "license": "MIT",
+  "author": "hiromu-kon",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hiromu-kon/yaml2drawio.git"
+  },
+  "bin": {
+    "yaml2drawio": "./dist/cli.mjs"
+  },
+  "files": [
+    "dist",
+    "catalog",
+    "schema.json"
+  ],
   "type": "module",
   "scripts": {
     "dev": "node src/cli.ts",
+    "build": "tsdown",
     "catalog": "node scripts/extract-drawio-icons.ts",
     "schema": "node scripts/generate-json-schema.ts",
     "docs:images": "node src/cli.ts build examples/quick-start.yaml -o docs/images/quick-start.drawio --png && node src/cli.ts build examples/ecommerce.yaml -o docs/images/ecommerce.drawio --png",
@@ -17,7 +42,8 @@
     "test": "vitest run",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm format:check"
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm format:check",
+    "prepack": "pnpm build"
   },
   "dependencies": {
     "yaml": "^2.9.1",
@@ -29,6 +55,7 @@
     "oxfmt": "^0.74.0",
     "oxlint": "^1.89.0",
     "oxlint-tsgolint": "^7.0.2005",
+    "tsdown": "^0.23.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
   },
