@@ -157,6 +157,31 @@ describe('layoutDiagram', () => {
     expect(cellOf(layout, 'igw').x).toBeGreaterThan(labelEnd);
   });
 
+  it('lines up leaves in rows stacked in the same column', () => {
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - group: aws.az',
+          '    direction: vertical',
+          '    align: expand',
+          '    children:',
+          '      - group: aws.private_subnet',
+          '        children:',
+          '          - { id: worker, icon: aws.ecs, label: ECS Worker }',
+          '          - { id: api, icon: aws.ecs, label: ECS API }',
+          '      - group: aws.private_subnet',
+          '        children:',
+          '          - { id: redis, icon: aws.redis, label: Redis Primary }',
+          '          - { id: aurora, icon: aws.aurora_instance, label: Aurora Writer }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    expect(cellOf(layout, 'worker').x).toBe(cellOf(layout, 'redis').x);
+    expect(cellOf(layout, 'api').x).toBe(cellOf(layout, 'aurora').x);
+  });
+
   it('produces the same coordinates every time', () => {
     const source =
       'nodes:\n  - group: aws.vpc\n    children:\n      - { id: a, icon: aws.lambda }\n';
