@@ -21,5 +21,13 @@ jobs:
       - name: Check that the tag matches package.json
         run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
       - run: pnpm check
-      # prepack builds dist/ before the tarball is made
-      - run: npm publish
+      # The first release was published by hand, before trusted publishing could be configured.
+      # prepack builds dist/ before the tarball is made.
+      - name: Publish unless this version is already on npm
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "yaml2drawio@$version" version > /dev/null 2>&1; then
+            echo "yaml2drawio@$version is already on npm"
+          else
+            npm publish
+          fi
