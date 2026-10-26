@@ -15,7 +15,7 @@ You describe the structure — what sits inside what, in which order, and what c
 <sub>Generated from [examples/ecommerce.yaml](examples/ecommerce.yaml) and rendered with draw.io.</sub>
 
 > [!NOTE]
-> Early release (0.x). The YAML format may still change between minor versions. See the [roadmap](#roadmap).
+> Early release (0.x). The YAML format may still change between minor versions.
 
 yaml2drawio only draws diagrams. It does not read or change your cloud resources.
 
@@ -94,18 +94,6 @@ Point your YAML file at the JSON Schema to get completion for keys, icon names a
 | Output      | `.drawio` (editable)            | PNG                                                  | PNG, JPG, SVG, PDF, DOT                            | SVG, PNG, GIF, PDF, PPTX                |
 | Layout      | Computed from nesting and order | Computed from nesting and order                      | Graphviz                                           | Dagre, ELK or TALA                      |
 | Cloud icons | AWS (more planned)              | AWS (extensible with definition files)               | AWS, Azure, GCP, Kubernetes and more               | Any image                               |
-
-## Roadmap
-
-- [x] AWS icon catalog extracted from draw.io
-- [x] Input schema
-- [x] Validation errors with line numbers and suggestions
-- [x] Layout engine (nesting, order, alignment, border children)
-- [x] draw.io writer
-- [x] PNG preview through draw.io Desktop
-- [x] JSON Schema for editor completion
-- [x] npm package
-- [ ] GCP, Azure and Kubernetes icons
 
 ## Contributing
 

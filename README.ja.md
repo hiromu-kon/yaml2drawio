@@ -15,7 +15,7 @@ yaml2drawio は、YAML で書いたインフラの構成から、配置を計算
 <sub>[examples/ecommerce.yaml](examples/ecommerce.yaml) から生成し、draw.io で PNG にしたものです。</sub>
 
 > [!NOTE]
-> 初期リリース（0.x）です。マイナーバージョンの間で YAML の書き方が変わる可能性があります。[ロードマップ](#ロードマップ)を参照してください。
+> 初期リリース（0.x）です。マイナーバージョンの間で YAML の書き方が変わる可能性があります。
 
 yaml2drawio は図を描くだけです。クラウドのリソースを読み取ったり変更したりはしません。
 
@@ -94,18 +94,6 @@ YAML ファイルの先頭で JSON Schema を指定すると、キー・アイ�
 | 出力               | `.drawio`（編集できる） | PNG                                                  | PNG、JPG、SVG、PDF、DOT                            | SVG、PNG、GIF、PDF、PPTX                |
 | 配置               | 入れ子と並び順から計算  | 入れ子と並び順から計算                               | Graphviz                                           | Dagre、ELK、TALA から選ぶ               |
 | クラウドのアイコン | AWS（今後追加予定）     | AWS（定義ファイルで追加できる）                      | AWS、Azure、GCP、Kubernetes など                   | 任意の画像                              |
-
-## ロードマップ
-
-- [x] draw.io から抜き出した AWS のアイコン辞書
-- [x] 入力の書き方の定義
-- [x] 行番号と候補つきの検証エラー
-- [x] 配置の計算（入れ子・並び順・揃え方・枠の上の要素）
-- [x] draw.io への出力
-- [x] draw.io Desktop による PNG のプレビュー
-- [x] エディタで補完するための JSON Schema
-- [x] npm パッケージ
-- [ ] GCP、Azure、Kubernetes のアイコン
 
 ## 開発に参加する
 
