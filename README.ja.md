@@ -15,7 +15,7 @@ yaml2drawio は、YAML で書いたインフラの構成から、配置を計算
 <sub>[examples/ecommerce.yaml](examples/ecommerce.yaml) から生成し、draw.io で PNG にしたものです。</sub>
 
 > [!NOTE]
-> 開発中です。このリポジトリを clone すれば図を作れます。npm パッケージと他のクラウドへの対応はこれからです。[ロードマップ](#ロードマップ)を参照してください。
+> 初期リリース（0.x）です。マイナーバージョンの間で YAML の書き方が変わる可能性があります。
 
 yaml2drawio は図を描くだけです。クラウドのリソースを読み取ったり変更したりはしません。
 
@@ -38,6 +38,20 @@ yaml2drawio は、図を読みやすいテキストとしてバージョン管�
   短く書ける YAML と厳密な検証により、エージェントが図を書き、確かめ、推測せずに直せます。
 - **AWS 以外にも広げられる**
   アイコン名に名前空間（`aws.ecs`、`aws.vpc`）があるので、他のクラウドのアイコンを並べて追加できます。
+
+## 使い方
+
+Node.js 24 以上が必要です。PNG を出力するには [draw.io Desktop](https://www.drawio.com/) も必要です。
+
+```sh
+npx yaml2drawio build diagram.yaml          # diagram.drawio を出力する
+npx yaml2drawio build diagram.yaml --png    # draw.io Desktop で diagram.png も出力する
+npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
+npx yaml2drawio icons redis                 # アイコン名を検索する
+```
+
+エラーは直す場所の行と列を示します（例: `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`）。
+draw.io Desktop が見つからない場合は、環境変数 `DRAWIO_CLI` に実行ファイルのパスを設定してください。
 
 ## 書き方の例
 
@@ -80,18 +94,6 @@ YAML ファイルの先頭で JSON Schema を指定すると、キー・アイ�
 | 出力               | `.drawio`（編集できる） | PNG                                                  | PNG、JPG、SVG、PDF、DOT                            | SVG、PNG、GIF、PDF、PPTX                |
 | 配置               | 入れ子と並び順から計算  | 入れ子と並び順から計算                               | Graphviz                                           | Dagre、ELK、TALA から選ぶ               |
 | クラウドのアイコン | AWS（今後追加予定）     | AWS（定義ファイルで追加できる）                      | AWS、Azure、GCP、Kubernetes など                   | 任意の画像                              |
-
-## ロードマップ
-
-- [x] draw.io から抜き出した AWS のアイコン辞書
-- [x] 入力の書き方の定義
-- [x] 行番号と候補つきの検証エラー
-- [x] 配置の計算（入れ子・並び順・揃え方・枠の上の要素）
-- [x] draw.io への出力
-- [x] draw.io Desktop による PNG のプレビュー
-- [x] エディタで補完するための JSON Schema
-- [ ] npm パッケージ
-- [ ] GCP、Azure、Kubernetes のアイコン
 
 ## 開発に参加する
 

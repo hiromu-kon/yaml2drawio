@@ -15,7 +15,7 @@ You describe the structure — what sits inside what, in which order, and what c
 <sub>Generated from [examples/ecommerce.yaml](examples/ecommerce.yaml) and rendered with draw.io.</sub>
 
 > [!NOTE]
-> Work in progress. You can build diagrams from a clone of this repository; an npm package and more providers come next. See the [roadmap](#roadmap).
+> Early release (0.x). The YAML format may still change between minor versions.
 
 yaml2drawio only draws diagrams. It does not read or change your cloud resources.
 
@@ -38,6 +38,20 @@ yaml2drawio keeps the diagram in version control as readable text and still give
   Compact YAML and strict validation let an agent write a diagram, check it, and fix it without guessing.
 - **Beyond AWS**
   Icon names are namespaced (`aws.ecs`, `aws.vpc`) so other providers can be added side by side.
+
+## Getting started
+
+Requires Node.js 24 or later. PNG output also needs [draw.io Desktop](https://www.drawio.com/).
+
+```sh
+npx yaml2drawio build diagram.yaml          # writes diagram.drawio
+npx yaml2drawio build diagram.yaml --png    # also renders diagram.png with draw.io Desktop
+npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
+npx yaml2drawio icons redis                 # search icon names
+```
+
+Errors point at the line and column to fix, for example `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`.
+If draw.io Desktop is not found, set `DRAWIO_CLI` to its executable.
 
 ## Example
 
@@ -80,18 +94,6 @@ Point your YAML file at the JSON Schema to get completion for keys, icon names a
 | Output      | `.drawio` (editable)            | PNG                                                  | PNG, JPG, SVG, PDF, DOT                            | SVG, PNG, GIF, PDF, PPTX                |
 | Layout      | Computed from nesting and order | Computed from nesting and order                      | Graphviz                                           | Dagre, ELK or TALA                      |
 | Cloud icons | AWS (more planned)              | AWS (extensible with definition files)               | AWS, Azure, GCP, Kubernetes and more               | Any image                               |
-
-## Roadmap
-
-- [x] AWS icon catalog extracted from draw.io
-- [x] Input schema
-- [x] Validation errors with line numbers and suggestions
-- [x] Layout engine (nesting, order, alignment, border children)
-- [x] draw.io writer
-- [x] PNG preview through draw.io Desktop
-- [x] JSON Schema for editor completion
-- [ ] npm package
-- [ ] GCP, Azure and Kubernetes icons
 
 ## Contributing
 

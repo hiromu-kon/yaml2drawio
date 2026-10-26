@@ -22,3 +22,6 @@ jobs:
       - uses: jdx/mise-action@v5
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
+      - run: pnpm build
+      - name: Build an example with the bundled CLI
+        run: node dist/cli.mjs build examples/quick-start.yaml -o out/quick-start.drawio
