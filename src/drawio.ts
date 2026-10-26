@@ -1,35 +1,32 @@
-import { GROUP_PADDING, type Layout, type Rect } from './layout.ts';
+import type { Layout, Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
-import { POSITION_POINTS, sideOf } from './position.ts';
+import { POSITION_POINTS } from './position.ts';
+import { bendPoints, routeContext, type Point } from './route.ts';
 import { LINE_HEIGHT } from './text.ts';
 
 export function toDrawio(diagram: Diagram, layout: Layout): string {
   const cells: string[] = [];
-  const leaves = new Map<string, LeafNode>();
-  // The group each leaf sits inside; border children are left out because they sit on its edge
-  const enclosing = new Map<string, GroupNode>();
 
-  const visit = (node: DiagramNode, parent: GroupNode | undefined, onBorder = false): void => {
+  const visit = (node: DiagramNode, parent: GroupNode | undefined): void => {
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child, parent);
       return;
     }
     const geometry = relativeTo(cellRect(layout, node), parent && cellRect(layout, parent));
     if (node.kind === 'leaf') {
-      leaves.set(node.id, node);
-      if (parent && !onBorder) enclosing.set(node.id, parent);
       cells.push(vertex(node.id, node.label, node.shape.style, parent?.id, geometry));
       return;
     }
     cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), parent?.id, geometry));
     for (const child of node.children) visit(child, node);
     // Border children belong to the group so that moving it in draw.io moves them too
-    for (const { node: child } of node.border) visit(child, node, true);
+    for (const { node: child } of node.border) visit(child, node);
   };
   visit(diagram.root, undefined);
 
+  const context = routeContext(diagram.root, layout);
   for (const link of diagram.links) {
-    cells.push(edge(link, leaves, sideEntryBend(link, layout, leaves, enclosing)));
+    cells.push(edge(link, context.leaves, bendPoints(link, context)));
   }
 
   return [
@@ -76,49 +73,7 @@ function groupStyle(style: string): string {
   return style.includes('container=1') ? style : `${style}container=1;collapsible=0;`;
 }
 
-interface Point {
-  x: number;
-  y: number;
-}
-
-// draw.io bends a line about 20px before the side it enters, which is right where the label of
-// the enclosing group sits. Bend it in the gap just outside that group instead.
-function sideEntryBend(
-  link: Link,
-  layout: Layout,
-  leaves: Map<string, LeafNode>,
-  enclosing: Map<string, GroupNode>,
-): Point | undefined {
-  const { position, id } = link.to;
-  if (!position) return undefined;
-  const side = sideOf(position);
-  const leaf = leaves.get(id);
-  const group = enclosing.get(id);
-  const source = leaves.get(link.from.id);
-  if ((side !== 'left' && side !== 'right') || !leaf || !group) return undefined;
-
-  const box = cellRect(layout, group);
-  // A line from inside the same group would have to leave it and come back
-  if (source && contains(box, center(cellRect(layout, source)))) return undefined;
-
-  const target = cellRect(layout, leaf);
-  const [, py] = POSITION_POINTS[position];
-  const gap = GROUP_PADDING / 2;
-  return {
-    x: side === 'left' ? box.x - gap : box.x + box.width + gap,
-    y: Math.round(target.y + py * target.height),
-  };
-}
-
-function center({ x, y, width, height }: Rect): Point {
-  return { x: x + width / 2, y: y + height / 2 };
-}
-
-function contains(box: Rect, { x, y }: Point): boolean {
-  return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height;
-}
-
-function edge(link: Link, leaves: Map<string, LeafNode>, bend: Point | undefined): string {
+function edge(link: Link, leaves: Map<string, LeafNode>, bends: Point[]): string {
   const style = [
     'edgeStyle=orthogonalEdgeStyle',
     'rounded=0',
@@ -135,8 +90,8 @@ function edge(link: Link, leaves: Map<string, LeafNode>, bend: Point | undefined
   ].join(';');
   return (
     `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="1" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
-    (bend
-      ? `<mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="${bend.x}" y="${bend.y}" /></Array></mxGeometry>`
+    (bends.length > 0
+      ? `<mxGeometry relative="1" as="geometry"><Array as="points">${bends.map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')}</Array></mxGeometry>`
       : '<mxGeometry relative="1" as="geometry" />') +
     '</mxCell>'
   );

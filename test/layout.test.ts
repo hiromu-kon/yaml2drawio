@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
 import type { DiagramNode, GroupNode, LeafNode } from '../src/model.ts';
+import { textWidth } from '../src/text.ts';
 import { load } from './helpers.ts';
 
 function cellOf(layout: Layout, id: string): Rect {
@@ -140,6 +141,45 @@ describe('layoutDiagram', () => {
     const igw = cellOf(layout, 'igw');
     const alb = cellOf(layout, 'alb');
     expect(alb.x + alb.width / 2).toBe(igw.x + igw.width / 2);
+  });
+
+  it('widens a group so a border child on its top edge starts right of the group label', () => {
+    const layout = layoutDiagram(
+      load(
+        vpcWithBorder('      n: { id: igw, icon: aws.igw }').replace(
+          'id: vpc',
+          'id: vpc\n    label: A rather long VPC label',
+        ),
+      ).root,
+    );
+    const vpc = cellOf(layout, 'vpc');
+    const labelEnd = vpc.x + 32 + textWidth('A rather long VPC label');
+    expect(cellOf(layout, 'igw').x).toBeGreaterThan(labelEnd);
+  });
+
+  it('lines up leaves in rows stacked in the same column', () => {
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - group: aws.az',
+          '    direction: vertical',
+          '    align: expand',
+          '    children:',
+          '      - group: aws.private_subnet',
+          '        children:',
+          '          - { id: worker, icon: aws.ecs, label: ECS Worker }',
+          '          - { id: api, icon: aws.ecs, label: ECS API }',
+          '      - group: aws.private_subnet',
+          '        children:',
+          '          - { id: redis, icon: aws.redis, label: Redis Primary }',
+          '          - { id: aurora, icon: aws.aurora_instance, label: Aurora Writer }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    expect(cellOf(layout, 'worker').x).toBe(cellOf(layout, 'redis').x);
+    expect(cellOf(layout, 'api').x).toBe(cellOf(layout, 'aurora').x);
   });
 
   it('produces the same coordinates every time', () => {

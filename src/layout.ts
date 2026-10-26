@@ -89,15 +89,17 @@ export function layoutDiagram(root: StackNode): Layout {
     if (node.kind === 'leaf') {
       const label = labelSize(node.label);
       size = {
-        width: Math.max(ICON_SIZE, label.width) + LEAF_PADDING_X * 2,
+        width: columnWidths.get(node) ?? leafWidth(node),
         height: ICON_SIZE + (label.height > 0 ? LABEL_GAP + label.height : 0) + LEAF_PADDING_BOTTOM,
       };
     } else if (node.kind === 'group') {
       const content = measureChildren(node.direction, node.children.map(measure));
       const { outside, padding } = frameOf(node);
+      const labelEnd = GROUP_ICON_AREA + textWidth(node.label);
       const width = Math.max(
         content.width + padding.x * 2,
-        GROUP_ICON_AREA + textWidth(node.label) + GROUP_PADDING,
+        labelEnd + GROUP_PADDING,
+        widthToClearLabel(node, labelEnd),
       );
       const height = content.height + padding.top + padding.bottom;
       size = { width: width + outside.x * 2, height: height + outside.top + outside.bottom };
@@ -171,9 +173,61 @@ export function layoutDiagram(root: StackNode): Layout {
     });
   };
 
+  const columnWidths = alignColumns(root);
   const size = measure(root);
   place(root, { x: 0, y: 0, ...size });
   return { cells, ...size };
+}
+
+// The group label sits at the top left, so a border child on the top edge needs the group to be
+// wide enough to start right of it. A child in the top-left corner cannot clear it and is ignored.
+function widthToClearLabel(group: GroupNode, labelEnd: number): number {
+  const widths = group.border
+    .filter(({ position }) => sideOf(position) === 'top')
+    .map(({ position }) => POSITION_POINTS[position][0])
+    .filter((px) => px > 0)
+    .map((px) => Math.ceil((labelEnd + BORDER_GAP + ICON_SIZE / 2) / px));
+  return Math.max(0, ...widths);
+}
+
+function leafWidth(leaf: LeafNode): number {
+  return Math.max(ICON_SIZE, labelSize(leaf.label).width) + LEAF_PADDING_X * 2;
+}
+
+/**
+ * Rows of leaves stacked in one column (such as an app subnet above a data subnet) get the same
+ * width per column. Otherwise labels of different lengths shift the icons by a few pixels and a
+ * line from one row to the next needs a small jog.
+ */
+function alignColumns(root: DiagramNode): Map<LeafNode, number> {
+  const widths = new Map<LeafNode, number>();
+  const visit = (node: DiagramNode): void => {
+    if (node.kind === 'leaf') return;
+    if (node.direction === 'vertical') {
+      const rows = node.children.flatMap((child) => {
+        const row = leafRow(child);
+        return row ? [row] : [];
+      });
+      for (const count of new Set(rows.map((row) => row.length))) {
+        const sameCount = rows.filter((row) => row.length === count);
+        if (sameCount.length < 2) continue;
+        for (let column = 0; column < count; column++) {
+          const leaves = sameCount.flatMap((row) => row[column] ?? []);
+          const width = Math.max(...leaves.map(leafWidth));
+          for (const leaf of leaves) widths.set(leaf, width);
+        }
+      }
+    }
+    for (const child of node.children) visit(child);
+  };
+  visit(root);
+  return widths;
+}
+
+function leafRow(node: DiagramNode): LeafNode[] | undefined {
+  if (node.kind === 'leaf' || node.direction !== 'horizontal') return undefined;
+  const leaves = node.children.filter((child) => child.kind === 'leaf');
+  return leaves.length === node.children.length ? leaves : undefined;
 }
 
 function max(values: number[]): number {

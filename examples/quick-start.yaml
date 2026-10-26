@@ -1,0 +1,17 @@
+title: Quick start
+direction: vertical
+nodes:
+  - group: aws.vpc
+    label: Production VPC
+    direction: vertical
+    border:
+      n: { id: igw, icon: aws.igw, label: IGW }
+    children:
+      - { id: alb, icon: aws.alb, label: ALB }
+      - row:
+          - { id: api, icon: aws.ecs, label: API }
+          - { id: db, icon: aws.aurora, label: Aurora }
+links:
+  - [igw.s, alb.n]
+  - [alb.s, api.n]
+  - { from: api.e, to: db.w, style: dashed }
