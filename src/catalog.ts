@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { rankByCloseness } from './suggest.ts';
 
 export type ShapeKind = 'service' | 'resource' | 'group';
 
@@ -86,7 +87,7 @@ export function loadCatalog(): Catalog {
         type === 'icon'
           ? [...icons.keys(), ...aliases.icon.keys()]
           : [...groups.keys(), ...aliases.group.keys()];
-      return rankByDistance(key, names).slice(0, 5);
+      return rankByCloseness(key, names).slice(0, 3);
     },
     search(query) {
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);
@@ -97,35 +98,4 @@ export function loadCatalog(): Catalog {
       return [...groups.values(), ...icons.values()].filter(matches);
     },
   };
-}
-
-// Substring matches come first, then the rest by edit distance
-function rankByDistance(target: string, candidates: string[]): string[] {
-  const t = target.toLowerCase();
-  const tail = t.slice(t.indexOf('.') + 1);
-  return candidates
-    .map((candidate) => {
-      const c = candidate.toLowerCase();
-      const contains = tail.length > 1 && c.includes(tail) ? 0 : 1;
-      return { candidate, contains, distance: levenshtein(t, c) };
-    })
-    .toSorted((a, b) => a.contains - b.contains || a.distance - b.distance)
-    .map(({ candidate }) => candidate);
-}
-
-function levenshtein(a: string, b: string): number {
-  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    const current = [i];
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      current[j] = Math.min(
-        (previous[j] ?? 0) + 1,
-        (current[j - 1] ?? 0) + 1,
-        (previous[j - 1] ?? 0) + cost,
-      );
-    }
-    previous = current;
-  }
-  return previous[b.length] ?? 0;
 }
