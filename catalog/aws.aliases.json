@@ -1,0 +1,34 @@
+{
+  "icons": {
+    "acm": "certificate_manager",
+    "alb": "application_load_balancer",
+    "apigw": "api_gateway",
+    "ecr": "elastic_container_registry",
+    "ecs": "elastic_container_service",
+    "eks": "elastic_kubernetes_service",
+    "elb": "elastic_load_balancing",
+    "iam": "identity_access_management",
+    "igw": "internet_gateway",
+    "kms": "key_management_service",
+    "logs": "cloudwatch_logs",
+    "nat": "nat_gateway",
+    "nlb": "network_load_balancer",
+    "redis": "elasticache_for_redis",
+    "s3": "simple_storage_service_s3",
+    "ses": "simple_email_service",
+    "sns": "simple_notification_service",
+    "sqs": "simple_queue_service",
+    "valkey": "elasticache_for_valkey",
+    "vpc_endpoint": "endpoints"
+  },
+  "groups": {
+    "account": "aws_account",
+    "asg": "auto_scaling_group",
+    "az": "availability_zone",
+    "cloud": "aws_cloud",
+    "cloud_plain": "aws_cloud_groups",
+    "generic": "generic_group",
+    "generic_filled": "generic_group_groups",
+    "step_functions_workflow": "aws_step_functions_workflow"
+  }
+}
