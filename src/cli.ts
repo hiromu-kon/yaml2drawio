@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadCatalog } from './catalog.ts';
 import { toDrawio } from './drawio.ts';
@@ -23,6 +24,7 @@ const [command, ...args] = positionals;
 async function build(input: string): Promise<void> {
   const output = values.output ?? input.replace(/\.ya?ml$/, '') + '.drawio';
   const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog());
+  await mkdir(dirname(output), { recursive: true });
   await writeFile(output, toDrawio(diagram, layoutDiagram(diagram.root)));
   console.log(`wrote ${output}`);
   if (values.png) {
