@@ -63,7 +63,7 @@ A node is one of four kinds, told apart by its key.
 
 - `group`: a group style such as `aws.cloud`, `aws.region`, `aws.vpc`, `aws.az`, `aws.public_subnet`, `aws.private_subnet`, `aws.security_group`, `aws.generic`.
 - `children`: nodes inside the box. Leave it out for an empty box, such as a subnet with nothing drawn in it.
-- `direction`: `horizontal` (default) or `vertical`.
+- `direction`: `horizontal` (default) puts the children side by side; `vertical` stacks them.
 - `align`: `start`, `center` (default), `end`, or `expand` to give all children the same size across the direction. Use `expand` on the AZs in a row so their subnets line up.
 - `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`.
 - `id`: needed only to link to the group itself.
@@ -115,6 +115,7 @@ links:
 - Only links with a side at both ends are checked for crossings (with either `route`). Links without sides are reported as `note:` lines; never drop sides just to get rid of a warning.
 - Labels of AWS groups with an icon (region, VPC, subnets) sit at the top left; labels of AZs and generic groups are centered at the top. A line coming down into the top of an icon right below such a label crosses it.
 - So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
+- With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
 - Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
 - When a link still crosses something, try other sides, reorder the children, move the icon to a group's `border`, or set `route: drawio`.
 
