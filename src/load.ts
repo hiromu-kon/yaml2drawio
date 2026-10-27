@@ -231,7 +231,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
         return resolved ? [{ position, node: resolved }] : [];
       });
       const shape = catalog.group(node.group);
-      const children = toNodes(node.children, [...path, 'children']);
+      const children = toNodes(node.children ?? [], [...path, 'children']);
       if (!shape) return unknown('group', node.group, [...path, 'group']);
       return {
         kind: 'group',

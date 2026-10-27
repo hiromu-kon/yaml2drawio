@@ -52,7 +52,7 @@ export interface GroupInput {
   direction?: z.infer<typeof Direction> | undefined;
   align?: z.infer<typeof Align> | undefined;
   border?: Partial<Record<Position, LeafInput>> | undefined;
-  children: NodeInput[];
+  children?: NodeInput[] | undefined;
 }
 
 export interface RowInput {
@@ -78,7 +78,12 @@ const GroupObject = z.strictObject({
     .optional()
     .describe('Icons placed on the edge of the group, keyed by position (n, ne, e, ...).'),
   get children() {
-    return z.array(NodeSchema).min(1).describe('What the group contains.');
+    return z
+      .array(NodeSchema)
+      .optional()
+      .describe(
+        'What the group contains. Leave it out for an empty box, such as an unused subnet.',
+      );
   },
 });
 const GroupSchema: z.ZodType<GroupInput> = GroupObject.meta({

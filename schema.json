@@ -1122,17 +1122,15 @@
           }
         },
         "children": {
-          "minItems": 1,
+          "description": "What the group contains. Leave it out for an empty box, such as an unused subnet.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Node"
-          },
-          "description": "What the group contains."
+          }
         }
       },
       "required": [
-        "group",
-        "children"
+        "group"
       ],
       "additionalProperties": false,
       "description": "A box around other nodes, such as a VPC or a subnet."

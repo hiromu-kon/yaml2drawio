@@ -208,4 +208,29 @@ describe('layoutDiagram', () => {
     const second = [...layoutDiagram(load(source).root).cells.values()];
     expect(second).toEqual(first);
   });
+
+  it('draws a group without children as tall as one holding an icon', () => {
+    const diagram = load(
+      [
+        'nodes:',
+        '  - group: aws.az',
+        '    direction: vertical',
+        '    align: expand',
+        '    children:',
+        '      - group: aws.public_subnet',
+        '        id: unused',
+        '        label: Public 10.0.1.0/24',
+        '      - group: aws.private_subnet',
+        '        id: app',
+        '        children:',
+        '          - { id: api, icon: aws.ecs, label: API service for orders }',
+        '',
+      ].join('\n'),
+    );
+    const layout = layoutDiagram(diagram.root);
+    const unused = cellOf(layout, 'unused');
+    expect(unused.width).toBe(cellOf(layout, 'app').width);
+    expect(unused.width).toBeGreaterThan(textWidth('Public 10.0.1.0/24'));
+    expect(unused.height).toBe(cellOf(layout, 'app').height);
+  });
 });
