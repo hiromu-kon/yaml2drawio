@@ -1019,7 +1019,10 @@
         },
         "label": {
           "description": "Text under the icon. Defaults to the icon's title.",
-          "type": "string"
+          "type": [
+            "string",
+            "number"
+          ]
         }
       },
       "required": [
@@ -1073,7 +1076,10 @@
         },
         "label": {
           "description": "Title of the group. Defaults to the style's title.",
-          "type": "string"
+          "type": [
+            "string",
+            "number"
+          ]
         },
         "direction": {
           "description": "How the children are laid out. Defaults to horizontal.",
@@ -1218,7 +1224,10 @@
             },
             "label": {
               "description": "Text on the line.",
-              "type": "string"
+              "type": [
+                "string",
+                "number"
+              ]
             },
             "style": {
               "description": "Defaults to solid.",

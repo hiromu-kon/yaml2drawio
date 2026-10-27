@@ -27,6 +27,20 @@ describe('loadDiagram', () => {
     expect(diagram.root.children[0]).toMatchObject({ kind: 'group', children: [] });
   });
 
+  it('reads a label that YAML parses as a number as text', () => {
+    const diagram = load(
+      lines(
+        'nodes:',
+        '  - { id: a, icon: aws.lambda, label: 2 }',
+        '  - { id: b, icon: aws.sqs }',
+        'links:',
+        '  - { from: a.e, to: b.w, label: 8080 }',
+      ),
+    );
+    expect(diagram.root.children[0]).toMatchObject({ label: '2' });
+    expect(diagram.links[0]).toMatchObject({ label: '8080' });
+  });
+
   it('turns both link forms into the same structure', () => {
     const diagram = load(
       lines(

@@ -26,6 +26,8 @@ const Id = z
     /^[A-Za-z][A-Za-z0-9_-]*$/,
     'id must start with a letter and contain only letters, digits, "_" or "-"',
   );
+// YAML reads a bare 8080 or 1.0 as a number, which is still meant as text on the diagram
+const Label = z.union([z.string(), z.number().transform(String)]);
 const Direction = z.enum(['vertical', 'horizontal']);
 const Align = z.enum(['start', 'center', 'end', 'expand']);
 
@@ -39,7 +41,7 @@ const LeafSchema = z
     icon: z
       .string()
       .describe('Icon from the catalog, such as aws.ecs. Search with `yaml2drawio icons <word>`.'),
-    label: z.string().optional().describe("Text under the icon. Defaults to the icon's title."),
+    label: Label.optional().describe("Text under the icon. Defaults to the icon's title."),
   })
   .meta({ id: 'Leaf', description: 'An icon.' });
 
@@ -70,7 +72,7 @@ export type NodeInput = LeafInput | GroupInput | RowInput | ColumnInput;
 const GroupObject = z.strictObject({
   id: Id.optional().describe('Unique id, needed only to link to the group.'),
   group: z.string().describe('Group style, such as aws.vpc, aws.az or aws.private_subnet.'),
-  label: z.string().optional().describe("Title of the group. Defaults to the style's title."),
+  label: Label.optional().describe("Title of the group. Defaults to the style's title."),
   direction: Direction.optional().describe(describeDirection),
   align: Align.optional().describe(describeAlign),
   border: z
@@ -140,7 +142,7 @@ const Endpoint = z
 const LinkObject = z.strictObject({
   from: Endpoint,
   to: Endpoint,
-  label: z.string().optional().describe('Text on the line.'),
+  label: Label.optional().describe('Text on the line.'),
   style: z.enum(['solid', 'dashed']).optional().describe('Defaults to solid.'),
   arrow: z
     .enum(['end', 'start', 'both', 'none'])
