@@ -17,7 +17,7 @@ function setUp(source: string): { diagram: Diagram; layout: Layout; rect: (id: s
 function bendsOf(diagram: Diagram, layout: Layout, index: number) {
   const link: Link | undefined = diagram.links[index];
   if (!link) throw new Error(`no link ${index}`);
-  return bendPoints(link, routeContext(diagram.root, layout));
+  return bendPoints(link, routeContext(diagram.root, layout, diagram.links));
 }
 
 describe('bendPoints', () => {
@@ -117,6 +117,57 @@ describe('bendPoints', () => {
     expect(bendsOf(diagram, layout, 0)).toEqual([
       { x: rect('subnet_c').x - GROUP_PADDING / 2, y: api.y + api.height / 2 },
     ]);
+  });
+
+  it('turns all lines fanning out from one point at the same height', () => {
+    // The router is shorter than the database, so halfway to each target would differ
+    const { diagram, layout } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - { id: users, icon: general.users }',
+        '  - row:',
+        '      - group: general.generic',
+        '        children: [{ id: router, icon: network.router }]',
+        '      - group: general.generic',
+        '        children: [{ id: db, icon: general.database }]',
+        'links:',
+        '  - [users.s, router.n]',
+        '  - [users.s, db.n]',
+        '',
+      ].join('\n'),
+    );
+    const [first, second] = [bendsOf(diagram, layout, 0), bendsOf(diagram, layout, 1)];
+    expect(first).toHaveLength(2);
+    expect(second).toHaveLength(2);
+    expect(new Set([...first, ...second].map(({ y }) => y)).size).toBe(1);
+  });
+
+  it('turns fans that cross the same stretch at different heights', () => {
+    const { diagram, layout } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - row:',
+        '      - { id: web, icon: general.users }',
+        '      - { id: mobile, icon: general.mobile }',
+        '  - group: general.generic',
+        '    children:',
+        '      - { id: a, icon: aws.route_53 }',
+        '      - { id: b, icon: aws.cognito }',
+        '      - { id: c, icon: aws.cloudfront }',
+        'links:',
+        '  - [web.s, a.n]',
+        '  - [web.s, c.n]',
+        '  - [mobile.s, b.n]',
+        '  - [mobile.s, c.n]',
+        '',
+      ].join('\n'),
+    );
+    const heightOf = (index: number) => bendsOf(diagram, layout, index)[0]?.y;
+    expect(heightOf(0)).toBe(heightOf(1));
+    expect(heightOf(2)).toBe(heightOf(3));
+    expect(heightOf(2)).toBeLessThan(heightOf(0) ?? 0);
   });
 
   const UNDER_THE_SOURCE = [

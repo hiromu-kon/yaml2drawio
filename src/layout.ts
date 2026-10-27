@@ -227,6 +227,12 @@ export function labelDrop(shape: Pick<Shape, 'width' | 'height'>): number {
   return (ICON_SIZE - iconSize(shape).height) / 2;
 }
 
+/** How far below an icon its label ends, which is where a line leaving its bottom starts. */
+export function labelBelow(leaf: LeafNode): number {
+  if (leaf.label === '') return 0;
+  return labelDrop(leaf.shape) + leaf.label.split('\n').length * LINE_HEIGHT + 4;
+}
+
 // The group label sits at the top left, so a border child on the top edge needs the group to be
 // wide enough to start right of it. A child in the top-left corner cannot clear it and is ignored.
 function widthToClearLabel(group: GroupNode, labelEnd: number): number {

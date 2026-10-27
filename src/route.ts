@@ -1,4 +1,4 @@
-import { GROUP_PADDING, type Layout, type Rect } from './layout.ts';
+import { GROUP_PADDING, labelBelow, type Layout, type Rect } from './layout.ts';
 import type { DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
 
@@ -15,17 +15,23 @@ export interface RouteContext {
   enclosing: Map<string, GroupNode>;
   /** The group each group sits inside. */
   parents: Map<GroupNode, GroupNode>;
+  links: readonly Link[];
 }
 
 const GAP = GROUP_PADDING / 2;
 
-export function routeContext(root: DiagramNode, layout: Layout): RouteContext {
+export function routeContext(
+  root: DiagramNode,
+  layout: Layout,
+  links: readonly Link[] = [],
+): RouteContext {
   const context: RouteContext = {
     layout,
     leaves: new Map(),
     groups: new Map(),
     enclosing: new Map(),
     parents: new Map(),
+    links,
   };
   const visit = (node: DiagramNode, parent: GroupNode | undefined, onBorder = false): void => {
     if (node.kind === 'stack') {
@@ -53,7 +59,7 @@ export function routeContext(root: DiagramNode, layout: Layout): RouteContext {
  */
 export function bendPoints(link: Link, context: RouteContext): Point[] {
   if (link.route === 'drawio') return [];
-  for (const rule of [sideEntry, leaveGroup, sameSideLoop]) {
+  for (const rule of [sideEntry, leaveGroup, fanOut, sameSideLoop]) {
     const bends = rule(link, context).find((option) => leavesForward(link, option, context));
     if (bends) return bends;
   }
@@ -125,6 +131,87 @@ function enteredGroups(context: RouteContext, id: string, point: Point): GroupNo
     entered.push(group);
   }
   return entered;
+}
+
+// Lines leaving one point downward to the tops of several icons share the height they turn at, the
+// gap just above the highest group they enter; draw.io would turn each halfway to its own target,
+// and targets of different heights would split the shared part into steps
+function fanOut(link: Link, context: RouteContext): Point[][] {
+  const y = fanOutHeights(context).get(pointKey(link.from));
+  const source = anchor(context, link.from);
+  const target = anchor(context, link.to);
+  if (y === undefined || !source || !target || !link.to.position) return [];
+  if (sideOf(link.to.position) !== 'top') return [];
+  return [
+    [
+      { x: source.x, y },
+      { x: target.x, y },
+    ],
+  ];
+}
+
+const fanOutCache = new WeakMap<RouteContext, Map<string, number>>();
+
+/** The height each fan-out turns at, keyed by the point it leaves from. */
+function fanOutHeights(context: RouteContext): Map<string, number> {
+  const cached = fanOutCache.get(context);
+  if (cached) return cached;
+
+  const fans = new Map<string, Link[]>();
+  for (const link of context.links) {
+    if (!link.from.position || !link.to.position) continue;
+    if (sideOf(link.from.position) !== 'bottom' || sideOf(link.to.position) !== 'top') continue;
+    const key = pointKey(link.from);
+    fans.set(key, [...(fans.get(key) ?? []), link]);
+  }
+  const candidates = [...fans].flatMap(([key, links]) => {
+    const [first] = links;
+    const source = first && anchor(context, first.from);
+    const leaf = first && context.leaves.get(first.from.id);
+    const ends = links.flatMap((link) => {
+      const end = anchor(context, link.to);
+      return end ? [{ link, end }] : [];
+    });
+    if (links.length < 2 || !source || !leaf || ends.length === 0) return [];
+    const heights = ends.map(({ link, end }) => {
+      const outermost = enteredGroups(context, link.to.id, source).at(-1);
+      return (outermost ? rectOf(context, outermost).y : end.y) - GAP;
+    });
+    const xs = [source.x, ...ends.map(({ end }) => end.x)];
+    return [
+      {
+        key,
+        source,
+        y: Math.min(...heights),
+        // Above the label of the source there is no room to turn
+        floor: source.y + labelBelow(leaf),
+        left: Math.min(...xs),
+        right: Math.max(...xs),
+      },
+    ];
+  });
+
+  // Fans running along the same stretch at the same height read as one line, so each later one
+  // turns a lane higher
+  const heights = new Map<string, number>();
+  const placed: { y: number; left: number; right: number }[] = [];
+  for (const fan of candidates.toSorted((a, b) => a.source.x - b.source.x)) {
+    let { y } = fan;
+    while (
+      placed.some((other) => other.y === y && other.left < fan.right && fan.left < other.right)
+    ) {
+      y -= GAP;
+    }
+    if (y <= fan.floor) continue;
+    heights.set(fan.key, y);
+    placed.push({ y, left: fan.left, right: fan.right });
+  }
+  fanOutCache.set(context, heights);
+  return heights;
+}
+
+function pointKey({ id, position }: Endpoint): string {
+  return `${id}.${position ?? ''}`;
 }
 
 // A line from a bottom side to another bottom side (or top to top) passes below (or above) the

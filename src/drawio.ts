@@ -1,8 +1,7 @@
-import { labelDrop, type Layout, type Rect } from './layout.ts';
+import { labelBelow, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
 import { bendPoints, routeContext, type Point } from './route.ts';
-import { LINE_HEIGHT } from './text.ts';
 
 // Each draw.io library styles its labels its own way (gray bold for Google Cloud, blue for network
 // equipment), which looks patchy in a diagram that mixes them, and text.ts estimates widths for
@@ -42,7 +41,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
           ? `${base}spacingTop=${drop};`
           : base;
       if (!labelSide && node.label !== '') {
-        belowIcon.set(node.id, drop + node.label.split('\n').length * LINE_HEIGHT + 4);
+        belowIcon.set(node.id, labelBelow(node));
       }
       cells.push(vertex(node.id, node.label, style, parent?.id, geometry));
       return;
@@ -57,7 +56,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
   };
   visit(diagram.root, undefined);
 
-  const context = routeContext(diagram.root, layout);
+  const context = routeContext(diagram.root, layout, diagram.links);
   for (const link of diagram.links) {
     cells.push(edge(link, belowIcon, bendPoints(link, context)));
   }
