@@ -45,8 +45,9 @@ Read the reference for the source you have:
 ## Several clouds in one diagram
 
 - Give each cloud, and each on-premises site, its own top-level group, and connect them with lines (VPN, interconnect, API calls). A line may end on a group's side (`office.e`) as well as on an icon.
-- Icon names start with the provider (`aws.ecs`). `npx yaml2drawio --help` lists the providers that have icons.
-- For a provider without icons yet, use the general icons and name the service in the label: `aws.generic_database`, `aws.traditional_server`, `aws.servers`, `aws.generic_application`, `aws.generic_firewall`, `aws.internet`, `aws.users`, `aws.client`, `aws.corporate_data_center`. Put them in an `aws.generic` group labeled with the provider's name.
+- Icon names start with a namespace (`aws.ecs`). `npx yaml2drawio --help` lists the namespaces; the guide explains them.
+- For a provider without icons yet, use the `general.*` icons and name the service in the label: `general.database`, `general.server`, `general.servers`, `general.application`, `general.firewall`, `general.internet`, `general.users`, `general.client`. Put them in a `general.generic` group labeled with the provider's name.
+- An on-premises site is a `general.data_center` group. Use `network.*` only for equipment `general.*` lacks, such as `network.switch` or `network.mainframe`.
 - Provider conventions: [references/aws.md](references/aws.md).
 
 ## Fix what build reports

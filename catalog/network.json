@@ -1,0 +1,466 @@
+{
+  "source": {
+    "repository": "jgraph/drawio",
+    "tag": "v32.6.1",
+    "path": "src/main/webapp/js/diagramly/sidebar/Sidebar-Network.js"
+  },
+  "icons": {
+    "biometric_reader": {
+      "title": "Biometric Reader",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.biometric_reader;",
+      "width": 60,
+      "height": 100
+    },
+    "bus": {
+      "title": "Bus",
+      "category": "Network",
+      "kind": "resource",
+      "style": "html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.bus;gradientColor=none;gradientDirection=north;fontColor=#ffffff;perimeter=backbonePerimeter;backboneSize=20;",
+      "width": 200,
+      "height": 20
+    },
+    "business_center": {
+      "title": "Business Center",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.business_center;",
+      "width": 90,
+      "height": 100
+    },
+    "cloud": {
+      "title": "Cloud",
+      "category": "Network",
+      "kind": "resource",
+      "style": "html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.cloud;fontColor=#ffffff;",
+      "width": 90,
+      "height": 50
+    },
+    "comm_link_icon": {
+      "title": "Comm Link (Icon)",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.comm_link;",
+      "width": 30,
+      "height": 100
+    },
+    "community": {
+      "title": "Community",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.community;",
+      "width": 95,
+      "height": 100
+    },
+    "copier": {
+      "title": "Copier",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.copier;",
+      "width": 100,
+      "height": 100
+    },
+    "desktop_pc": {
+      "title": "Desktop PC",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.desktop_pc;",
+      "width": 30,
+      "height": 60
+    },
+    "external_storage": {
+      "title": "External Storage",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.external_storage;",
+      "width": 90,
+      "height": 100
+    },
+    "firewall": {
+      "title": "Firewall",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.firewall;",
+      "width": 100,
+      "height": 100
+    },
+    "gamepad": {
+      "title": "Gamepad",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.gamepad;",
+      "width": 100,
+      "height": 70
+    },
+    "hub": {
+      "title": "Hub",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.hub;",
+      "width": 100,
+      "height": 30
+    },
+    "laptop": {
+      "title": "Laptop",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.laptop;",
+      "width": 100,
+      "height": 55
+    },
+    "load_balancer": {
+      "title": "Load Balancer",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.load_balancer;",
+      "width": 100,
+      "height": 30
+    },
+    "mail_server": {
+      "title": "Mail Server",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.mail_server;",
+      "width": 105,
+      "height": 105
+    },
+    "mainframe": {
+      "title": "Mainframe",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.mainframe;",
+      "width": 80,
+      "height": 100
+    },
+    "mobile": {
+      "title": "Mobile",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.mobile;",
+      "width": 50,
+      "height": 100
+    },
+    "modem": {
+      "title": "Modem",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.modem;",
+      "width": 100,
+      "height": 30
+    },
+    "monitor": {
+      "title": "Monitor",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.monitor;",
+      "width": 80,
+      "height": 65
+    },
+    "nas_filer": {
+      "title": "NAS Filer",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.nas_filer;",
+      "width": 100,
+      "height": 35
+    },
+    "patch_panel": {
+      "title": "Patch Panel",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.patch_panel;",
+      "width": 100,
+      "height": 35
+    },
+    "pc": {
+      "title": "PC",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.pc;",
+      "width": 100,
+      "height": 70
+    },
+    "phone": {
+      "title": "Phone",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.phone_1;",
+      "width": 100,
+      "height": 70
+    },
+    "phone_resource": {
+      "title": "Phone",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.phone_2;",
+      "width": 100,
+      "height": 90
+    },
+    "printer": {
+      "title": "Printer",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.printer;",
+      "width": 100,
+      "height": 100
+    },
+    "proxy_server": {
+      "title": "Proxy Server",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.proxy_server;",
+      "width": 105,
+      "height": 105
+    },
+    "rack": {
+      "title": "Rack",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.rack;",
+      "width": 50,
+      "height": 100
+    },
+    "radio_tower": {
+      "title": "Radio Tower",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.radio_tower;",
+      "width": 55,
+      "height": 100
+    },
+    "router": {
+      "title": "Router",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.router;",
+      "width": 100,
+      "height": 30
+    },
+    "satellite": {
+      "title": "Satellite",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.satellite;",
+      "width": 100,
+      "height": 100
+    },
+    "satellite_dish": {
+      "title": "Satellite Dish",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.satellite_dish;",
+      "width": 90,
+      "height": 100
+    },
+    "scanner": {
+      "title": "Scanner",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.scanner;",
+      "width": 100,
+      "height": 75
+    },
+    "secured": {
+      "title": "Secured",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.secured;",
+      "width": 80,
+      "height": 100
+    },
+    "security_camera": {
+      "title": "Security Camera",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.security_camera;",
+      "width": 100,
+      "height": 75
+    },
+    "server": {
+      "title": "Server",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.server;",
+      "width": 90,
+      "height": 100
+    },
+    "server_storage": {
+      "title": "Server Storage",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.server_storage;",
+      "width": 105,
+      "height": 105
+    },
+    "storage": {
+      "title": "Storage",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.storage;",
+      "width": 100,
+      "height": 100
+    },
+    "supercomputer": {
+      "title": "Supercomputer",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.supercomputer;",
+      "width": 100,
+      "height": 100
+    },
+    "switch": {
+      "title": "Switch",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.switch;",
+      "width": 100,
+      "height": 30
+    },
+    "tablet": {
+      "title": "Tablet",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.tablet;",
+      "width": 100,
+      "height": 70
+    },
+    "tape_storage": {
+      "title": "Tape Storage",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.tape_storage;",
+      "width": 105,
+      "height": 105
+    },
+    "terminal": {
+      "title": "Terminal",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.terminal;",
+      "width": 80,
+      "height": 65
+    },
+    "unsecure": {
+      "title": "Unsecure",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.unsecure;",
+      "width": 80,
+      "height": 100
+    },
+    "ups_enterprise": {
+      "title": "UPS Enterprise",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.ups_enterprise;",
+      "width": 100,
+      "height": 100
+    },
+    "ups_small": {
+      "title": "UPS Small",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.ups_small;",
+      "width": 70,
+      "height": 100
+    },
+    "usb_stick": {
+      "title": "USB Stick",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.usb_stick;",
+      "width": 45,
+      "height": 100
+    },
+    "user_female": {
+      "title": "User Female",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.user_female;",
+      "width": 40,
+      "height": 100
+    },
+    "user_male": {
+      "title": "User Male",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.user_male;",
+      "width": 40,
+      "height": 100
+    },
+    "users": {
+      "title": "Users",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.users;",
+      "width": 90,
+      "height": 100
+    },
+    "video_projector": {
+      "title": "Video Projector",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.video_projector;",
+      "width": 100,
+      "height": 35
+    },
+    "video_projector_screen": {
+      "title": "Video Projector Screen",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.video_projector_screen;",
+      "width": 80,
+      "height": 100
+    },
+    "virtual_pc": {
+      "title": "Virtual PC",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.virtual_pc;",
+      "width": 115,
+      "height": 85
+    },
+    "virtual_server": {
+      "title": "Virtual Server",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.virtual_server;",
+      "width": 110,
+      "height": 120
+    },
+    "virus": {
+      "title": "Virus",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.virus;",
+      "width": 100,
+      "height": 90
+    },
+    "web_server": {
+      "title": "Web Server",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.web_server;",
+      "width": 105,
+      "height": 105
+    },
+    "wireless_hub": {
+      "title": "Wireless Hub",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.wireless_hub;",
+      "width": 100,
+      "height": 85
+    },
+    "wireless_modem": {
+      "title": "Wireless Modem",
+      "category": "Network",
+      "kind": "resource",
+      "style": "fontColor=#0066CC;verticalAlign=top;verticalLabelPosition=bottom;labelPosition=center;align=center;html=1;outlineConnect=0;fillColor=#CCCCCC;strokeColor=#6881B3;gradientColor=none;gradientDirection=north;strokeWidth=2;shape=mxgraph.networks.wireless_modem;",
+      "width": 100,
+      "height": 85
+    }
+  },
+  "groups": {}
+}

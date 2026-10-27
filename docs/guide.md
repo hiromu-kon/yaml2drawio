@@ -49,6 +49,16 @@ links:
 | `nodes`     | List of nodes (required)                                          |
 | `links`     | List of links                                                     |
 
+## Icon names
+
+Names start with a namespace. `npx yaml2drawio --help` lists them.
+
+- `aws.*`: AWS services, resources and groups
+- `general.*`: provider-neutral icons in the same flat style, such as `general.users`, `general.internet`, `general.server`, `general.database`, `general.firewall`, and the group `general.data_center`
+- `network.*`: on-premises equipment the others lack, such as `network.switch`, `network.mainframe` and `network.laptop`, in draw.io's older gray network style
+
+Prefer the provider's own icon, then `general.*`, and use `network.*` only for what neither has, so the diagram keeps one look.
+
 ## Nodes
 
 A node is one of four kinds, told apart by its key.

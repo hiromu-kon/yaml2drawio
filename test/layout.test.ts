@@ -233,4 +233,22 @@ describe('layoutDiagram', () => {
     expect(unused.width).toBeGreaterThan(textWidth('Public 10.0.1.0/24'));
     expect(unused.height).toBe(cellOf(layout, 'app').height);
   });
+
+  it('fits a wide icon into the square every icon gets, keeping its proportions', () => {
+    const diagram = load(
+      [
+        'nodes:',
+        '  - { id: router, icon: network.router }',
+        '  - { id: db, icon: general.database }',
+        '',
+      ].join('\n'),
+    );
+    const layout = layoutDiagram(diagram.root);
+    const router = cellOf(layout, 'router');
+    const db = cellOf(layout, 'db');
+    // network.router is drawn 100 wide and 30 high in draw.io
+    expect(router.width).toBe(48);
+    expect(router.height).toBe(Math.round((48 * 30) / 100));
+    expect(router.y + router.height / 2).toBeCloseTo(db.y + db.height / 2, 0);
+  });
 });

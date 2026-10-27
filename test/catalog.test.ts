@@ -1,7 +1,7 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { AliasFileSchema, loadCatalog } from '../src/catalog.ts';
+import { AliasFileSchema, loadCatalog, NAMESPACES } from '../src/catalog.ts';
 
 const catalog = loadCatalog();
 
@@ -9,10 +9,21 @@ function readCatalogFile(name: string): unknown {
   return JSON.parse(readFileSync(new URL(`../catalog/${name}`, import.meta.url), 'utf8'));
 }
 
-const aliases = AliasFileSchema.parse(readCatalogFile('aws.aliases.json'));
-const shapes = z
-  .object({ icons: z.record(z.string(), z.unknown()), groups: z.record(z.string(), z.unknown()) })
-  .parse(readCatalogFile('aws.json'));
+const ShapeNamesSchema = z.object({
+  icons: z.record(z.string(), z.unknown()),
+  groups: z.record(z.string(), z.unknown()),
+});
+// A namespace may have only shapes or only aliases
+function readOptional(name: string): unknown {
+  const url = new URL(`../catalog/${name}`, import.meta.url);
+  return existsSync(url) ? readCatalogFile(name) : { icons: {}, groups: {} };
+}
+
+const files = NAMESPACES.map((namespace) => ({
+  namespace,
+  aliases: AliasFileSchema.parse(readOptional(`${namespace}.aliases.json`)),
+  shapes: ShapeNamesSchema.parse(readOptional(`${namespace}.json`)),
+}));
 
 describe('catalog', () => {
   it('looks up shapes by "<provider>.<name>"', () => {
@@ -25,18 +36,36 @@ describe('catalog', () => {
     expect(catalog.group('aws.az')).toEqual(catalog.group('aws.availability_zone'));
   });
 
-  it('has every alias pointing to an existing shape', () => {
-    for (const alias of Object.keys(aliases.icons)) {
-      expect(catalog.icon(`aws.${alias}`)).toBeDefined();
-    }
-    for (const alias of Object.keys(aliases.groups)) {
-      expect(catalog.group(`aws.${alias}`)).toBeDefined();
-    }
+  it.each(files)(
+    'has every alias in $namespace pointing to an existing shape',
+    ({ namespace, aliases }) => {
+      const qualify = (alias: string) => `${namespace}.${alias}`;
+      expect(Object.keys(aliases.icons).filter((alias) => !catalog.icon(qualify(alias)))).toEqual(
+        [],
+      );
+      expect(Object.keys(aliases.groups).filter((alias) => !catalog.group(qualify(alias)))).toEqual(
+        [],
+      );
+    },
+  );
+
+  it.each(files)(
+    'has no alias in $namespace that hides a shape with the same name',
+    ({ aliases, shapes }) => {
+      expect(Object.keys(aliases.icons).filter((alias) => alias in shapes.icons)).toEqual([]);
+      expect(Object.keys(aliases.groups).filter((alias) => alias in shapes.groups)).toEqual([]);
+    },
+  );
+
+  it('names the provider-neutral icons general.*, whatever library draw.io keeps them in', () => {
+    expect(catalog.icon('general.database')).toEqual(catalog.icon('aws.generic_database'));
+    expect(catalog.group('general.data_center')).toEqual(
+      catalog.group('aws.corporate_data_center'),
+    );
   });
 
-  it('has no alias that hides a shape with the same name', () => {
-    expect(Object.keys(aliases.icons).filter((alias) => alias in shapes.icons)).toEqual([]);
-    expect(Object.keys(aliases.groups).filter((alias) => alias in shapes.groups)).toEqual([]);
+  it('has on-premises network equipment under network.*', () => {
+    expect(catalog.icon('network.switch')?.style).toContain('shape=mxgraph.networks.switch');
   });
 
   it('suggests close names for an unknown name', () => {
