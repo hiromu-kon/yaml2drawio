@@ -106,6 +106,24 @@ describe('toDrawio', () => {
     expect(cellTag(render(ACROSS_GROUPS), 'link-2')).not.toContain('mxPoint');
   });
 
+  it('puts the label of a border child on a left or right edge outside the group', () => {
+    const xml = render(
+      [
+        'nodes:',
+        '  - group: aws.vpc',
+        '    border:',
+        '      e: { id: endpoint, icon: aws.vpc_endpoint, label: Interface endpoints }',
+        '    children: [{ id: fn, icon: aws.lambda }]',
+        'links:',
+        '  - [endpoint.s, fn.e]',
+        '',
+      ].join('\n'),
+    );
+    expect(cellTag(xml, 'endpoint')).toContain('labelPosition=right;');
+    // the label is beside the icon, so a line from the bottom starts right at the icon
+    expect(cellTag(xml, 'link-1')).toContain('exitY=1;exitDx=0;exitDy=0;');
+  });
+
   it('produces the same file for the same input', () => {
     expect(render(NESTED)).toBe(render(NESTED));
   });

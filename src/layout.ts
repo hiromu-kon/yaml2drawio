@@ -10,6 +10,7 @@ const GROUP_HEADER = 40;
 export const GROUP_PADDING = 24;
 const GROUP_ICON_AREA = 32;
 const BORDER_GAP = 8;
+const SIDE_LABEL_GAP = 8;
 const GAP: Record<Direction, number> = { horizontal: 48, vertical: 32 };
 
 export interface Rect {
@@ -64,10 +65,13 @@ export function layoutDiagram(root: StackNode): Layout {
           intrude.bottom.push(ICON_SIZE / 2);
           break;
         case 'left':
-        case 'right':
-          reach.x.push(size.width / 2);
-          intrude.x.push(size.width / 2);
+        case 'right': {
+          // The label sits outside the group, beside the icon, so only half the icon intrudes
+          const label = labelSize(node.label).width;
+          reach.x.push(ICON_SIZE / 2 + (label > 0 ? SIDE_LABEL_GAP + label : 0));
+          intrude.x.push(ICON_SIZE / 2);
           break;
+        }
       }
     }
     const frame: Frame = {
