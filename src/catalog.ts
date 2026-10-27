@@ -33,13 +33,19 @@ export const AliasFileSchema = z.object({
   groups: z.record(z.string(), z.string()),
 });
 
+/** A name to write in a diagram, which may be an alias, and the shape it resolves to. */
+export interface SearchResult {
+  name: string;
+  shape: Shape;
+}
+
 export interface Catalog {
   icon(key: string): Shape | undefined;
   group(key: string): Shape | undefined;
   /** Every name that resolves to a shape, aliases included. */
   names(type: 'icon' | 'group'): string[];
   suggest(key: string, type: 'icon' | 'group'): string[];
-  search(query: string): Shape[];
+  search(query: string): SearchResult[];
 }
 
 const PROVIDERS = ['aws'] as const;
@@ -96,11 +102,24 @@ export function loadCatalog(): Catalog {
     },
     search(query) {
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-      const matches = (shape: Shape) => {
-        const text = `${shape.key} ${shape.title} ${shape.category}`.toLowerCase();
+      const matches = ({ name, shape }: SearchResult) => {
+        const text = `${name} ${shape.title} ${shape.category}`.toLowerCase();
         return words.every((word) => text.includes(word));
       };
-      return [...groups.values(), ...icons.values()].filter(matches);
+      return [
+        ...namesWithShapes(groups, aliases.group),
+        ...namesWithShapes(icons, aliases.icon),
+      ].filter(matches);
     },
   };
+}
+
+function namesWithShapes(shapes: Map<string, Shape>, aliases: Map<string, string>): SearchResult[] {
+  return [
+    ...[...shapes.values()].map((shape) => ({ name: shape.key, shape })),
+    ...[...aliases].flatMap(([alias, key]) => {
+      const shape = shapes.get(key);
+      return shape ? [{ name: alias, shape }] : [];
+    }),
+  ].toSorted((a, b) => a.name.localeCompare(b.name));
 }

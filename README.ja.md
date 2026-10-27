@@ -5,6 +5,7 @@
 [English](README.md) | **日本語**
 
 [![CI](https://github.com/hiromu-kon/yaml2drawio/actions/workflows/ci.yml/badge.svg)](https://github.com/hiromu-kon/yaml2drawio/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/yaml2drawio)](https://www.npmjs.com/package/yaml2drawio)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **インフラ構成図をコードで書き、編集できる draw.io のファイルとして出力する。**

@@ -5,6 +5,7 @@
 **English** | [日本語](README.ja.md)
 
 [![CI](https://github.com/hiromu-kon/yaml2drawio/actions/workflows/ci.yml/badge.svg)](https://github.com/hiromu-kon/yaml2drawio/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/yaml2drawio)](https://www.npmjs.com/package/yaml2drawio)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **Infrastructure diagrams as code, output as editable draw.io files.**
