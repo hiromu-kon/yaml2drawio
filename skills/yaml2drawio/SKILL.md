@@ -54,7 +54,7 @@ Read the reference for the source you have:
 ## Fix what build reports
 
 - Errors stop the build and point at `file:line:column`, often with a suggestion. Fix the YAML there.
-- Warnings name a link and the icon or label it crosses. Follow "Getting a clean layout" in the guide: other sides, entering nested icons from the side, reordering children, moving an icon to a group's `border`.
+- Warnings name a link and the icon, label or other line it crosses or runs along. Follow "Getting a clean layout" in the guide: other sides, entering nested icons from the side, reordering children, moving an icon to a group's `border`.
 - A `note:` means a link has an end without a side, so it is not checked. Give both ends a side. Never remove sides to get rid of a warning.
 
 ## Report
