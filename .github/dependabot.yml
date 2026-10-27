@@ -8,6 +8,7 @@ updates:
       # One pull request per week for development tools, separate ones for runtime dependencies
       dev-dependencies:
         dependency-type: development
+  # Actions are pinned to commit SHAs; Dependabot moves the SHA and the version comment together
   - package-ecosystem: github-actions
     directory: /
     schedule:
