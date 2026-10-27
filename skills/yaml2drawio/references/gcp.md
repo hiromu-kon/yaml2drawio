@@ -1,12 +1,13 @@
 # Google Cloud conventions
 
-Google Cloud has no group styles yet. Draw each boundary as a `general.generic` group whose label says what it is, such as `Project: shop-prod`.
-
 ## Boundaries
 
 Nest them in this order, leaving out levels that add nothing:
 
-Organization or folder (only when several projects appear) > `Project: <id>` > `VPC: <name>` > `Region: <name>` > `Subnet: <name> <range>`
+Organization or folder (only when several projects appear) > `gcp.project` > `gcp.vpc` > `gcp.region` > `gcp.subnet` > `gcp.zone`
+
+- Label each group with its name: `Project: shop-prod`, `VPC: shop`, `Subnet: app 10.0.0.0/24`. An organization or folder has no group of its own: use `general.generic` labeled `Folder: production`.
+- Draw zones only when the zone matters (zonal instances, a regional cluster spread over zones).
 
 - A VPC network is global and its subnets are regional, so regions go inside the VPC, not the other way round. Without a VPC in the diagram, put regions directly in the project.
 - Serverless services (Cloud Run, Cloud Functions, App Engine) run outside your VPC: put them in the region, outside the VPC box. A Serverless VPC Access connector or Direct VPC egress is a line into the VPC, labeled as such.

@@ -1,13 +1,13 @@
 # Kubernetes conventions
 
-Kubernetes has no group styles yet. Draw each boundary as a `general.generic` group whose label says what it is, such as `Namespace: payments`.
-
 ## Boundaries
 
-`Cluster: <name>` > `Namespace: <name>`
+`k8s.cluster` > `k8s.namespace`
+
+- Label each group with its name: `Cluster: orders`, `Namespace: payments`.
 
 - A managed cluster (EKS, GKE, AKS) sits inside its cloud's network boundary (a private subnet, a region), so the cluster group goes there.
-- Draw nodes only when the diagram is about scheduling or capacity; otherwise workloads go straight into their namespace.
+- Draw nodes (`k8s.node`, and `k8s.control_plane` for the control plane) only when the diagram is about scheduling or capacity; otherwise workloads go straight into their namespace.
 - Cluster-wide objects (ingress controllers, cluster roles, storage classes) go in the cluster, outside the namespaces, or in the namespace they run in (an ingress controller in `ingress-nginx`).
 
 ## What to draw
