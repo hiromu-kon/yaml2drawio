@@ -4,6 +4,12 @@ import { POSITION_POINTS, sideOf } from './position.ts';
 import { bendPoints, routeContext, type Point } from './route.ts';
 import { LINE_HEIGHT } from './text.ts';
 
+// Each draw.io library styles its labels its own way (gray bold for Google Cloud, blue for network
+// equipment), which looks patchy in a diagram that mixes them, and text.ts estimates widths for
+// 12px regular text. Later keys win in a draw.io style, so this evens them out.
+const LEAF_LABEL_STYLE =
+  'fontColor=#232F3E;fontSize=12;fontStyle=0;verticalLabelPosition=bottom;verticalAlign=top;';
+
 // Later keys win in a draw.io style, so these override the catalog's label-below placement. The
 // label goes above the middle of the side, where lines to the outside usually leave.
 const SIDE_LABEL_STYLE = {
@@ -29,11 +35,12 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     const geometry = relativeTo(cellRect(layout, node), parent && cellRect(layout, parent));
     if (node.kind === 'leaf') {
       const drop = labelSide || node.label === '' ? 0 : labelDrop(node.shape);
+      const base = withSemicolon(node.shape.style) + LEAF_LABEL_STYLE;
       const style = labelSide
-        ? withSemicolon(node.shape.style) + SIDE_LABEL_STYLE[labelSide]
+        ? base + SIDE_LABEL_STYLE[labelSide]
         : drop > 0
-          ? `${withSemicolon(node.shape.style)}spacingTop=${drop};`
-          : node.shape.style;
+          ? `${base}spacingTop=${drop};`
+          : base;
       if (!labelSide && node.label !== '') {
         belowIcon.set(node.id, drop + node.label.split('\n').length * LINE_HEIGHT + 4);
       }
