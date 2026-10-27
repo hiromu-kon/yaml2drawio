@@ -1,0 +1,15 @@
+name: Feature request
+description: Suggest an improvement or a new provider
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to draw?
+      description: Describe the diagram or the problem, ideally with a YAML snippet.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would help

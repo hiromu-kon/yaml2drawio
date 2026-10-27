@@ -1,0 +1,26 @@
+name: Bug report
+description: Something does not work as expected
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: yaml2drawio version
+      placeholder: 0.1.1
+    validations:
+      required: true
+  - type: textarea
+    id: yaml
+    attributes:
+      label: YAML
+      description: The smallest diagram that shows the problem.
+      render: yaml
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What happened, and what you expected
+      description: Attach the PNG or the .drawio file if the problem is visual.
+    validations:
+      required: true
