@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
+import { NAMESPACES } from '../src/catalog.ts';
 import { catalog } from './helpers.ts';
 
 const skill = new URL('../skills/yaml2drawio/', import.meta.url);
@@ -30,9 +31,12 @@ describe('skills/yaml2drawio', () => {
     'names only icons and groups in the catalog in %s',
     (_, file) => {
       const names = new Set([...catalog.names('icon'), ...catalog.names('group')]);
-      const mentioned = [
-        ...readFileSync(file, 'utf8').matchAll(/(?<![/\w])aws\.[a-z0-9_]+(?!\.md)/g),
-      ].map(([name]) => name);
+      // A name such as aws.ecs, but not a file such as references/aws.md
+      const pattern = new RegExp(
+        `(?<![/\\w])(?:${NAMESPACES.join('|')})\\.[a-z0-9_]+(?!\\.md)`,
+        'g',
+      );
+      const mentioned = [...readFileSync(file, 'utf8').matchAll(pattern)].map(([name]) => name);
       expect(mentioned.filter((name) => !names.has(name))).toEqual([]);
     },
   );

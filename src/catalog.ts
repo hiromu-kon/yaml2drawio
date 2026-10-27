@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { rankByCloseness } from './suggest.ts';
 
@@ -48,10 +48,21 @@ export interface Catalog {
   search(query: string): SearchResult[];
 }
 
-export const PROVIDERS = ['aws'] as const;
+/**
+ * Name prefixes, each with a catalog/<namespace>.json of shapes, a catalog/<namespace>.aliases.json
+ * of short names, or both. general has only aliases: draw.io keeps its provider-neutral icons in the
+ * AWS library, and a diagram of another cloud should not have to call them aws.*.
+ */
+export const NAMESPACES = ['aws', 'general', 'network'] as const;
 
 function readCatalogFile(name: string): unknown {
-  return JSON.parse(readFileSync(new URL(`../catalog/${name}`, import.meta.url), 'utf8'));
+  const url = new URL(`../catalog/${name}`, import.meta.url);
+  return existsSync(url) ? JSON.parse(readFileSync(url, 'utf8')) : undefined;
+}
+
+/** An alias names a shape in its own namespace, or anywhere when it includes the namespace. */
+function qualify(namespace: string, name: string): string {
+  return name.includes('.') ? name : `${namespace}.${name}`;
 }
 
 function toShapes(
@@ -71,16 +82,22 @@ export function loadCatalog(): Catalog {
   const groups = new Map<string, Shape>();
   const aliases = { icon: new Map<string, string>(), group: new Map<string, string>() };
 
-  for (const provider of PROVIDERS) {
-    const file = ProviderFileSchema.parse(readCatalogFile(`${provider}.json`));
-    const aliasFile = AliasFileSchema.parse(readCatalogFile(`${provider}.aliases.json`));
-    for (const [key, shape] of toShapes(provider, file.icons)) icons.set(key, shape);
-    for (const [key, shape] of toShapes(provider, file.groups)) groups.set(key, shape);
-    for (const [alias, name] of Object.entries(aliasFile.icons)) {
-      aliases.icon.set(`${provider}.${alias}`, `${provider}.${name}`);
+  for (const namespace of NAMESPACES) {
+    const shapeFile = readCatalogFile(`${namespace}.json`);
+    if (shapeFile !== undefined) {
+      const file = ProviderFileSchema.parse(shapeFile);
+      for (const [key, shape] of toShapes(namespace, file.icons)) icons.set(key, shape);
+      for (const [key, shape] of toShapes(namespace, file.groups)) groups.set(key, shape);
     }
-    for (const [alias, name] of Object.entries(aliasFile.groups)) {
-      aliases.group.set(`${provider}.${alias}`, `${provider}.${name}`);
+    const aliasFile = readCatalogFile(`${namespace}.aliases.json`);
+    if (aliasFile !== undefined) {
+      const file = AliasFileSchema.parse(aliasFile);
+      for (const [alias, name] of Object.entries(file.icons)) {
+        aliases.icon.set(`${namespace}.${alias}`, qualify(namespace, name));
+      }
+      for (const [alias, name] of Object.entries(file.groups)) {
+        aliases.group.set(`${namespace}.${alias}`, qualify(namespace, name));
+      }
     }
   }
 
