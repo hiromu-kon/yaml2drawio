@@ -127,4 +127,21 @@ describe('toDrawio', () => {
   it('produces the same file for the same input', () => {
     expect(render(NESTED)).toBe(render(NESTED));
   });
+
+  it('starts the label of a short icon at the bottom of its square, and lines below it', () => {
+    const xml = render(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - { id: router, icon: network.router, label: Router }',
+        '  - { id: fw, icon: general.firewall }',
+        'links:',
+        '  - [router.s, fw.n]',
+        '',
+      ].join('\n'),
+    );
+    // A 48x14 router sits 17px above the bottom of its 48px square; the label drops by as much
+    expect(cellTag(xml, 'router')).toContain('spacingTop=17;');
+    expect(cellTag(xml, 'link-1')).toContain(`exitDy=${17 + 15 + 4};`);
+  });
 });

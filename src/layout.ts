@@ -1,3 +1,4 @@
+import type { Shape } from './catalog.ts';
 import type { DiagramNode, Direction, GroupNode, LeafNode, StackNode } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
 import { LINE_HEIGHT, labelSize, textWidth } from './text.ts';
@@ -121,11 +122,11 @@ export function layoutDiagram(root: StackNode): Layout {
 
   const place = (node: DiagramNode, box: Rect): void => {
     if (node.kind === 'leaf') {
+      const icon = iconSize(node.shape);
       cells.set(node, {
-        x: box.x + Math.round((box.width - ICON_SIZE) / 2),
-        y: box.y,
-        width: ICON_SIZE,
-        height: ICON_SIZE,
+        x: box.x + Math.round((box.width - icon.width) / 2),
+        y: box.y + Math.round((ICON_SIZE - icon.height) / 2),
+        ...icon,
       });
       return;
     }
@@ -149,11 +150,11 @@ export function layoutDiagram(root: StackNode): Layout {
     });
     for (const { position, node: child } of node.border) {
       const [px, py] = POSITION_POINTS[position];
+      const icon = iconSize(child.shape);
       cells.set(child, {
-        x: Math.round(visible.x + px * visible.width - ICON_SIZE / 2),
-        y: Math.round(visible.y + py * visible.height - ICON_SIZE / 2),
-        width: ICON_SIZE,
-        height: ICON_SIZE,
+        x: Math.round(visible.x + px * visible.width - icon.width / 2),
+        y: Math.round(visible.y + py * visible.height - icon.height / 2),
+        ...icon,
       });
     }
   };
@@ -186,6 +187,25 @@ export function layoutDiagram(root: StackNode): Layout {
   const size = measure(root);
   place(root, { x: 0, y: 0, ...size });
   return { cells, ...size };
+}
+
+/**
+ * The icon scaled to fit the square every leaf reserves, keeping its proportions. Stretching a wide
+ * shape such as a router to a square would distort it, and lines would meet empty space.
+ */
+export function iconSize({ width, height }: Pick<Shape, 'width' | 'height'>): Size {
+  const scale = ICON_SIZE / Math.max(width, height);
+  return { width: Math.round(width * scale), height: Math.round(height * scale) };
+}
+
+/**
+ * How far the label of a short icon drops below the icon, so that it starts at the bottom of the
+ * square like the labels next to it. The icon itself stays centered so that lines between the
+ * middles of neighbors stay straight.
+ */
+export function labelDrop(shape: Pick<Shape, 'width' | 'height'>): number {
+  const { height } = iconSize(shape);
+  return ICON_SIZE - height - Math.round((ICON_SIZE - height) / 2);
 }
 
 // The group label sits at the top left, so a border child on the top edge needs the group to be

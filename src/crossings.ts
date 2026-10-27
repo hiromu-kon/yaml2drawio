@@ -1,4 +1,4 @@
-import { LABEL_GAP, type Layout, type Rect } from './layout.ts';
+import { LABEL_GAP, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Problem } from './load.ts';
 import type { Diagram, DiagramNode, Direction, Endpoint, Link } from './model.ts';
 import { sideOf, type Side } from './position.ts';
@@ -72,7 +72,7 @@ function obstaclesOf(root: DiagramNode, layout: Layout): Obstacle[] {
         obstacles.push({
           owner: node.id,
           name: `the label of "${node.id}"`,
-          rect: trimEnds(leafLabelRect(rect, label, labelSide)),
+          rect: trimEnds(leafLabelRect(rect, label, labelSide, labelDrop(node.shape))),
         });
       }
       return;
@@ -97,13 +97,14 @@ function leafLabelRect(
   icon: Rect,
   label: { width: number; height: number },
   side: Side | undefined,
+  drop: number,
 ): Rect {
   const above = { y: icon.y - label.height, width: label.width, height: label.height };
   if (side === 'left') return { x: icon.x - LABEL_GAP - label.width, ...above };
   if (side === 'right') return { x: icon.x + icon.width + LABEL_GAP, ...above };
   return {
     x: icon.x + (icon.width - label.width) / 2,
-    y: icon.y + icon.height,
+    y: icon.y + icon.height + drop,
     width: label.width,
     height: LABEL_GAP + label.height,
   };
