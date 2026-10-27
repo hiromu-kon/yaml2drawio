@@ -1,0 +1,37 @@
+{
+  "subscription": {
+    "title": "Subscription",
+    "style": "strokeColor=#0078D4;fillColor=none;fontColor=#0078D4;",
+    "icon": "subscriptions",
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/virtual-machines/baseline-landing-zone (a blue border; the shade is Azure blue, read from the image)"
+  },
+  "resource_group": {
+    "title": "Resource group",
+    "style": "dashed=1;strokeColor=#0096D7;fillColor=none;fontColor=#0096D7;",
+    "icon": "resource_groups",
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/containers/aks/baseline-aks (aks-baseline-network-topology.svg .st3)"
+  },
+  "region": {
+    "title": "Region",
+    "style": "strokeColor=#BFBFBF;fillColor=#F2F2F2;fontColor=#595959;",
+    "icon": "location",
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/web-apps/app-service/architectures/baseline-zone-redundant (baseline-app-service-architecture.svg .st2)"
+  },
+  "availability_zone": {
+    "title": "Availability zone",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=8;strokeColor=#FFD965;strokeWidth=1.5;fillColor=#FAFAFA;fontColor=#595959;",
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/web-apps/app-service/architectures/baseline-zone-redundant (baseline-app-service-architecture.svg .st52)"
+  },
+  "vnet": {
+    "title": "Virtual network",
+    "style": "dashed=1;strokeColor=#1490DF;fillColor=none;fontColor=#1490DF;",
+    "icon": "virtual_networks",
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/networking/architecture/hub-spoke (hub-spoke-network-topology-architecture.svg .st11)"
+  },
+  "subnet": {
+    "title": "Subnet",
+    "style": "strokeColor=#BFBFBF;fillColor=#F8F8F8;fontColor=#595959;",
+    "icon": "subnet",
+    "source": "https://learn.microsoft.com/en-us/azure/architecture/web-apps/app-service/architectures/baseline-zone-redundant (baseline-app-service-architecture.svg .st4)"
+  }
+}
