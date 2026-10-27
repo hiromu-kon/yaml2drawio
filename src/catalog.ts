@@ -53,7 +53,7 @@ export interface Catalog {
  * of short names, or both. general has only aliases: draw.io keeps its provider-neutral icons in the
  * AWS library, and a diagram of another cloud should not have to call them aws.*.
  */
-export const NAMESPACES = ['aws', 'general', 'network'] as const;
+export const NAMESPACES = ['aws', 'gcp', 'azure', 'k8s', 'general', 'network'] as const;
 
 function readCatalogFile(name: string): unknown {
   const url = new URL(`../catalog/${name}`, import.meta.url);

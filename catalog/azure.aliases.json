@@ -1,0 +1,23 @@
+{
+  "icons": {
+    "aks": "kubernetes_services",
+    "app_service": "app_services",
+    "application_gateway": "application_gateways",
+    "container_registry": "container_registries",
+    "entra_id": "entra_identity",
+    "event_hub": "event_hubs",
+    "firewall": "firewalls",
+    "front_door": "front_doors",
+    "functions": "function_apps",
+    "key_vault": "key_vaults",
+    "load_balancer": "load_balancers",
+    "nsg": "network_security_groups",
+    "redis": "cache_redis",
+    "resource_group": "resource_groups",
+    "storage_account": "storage_accounts",
+    "subscription": "subscriptions",
+    "vm": "virtual_machine",
+    "vnet": "virtual_networks"
+  },
+  "groups": {}
+}
