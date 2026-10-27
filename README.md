@@ -40,7 +40,7 @@ yaml2drawio keeps the diagram in version control as readable text and still give
 - **Made for AI agents too**
   Compact YAML and strict validation let an agent write a diagram, check it, and fix it without guessing.
 - **Beyond AWS**
-  Icon names are namespaced (`aws.ecs`, `aws.vpc`) so other providers can be added side by side.
+  Icon names are namespaced (`aws.ecs`, `aws.vpc`), with provider-neutral icons (`general.server`) and on-premises equipment (`network.switch`) for hybrid and multi-cloud diagrams; other providers can be added side by side.
 
 ## Getting started
 
