@@ -144,6 +144,8 @@ describe('toDrawio', () => {
     expect(cellTag(xml, 'router')).toContain('spacingTop=17;');
     // draw.io would move the port back onto the outline of the icon without exitPerimeter=0
     expect(cellTag(xml, 'link-1')).toContain(`exitDy=${17 + 15 + 4};exitPerimeter=0;`);
+    // Off the outline, draw.io needs to be told the line leaves downward
+    expect(cellTag(xml, 'link-1')).toContain('sourcePortConstraint=south;');
   });
 
   it('keeps icons of different widths stacked in a column on one center line', () => {
