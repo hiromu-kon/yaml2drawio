@@ -145,4 +145,27 @@ describe('toDrawio', () => {
     // draw.io would move the port back onto the outline of the icon without exitPerimeter=0
     expect(cellTag(xml, 'link-1')).toContain(`exitDy=${17 + 15 + 4};exitPerimeter=0;`);
   });
+
+  it('keeps icons of different widths stacked in a column on one center line', () => {
+    const xml = render(
+      [
+        'nodes:',
+        '  - group: general.data_center',
+        '    direction: vertical',
+        '    children:',
+        '      - { id: laptops, icon: network.laptop, label: Staff laptops }',
+        '      - { id: core, icon: network.switch, label: Core switch }',
+        '      - { id: fw, icon: general.firewall, label: Firewall }',
+        '      - { id: mainframe, icon: network.mainframe, label: Order ledger mainframe }',
+        '      - { id: db, icon: general.database, label: Oracle database server }',
+        '',
+      ].join('\n'),
+    );
+    const centers = ['laptops', 'core', 'fw', 'mainframe', 'db'].map((id) => {
+      const [, x = '', width = ''] =
+        /<mxGeometry x="([\d.]+)" y="[\d.]+" width="([\d.]+)"/.exec(cellTag(xml, id)) ?? [];
+      return Number(x) + Number(width) / 2;
+    });
+    expect(new Set(centers).size).toBe(1);
+  });
 });
