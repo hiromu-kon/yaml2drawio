@@ -3,7 +3,7 @@ import { POSITION_POINTS, sideOf } from './position.ts';
 import { labelSize, textWidth } from './text.ts';
 
 export const ICON_SIZE = 48;
-const LABEL_GAP = 4;
+export const LABEL_GAP = 4;
 const LEAF_PADDING_X = 16;
 const LEAF_PADDING_BOTTOM = 8;
 const GROUP_HEADER = 40;

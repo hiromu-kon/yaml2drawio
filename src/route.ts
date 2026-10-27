@@ -149,7 +149,7 @@ function ancestors(context: RouteContext, id: string): GroupNode[] {
   return chain;
 }
 
-function anchor(context: RouteContext, endpoint: Endpoint): Point | undefined {
+export function anchor(context: RouteContext, endpoint: Endpoint): Point | undefined {
   const rect = leafRect(context, endpoint.id);
   if (!rect || !endpoint.position) return undefined;
   const [px, py] = POSITION_POINTS[endpoint.position];

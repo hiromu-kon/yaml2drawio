@@ -1,0 +1,108 @@
+import { describe, expect, it } from 'vitest';
+import { findCrossings } from '../src/crossings.ts';
+import { layoutDiagram } from '../src/layout.ts';
+import { formatProblem } from '../src/load.ts';
+import { load } from './helpers.ts';
+
+function crossingsOf(...lines: string[]): string[] {
+  const diagram = load(lines.join('\n'));
+  return findCrossings(diagram, layoutDiagram(diagram.root)).map((problem) =>
+    formatProblem(problem),
+  );
+}
+
+describe('findCrossings', () => {
+  it('reports a line into an icon right under the label of its subnet, at the link', () => {
+    expect(
+      crossingsOf(
+        'direction: vertical',
+        'nodes:',
+        '  - { id: app, icon: aws.ecs }',
+        '  - group: aws.private_subnet',
+        '    label: Data 10.0.20.0/24',
+        '    children:',
+        '      - { id: db, icon: aws.aurora }',
+        'links:',
+        '  - [app.s, db.n]',
+      ),
+    ).toEqual(['9:5: link app.s -> db.n crosses the label of "Data 10.0.20.0/24"']);
+  });
+
+  it('knows that groups without an icon center their label', () => {
+    expect(
+      crossingsOf(
+        'direction: vertical',
+        'nodes:',
+        '  - { id: users, icon: aws.users }',
+        '  - group: aws.generic',
+        '    label: Edge',
+        '    children:',
+        '      - { id: dns, icon: aws.route_53 }',
+        '      - { id: cdn, icon: aws.cloudfront }',
+        'links:',
+        '  - [users.s, dns.n]',
+      ),
+    ).toEqual([]);
+  });
+
+  it('reports a line over an icon between its ends', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - { id: a, icon: aws.lambda }',
+        '  - { id: b, icon: aws.sqs }',
+        '  - { id: c, icon: aws.s3 }',
+        'links:',
+        '  - [a.e, c.w]',
+      ),
+    ).toEqual(['6:5: link a.e -> c.w crosses the icon of "b"']);
+  });
+
+  it('lets a line touch the icons and labels at its own ends', () => {
+    expect(
+      crossingsOf(
+        'direction: vertical',
+        'nodes:',
+        '  - { id: a, icon: aws.lambda, label: A long label under the icon }',
+        '  - { id: b, icon: aws.sqs, label: Another long label }',
+        'links:',
+        '  - [a.s, b.n]',
+        '  - [b.e, a.e]',
+      ),
+    ).toEqual([]);
+  });
+
+  it('skips lines whose ends float, because draw.io picks their sides', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - { id: a, icon: aws.lambda }',
+        '  - { id: b, icon: aws.sqs }',
+        '  - { id: c, icon: aws.s3 }',
+        'links:',
+        '  - [a, c]',
+      ),
+    ).toEqual([]);
+  });
+
+  it.each([
+    ['auto', []],
+    ['drawio', ['11:5: link a.s -> c.s crosses the label of "b"']],
+  ])('follows the route draw.io takes with route: %s', (route, expected) => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - group: aws.private_subnet',
+        '    children:',
+        '      - { id: a, icon: aws.lambda }',
+        '      - { id: b, icon: aws.sqs, label: "Queue\\nfor jobs" }',
+        '  - group: aws.private_subnet',
+        '    children:',
+        '      - { id: c, icon: aws.s3 }',
+        'links:',
+        '  # draw.io turns just below the icons; the bends of auto pass below the subnets',
+        `  - { from: a.s, to: c.s, route: ${route} }`,
+      ),
+    ).toEqual(expected);
+  });
+});

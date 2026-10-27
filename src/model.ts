@@ -41,6 +41,12 @@ export interface Endpoint {
   position: Position | undefined;
 }
 
+/** Where something is written in the YAML, so that messages about it can point there. */
+export interface SourceLocation {
+  line: number;
+  column: number;
+}
+
 export interface Link {
   id: string;
   from: Endpoint;
@@ -49,6 +55,7 @@ export interface Link {
   dashed: boolean;
   arrow: 'end' | 'start' | 'both' | 'none';
   route: 'auto' | 'drawio';
+  location: SourceLocation | undefined;
 }
 
 export interface Diagram {
