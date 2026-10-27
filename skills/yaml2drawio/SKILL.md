@@ -29,7 +29,7 @@ Read the reference for the source you have:
 
 - **Terraform or OpenTofu**: [references/terraform.md](references/terraform.md)
 - **CloudFormation or AWS CDK**: run `cdk synth` for CDK (it only writes templates), then read the `Resources` of the template the same way as Terraform resources: placement from subnet and VPC properties, connections from references between resources.
-- **A running account**: use read-only commands only (`describe`, `list`, `get`), never anything that changes resources. For AWS see [references/aws.md](references/aws.md).
+- **A running account**: use read-only commands only (`describe`, `list`, `get`), never anything that changes resources. Each provider reference below lists the commands to use.
 - **A description**: draw what is described. Do not add resources the user did not mention, apart from the boundaries they imply (a VPC around subnets).
 
 ## Decide what to draw
@@ -46,10 +46,10 @@ Read the reference for the source you have:
 
 - Give each cloud, and each on-premises site, its own top-level group, and connect them with lines (VPN, interconnect, API calls). A line may end on a group's side (`office.e`) as well as on an icon.
 - Icon names start with a namespace (`aws.ecs`). `npx yaml2drawio --help` lists the namespaces; the guide explains them.
-- AWS, Google Cloud, Azure and Kubernetes have icons (`aws.*`, `gcp.*`, `azure.*`, `k8s.*`). Only AWS has groups so far; for the others, use `general.generic` groups labeled with what they are (`Project: shop-prod`, `VNet 10.1.0.0/16`, `Namespace: payments`).
+- AWS, Google Cloud, Azure and Kubernetes have icons (`aws.*`, `gcp.*`, `azure.*`, `k8s.*`). Only AWS has groups so far; for the others, use `general.generic` groups labeled with what they are (`Project: shop-prod`, `VNet: hub 10.0.0.0/16`, `Namespace: payments`), nested as the provider reference says.
 - For a provider without icons yet, use the `general.*` icons and name the service in the label: `general.database`, `general.server`, `general.servers`, `general.application`, `general.firewall`, `general.internet`, `general.users`, `general.client`. Put them in a `general.generic` group labeled with the provider's name.
 - An on-premises site is a `general.data_center` group. Use `network.*` only for equipment `general.*` lacks, such as `network.switch` or `network.mainframe`.
-- Provider conventions: [references/aws.md](references/aws.md).
+- Provider conventions: [references/aws.md](references/aws.md), [references/gcp.md](references/gcp.md), [references/azure.md](references/azure.md), [references/kubernetes.md](references/kubernetes.md).
 
 ## Fix what build reports
 

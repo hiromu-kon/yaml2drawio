@@ -129,6 +129,7 @@ links:
 - Give both ends of every link a side that faces the other end: `a.s -> b.n` when b is below, `a.e -> b.w` when b is to the right.
 - Only links with a side at both ends are checked for crossings (with either `route`). Links without sides are reported as `note:` lines; never drop sides just to get rid of a warning.
 - Labels of AWS groups with an icon (region, VPC, subnets) sit at the top left; labels of AZs and generic groups are centered at the top. A line coming down into the top of an icon right below such a label crosses it.
+- In a vertical group with a centered label, the first child sits right under the label. Start the group with something no line enters from above, bring the line in from the side, or lay the group out horizontally so the target is not in the middle.
 - So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
 - Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
