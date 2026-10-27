@@ -42,6 +42,7 @@ describe('loadDiagram', () => {
         dashed: false,
         arrow: 'end',
         route: 'auto',
+        location: { line: 5, column: 5 },
       },
       {
         id: 'link-2',
@@ -51,6 +52,7 @@ describe('loadDiagram', () => {
         dashed: true,
         arrow: 'both',
         route: 'auto',
+        location: { line: 6, column: 5 },
       },
     ]);
   });

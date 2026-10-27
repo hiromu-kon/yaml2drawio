@@ -8,6 +8,7 @@ import type {
   Endpoint,
   LeafNode,
   Link,
+  SourceLocation,
   StackNode,
 } from './model.ts';
 import {
@@ -22,10 +23,8 @@ import {
 } from './schema.ts';
 import { closestMatch } from './suggest.ts';
 
-export interface Problem {
+export interface Problem extends Partial<SourceLocation> {
   message: string;
-  line?: number;
-  column?: number;
 }
 
 export class DiagramError extends Error {
@@ -61,10 +60,7 @@ class Source {
   }
 
   problem(path: Path, message: string): Problem {
-    const node = this.#document.getIn(path, true);
-    if (isNode(node) && node.range) return this.#at(node.range[0], message);
-    // A missing key has no node of its own, so point at the closest ancestor that exists
-    return path.length > 0 ? this.problem(path.slice(0, -1), message) : { message };
+    return { message, ...this.locate(path) };
   }
 
   /** Points at a key rather than its value, for problems about the key itself. */
@@ -72,14 +68,22 @@ class Source {
     const parent = this.#document.getIn(path, true);
     if (isMap(parent)) {
       const pair = parent.items.find((item) => isScalar(item.key) && item.key.value === key);
-      if (pair && isNode(pair.key) && pair.key.range) return this.#at(pair.key.range[0], message);
+      if (pair && isNode(pair.key) && pair.key.range)
+        return { message, ...this.#at(pair.key.range[0]) };
     }
     return this.problem([...path, key], message);
   }
 
-  #at(offset: number, message: string): Problem {
+  locate(path: Path): SourceLocation | undefined {
+    const node = this.#document.getIn(path, true);
+    if (isNode(node) && node.range) return this.#at(node.range[0]);
+    // A missing key has no node of its own, so point at the closest ancestor that exists
+    return path.length > 0 ? this.locate(path.slice(0, -1)) : undefined;
+  }
+
+  #at(offset: number): SourceLocation {
     const { line, col } = this.#lines.linePos(offset);
-    return { message, line, column: col };
+    return { line, column: col };
   }
 }
 
@@ -281,6 +285,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
         dashed: false,
         arrow: 'end',
         route: 'auto',
+        location: source.locate(path),
       };
     }
     return {
@@ -291,6 +296,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
       dashed: link.style === 'dashed',
       arrow: link.arrow ?? 'end',
       route: link.route ?? 'auto',
+      location: source.locate(path),
     };
   });
 

@@ -3,14 +3,16 @@ export const LINE_HEIGHT = 15;
 
 // Estimated from Helvetica's advance widths, which draw.io uses by default. Measuring with a real
 // font would need a font file and a rendering library just to reserve roughly enough room.
-const NARROW = new Set("iIl.,:;|!'`()[]{} ");
+const NARROW = new Set("iIljtfr/.,:;|!'`()[]{} ");
 const WIDE =
   /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE4F\uFF00-\uFF60\uFFE0-\uFFE6]/u;
 
 function charWidth(char: string): number {
   if (WIDE.test(char)) return 1;
   if (NARROW.has(char)) return 0.3;
-  if (/[A-Z0-9mwMW]/.test(char)) return 0.68;
+  // Helvetica's digits are all 0.556 wide, which matters for labels full of CIDR blocks
+  if (/[0-9]/.test(char)) return 0.56;
+  if (/[A-Zmw]/.test(char)) return 0.68;
   return 0.55;
 }
 

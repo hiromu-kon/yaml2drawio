@@ -50,10 +50,12 @@ Requires Node.js 24 or later. PNG output also needs [draw.io Desktop](https://ww
 npx yaml2drawio build diagram.yaml          # writes diagram.drawio
 npx yaml2drawio build diagram.yaml --png    # also renders diagram.png with draw.io Desktop
 npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
+npx yaml2drawio build diagram.yaml --strict # exits with 1 if there are warnings
 npx yaml2drawio icons redis                 # search icon names
 ```
 
 Errors point at the line and column to fix, for example `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`.
+Lines that would run over an icon or a label are reported as warnings at the link, for example `diagram.yaml:21:5: warning: link api.s -> db.n crosses the label of "Data 10.0.20.0/24"`. The file is still written; `--strict` makes the exit code 1 so CI and AI agents can loop until it is clean. draw.io routes the parts of a line between its bends, so the check predicts them and may miss some.
 If draw.io Desktop is not found, set `DRAWIO_CLI` to its executable.
 
 ## Example
