@@ -142,6 +142,7 @@ describe('toDrawio', () => {
     );
     // A 48x14 router sits 17px above the bottom of its 48px square; the label drops by as much
     expect(cellTag(xml, 'router')).toContain('spacingTop=17;');
-    expect(cellTag(xml, 'link-1')).toContain(`exitDy=${17 + 15 + 4};`);
+    // draw.io would move the port back onto the outline of the icon without exitPerimeter=0
+    expect(cellTag(xml, 'link-1')).toContain(`exitDy=${17 + 15 + 4};exitPerimeter=0;`);
   });
 });

@@ -136,7 +136,9 @@ function port(
   const [x, y] = POSITION_POINTS[endpoint.position];
   // A label below the icon would be crossed, so a line leaving from the bottom starts under it
   const dy = y === 1 ? (belowIcon.get(endpoint.id) ?? 0) : 0;
-  return [`${prefix}X=${x}`, `${prefix}Y=${y}`, `${prefix}Dx=0`, `${prefix}Dy=${dy}`];
+  const keys = [`${prefix}X=${x}`, `${prefix}Y=${y}`, `${prefix}Dx=0`, `${prefix}Dy=${dy}`];
+  // draw.io moves a port onto the outline of the shape, which would pull it back above the label
+  return dy > 0 ? [...keys, `${prefix}Perimeter=0`] : keys;
 }
 
 function html(text: string): string {
