@@ -14,8 +14,10 @@ const USAGE = `yaml2drawio: describe infrastructure diagrams in YAML and get a l
 
 Usage:
   yaml2drawio guide                    how to write the YAML; start here
-  yaml2drawio icons <word...>          search icon and group names (${NAMESPACES.join(', ')})
+  yaml2drawio icons <word...>          search icon and group names
   yaml2drawio build <input.yaml> [options]
+
+Icon namespaces: ${NAMESPACES.join(', ')}
 
 Options for build:
   -o, --output <file>  where to write the .drawio file (default: next to the input)

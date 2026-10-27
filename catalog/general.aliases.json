@@ -1,43 +1,13 @@
 {
   "icons": {
-    "alert": "aws.alert",
-    "application": "aws.generic_application",
-    "camera": "aws.camera",
-    "certificate": "aws.ssl_padlock",
-    "chat": "aws.chat",
-    "client": "aws.client",
-    "cold_storage": "aws.cold_storage",
-    "credentials": "aws.credentials",
-    "data_center": "aws.corporate_data_center",
-    "data_stream": "aws.data_stream",
-    "data_table": "aws.data_table",
-    "database": "aws.generic_database",
-    "disk": "aws.disk",
-    "document": "aws.document",
-    "documents": "aws.documents",
-    "email": "aws.email",
-    "firewall": "aws.generic_firewall",
-    "folder": "aws.folder",
-    "git_repository": "aws.git_repository",
-    "globe": "aws.globe",
-    "internet": "aws.internet",
-    "logs": "aws.logs",
-    "metrics": "aws.metrics",
-    "mobile": "aws.mobile_client",
-    "office": "aws.office_building",
-    "router": "aws.router",
-    "sdk": "aws.sdk",
-    "server": "aws.traditional_server",
-    "servers": "aws.servers",
-    "source_code": "aws.source_code",
-    "tape_storage": "aws.tape_storage",
-    "user": "aws.user",
-    "users": "aws.users"
+    "application": "generic_application",
+    "certificate": "ssl_padlock",
+    "data_center": "corporate_data_center",
+    "database": "generic_database",
+    "firewall": "generic_firewall",
+    "mobile": "mobile_client",
+    "office": "office_building",
+    "server": "traditional_server"
   },
-  "groups": {
-    "data_center": "aws.corporate_data_center",
-    "generic": "aws.generic_group",
-    "generic_filled": "aws.generic_group_groups",
-    "server_contents": "aws.server_contents"
-  }
+  "groups": {}
 }

@@ -49,20 +49,14 @@ export interface Catalog {
 }
 
 /**
- * Name prefixes, each with a catalog/<namespace>.json of shapes, a catalog/<namespace>.aliases.json
- * of short names, or both. general has only aliases: draw.io keeps its provider-neutral icons in the
- * AWS library, and a diagram of another cloud should not have to call them aws.*.
+ * Name prefixes, each with a catalog/<namespace>.json of shapes and, when it has short names, a
+ * catalog/<namespace>.aliases.json.
  */
-export const NAMESPACES = ['aws', 'general', 'network'] as const;
+export const NAMESPACES = ['aws', 'gcp', 'azure', 'k8s', 'general', 'network'] as const;
 
 function readCatalogFile(name: string): unknown {
   const url = new URL(`../catalog/${name}`, import.meta.url);
   return existsSync(url) ? JSON.parse(readFileSync(url, 'utf8')) : undefined;
-}
-
-/** An alias names a shape in its own namespace, or anywhere when it includes the namespace. */
-function qualify(namespace: string, name: string): string {
-  return name.includes('.') ? name : `${namespace}.${name}`;
 }
 
 function toShapes(
@@ -93,10 +87,10 @@ export function loadCatalog(): Catalog {
     if (aliasFile !== undefined) {
       const file = AliasFileSchema.parse(aliasFile);
       for (const [alias, name] of Object.entries(file.icons)) {
-        aliases.icon.set(`${namespace}.${alias}`, qualify(namespace, name));
+        aliases.icon.set(`${namespace}.${alias}`, `${namespace}.${name}`);
       }
       for (const [alias, name] of Object.entries(file.groups)) {
-        aliases.group.set(`${namespace}.${alias}`, qualify(namespace, name));
+        aliases.group.set(`${namespace}.${alias}`, `${namespace}.${name}`);
       }
     }
   }

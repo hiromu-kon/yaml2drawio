@@ -31,7 +31,7 @@ export interface CrossingReport {
  */
 export function findCrossings(diagram: Diagram, layout: Layout): CrossingReport {
   const obstacles = obstaclesOf(diagram.root, layout);
-  const context = routeContext(diagram.root, layout);
+  const context = routeContext(diagram.root, layout, diagram.links);
   const report: CrossingReport = { crossings: [], unchecked: [] };
   for (const link of diagram.links) {
     const path = predictPath(link, context);

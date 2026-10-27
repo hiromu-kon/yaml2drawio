@@ -34,13 +34,13 @@ yaml2drawio は、図を読みやすいテキストとしてバージョン管�
 - **座標ではなく構造を書く**
   入れ子・並び順・向きで配置が決まるので、同じ YAML からは毎回同じ図ができます。
 - **draw.io 公式の図形を使う**
-  アイコンは draw.io の図形ライブラリから抜き出した辞書（AWS のアイコン 930 個とグループ 20 種）から選びます。辞書にない名前は推測せず、候補を添えてエラーにします。
+  アイコンは draw.io の図形ライブラリから抜き出した辞書（アイコン約 1,900 個。AWS 930 個、Google Cloud 143 個、Azure 701 個、Kubernetes 78 個と、AWS のグループ 20 種）から選びます。辞書にない名前は推測せず、候補を添えてエラーにします。
 - **編集できる出力**
   出力は `.drawio` ファイルなので、draw.io や VS Code の拡張機能でそのまま開けます。
 - **AI エージェントでも扱いやすい**
   短く書ける YAML と厳密な検証により、エージェントが図を書き、確かめ、推測せずに直せます。
 - **AWS 以外にも広げられる**
-  アイコン名に名前空間（`aws.ecs`、`aws.vpc`）があります。クラウドに依存しない汎用アイコン（`general.server`）とオンプレミスの機器（`network.switch`）もあるので、ハイブリッドやマルチクラウドの図も描けます。他のクラウドのアイコンも並べて追加できます。
+  AWS・Google Cloud・Azure・Kubernetes のアイコン（`aws.ecs`、`gcp.cloud_run`、`azure.aks`、`k8s.pod`）に加えて、クラウドに依存しない汎用アイコン（`general.server`）とオンプレミスの機器（`network.switch`）があります。1 枚の図で、複数のクラウドやデータセンターにまたがる構成を描けます。
 
 ## 使い方
 
@@ -106,12 +106,12 @@ YAML ファイルの先頭で JSON Schema を指定すると、キー・アイ�
 
 ## 他のツールとの比較
 
-|                    | yaml2drawio             | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
-| ------------------ | ----------------------- | ---------------------------------------------------- | -------------------------------------------------- | --------------------------------------- |
-| 入力               | YAML                    | YAML                                                 | Python                                             | D2 言語                                 |
-| 出力               | `.drawio`（編集できる） | PNG                                                  | PNG、JPG、SVG、PDF、DOT                            | SVG、PNG、GIF、PDF、PPTX                |
-| 配置               | 入れ子と並び順から計算  | 入れ子と並び順から計算                               | Graphviz                                           | Dagre、ELK、TALA から選ぶ               |
-| クラウドのアイコン | AWS（今後追加予定）     | AWS（定義ファイルで追加できる）                      | AWS、Azure、GCP、Kubernetes など                   | 任意の画像                              |
+|                    | yaml2drawio                          | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
+| ------------------ | ------------------------------------ | ---------------------------------------------------- | -------------------------------------------------- | --------------------------------------- |
+| 入力               | YAML                                 | YAML                                                 | Python                                             | D2 言語                                 |
+| 出力               | `.drawio`（編集できる）              | PNG                                                  | PNG、JPG、SVG、PDF、DOT                            | SVG、PNG、GIF、PDF、PPTX                |
+| 配置               | 入れ子と並び順から計算               | 入れ子と並び順から計算                               | Graphviz                                           | Dagre、ELK、TALA から選ぶ               |
+| クラウドのアイコン | AWS、Google Cloud、Azure、Kubernetes | AWS（定義ファイルで追加できる）                      | AWS、Azure、GCP、Kubernetes など                   | 任意の画像                              |
 
 ## 開発に参加する
 

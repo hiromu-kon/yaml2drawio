@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=../schema.json
+title: Multi-cloud
+direction: vertical
+nodes:
+  - { id: users, icon: general.users, label: Users }
+  - row:
+      # Only AWS has group styles so far, so other boundaries are generic groups with a label
+      - group: general.generic
+        label: 'Google Cloud: shop-prod'
+        children:
+          - { id: lb, icon: gcp.lb, label: Cloud Load Balancing }
+          - { id: run, icon: gcp.cloud_run, label: Cloud Run }
+          - { id: sql, icon: gcp.cloud_sql, label: Cloud SQL }
+      - group: general.generic
+        label: 'Azure: corporate'
+        children:
+          - { id: front_door, icon: azure.front_door, label: Front Door }
+          - { id: app, icon: azure.app_service, label: App Service }
+          - { id: cosmos, icon: azure.cosmos_db, label: Cosmos DB }
+  - group: general.generic
+    label: 'Kubernetes: orders (GKE)'
+    children:
+      - { id: ingress, icon: k8s.ingress_labeled, label: Ingress }
+      - { id: service, icon: k8s.service_labeled, label: Service }
+      - { id: deployment, icon: k8s.deployment_labeled, label: Deployment }
+      - { id: pvc, icon: k8s.pvc_labeled, label: PVC }
+links:
+  - [users.s, lb.n]
+  - [users.s, front_door.n]
+  - [lb.e, run.w]
+  - { from: run.e, to: sql.w, label: PostgreSQL }
+  - [front_door.e, app.w]
+  - [app.e, cosmos.w]
+  - { from: run.s, to: ingress.n, label: orders API }
+  - [ingress.e, service.w]
+  - [service.e, deployment.w]
+  - [deployment.e, pvc.w]

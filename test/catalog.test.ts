@@ -57,11 +57,19 @@ describe('catalog', () => {
     },
   );
 
-  it('names the provider-neutral icons general.*, whatever library draw.io keeps them in', () => {
-    expect(catalog.icon('general.database')).toEqual(catalog.icon('aws.generic_database'));
-    expect(catalog.group('general.data_center')).toEqual(
-      catalog.group('aws.corporate_data_center'),
-    );
+  it('has provider-neutral icons and groups under general.*, without the AWS name', () => {
+    const database = catalog.icon('general.database');
+    expect(database).toMatchObject({ key: 'general.generic_database', category: 'General' });
+    // draw.io keeps them in its AWS library, so they draw the same shapes
+    expect(database?.style).toBe(catalog.icon('aws.generic_database')?.style);
+    expect(catalog.group('general.data_center')?.category).toBe('General');
+  });
+
+  it('leaves AWS-only icons of the General Resources palette out of general.*', () => {
+    expect(catalog.icon('general.marketplace')).toBeUndefined();
+    expect(catalog.icon('general.management_console')).toBeUndefined();
+    // aws.router is AWS's VPC router, drawn in AWS purple
+    expect(catalog.icon('general.router')).toBeUndefined();
   });
 
   it('has on-premises network equipment under network.*', () => {

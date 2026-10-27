@@ -170,4 +170,19 @@ describe('toDrawio', () => {
     });
     expect(new Set(centers).size).toBe(1);
   });
+
+  it('gives the labels of icons from every library the same look', () => {
+    const xml = render(
+      [
+        'nodes:',
+        '  - { id: run, icon: gcp.cloud_run, label: Cloud Run }',
+        '  - { id: router, icon: network.router, label: Router }',
+        '',
+      ].join('\n'),
+    );
+    // Google Cloud's own style is fontColor=#999999;fontStyle=1, network's fontColor=#0066CC
+    for (const id of ['run', 'router']) {
+      expect(cellTag(xml, id)).toContain('fontColor=#232F3E;fontSize=12;fontStyle=0;');
+    }
+  });
 });

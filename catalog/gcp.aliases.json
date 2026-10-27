@@ -1,0 +1,14 @@
+{
+  "icons": {
+    "armor": "cloud_armor",
+    "bigtable": "cloud_bigtable",
+    "functions": "cloud_functions",
+    "gcs": "cloud_storage",
+    "gke": "google_kubernetes_engine",
+    "lb": "cloud_load_balancing",
+    "pubsub": "pub_sub",
+    "spanner": "cloud_spanner",
+    "vpc": "virtual_private_cloud"
+  },
+  "groups": {}
+}
