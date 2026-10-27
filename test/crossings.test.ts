@@ -12,6 +12,27 @@ function crossingsOf(...lines: string[]): string[] {
 }
 
 describe('findCrossings', () => {
+  it('passes a line from above into the side of an icon, which turns before the labels', () => {
+    expect(
+      crossingsOf(
+        'direction: vertical',
+        'nodes:',
+        '  - { id: alb, icon: aws.alb }',
+        '  - group: aws.az',
+        '    label: Availability Zone A',
+        '    children:',
+        '      - group: aws.private_subnet',
+        '        label: Private subnet 10.0.10.0/24',
+        '        children:',
+        '          - { id: api, icon: aws.ecs }',
+        '          - { id: worker, icon: aws.ecs }',
+        '          - { id: batch, icon: aws.ecs }',
+        'links:',
+        '  - [alb.s, api.w]',
+      ),
+    ).toEqual([]);
+  });
+
   it('reports a line into an icon right under the label of its subnet, at the link', () => {
     expect(
       crossingsOf(

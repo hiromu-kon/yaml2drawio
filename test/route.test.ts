@@ -88,6 +88,36 @@ describe('bendPoints', () => {
     ]);
   });
 
+  it('turns a line from a bottom side in the gap above the group it then runs down beside', () => {
+    const { diagram, layout, rect } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - { id: alb, icon: aws.alb }',
+        '  - group: aws.az',
+        '    id: az',
+        '    children:',
+        '      - group: aws.private_subnet',
+        '        children:',
+        '          - { id: api, icon: aws.ecs }',
+        '          - { id: worker, icon: aws.ecs }',
+        'links:',
+        '  - [alb.s, api.w]',
+        '',
+      ].join('\n'),
+    );
+    const alb = rect('alb');
+    const az = rect('az');
+    const api = rect('api');
+    const x = az.x - GROUP_PADDING / 2;
+    const y = az.y - GROUP_PADDING / 2;
+    expect(bendsOf(diagram, layout, 0)).toEqual([
+      { x: Math.round(alb.x + alb.width / 2), y },
+      { x, y },
+      { x, y: api.y + api.height / 2 },
+    ]);
+  });
+
   it('bends inside the outer group when bending outside it would turn the line back', () => {
     // The ALB sits over the gap between the AZs, so outside the AZ is behind its right side
     const { diagram, layout, rect } = setUp(
