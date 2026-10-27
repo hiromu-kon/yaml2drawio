@@ -24,4 +24,6 @@ jobs:
       - run: pnpm check
       - run: pnpm build
       - name: Build an example with the bundled CLI
-        run: node dist/cli.mjs build examples/quick-start.yaml -o out/quick-start.drawio
+        run: node dist/cli.mjs build examples/quick-start.yaml -o out/quick-start.drawio --strict
+      - name: Print the guide with the bundled CLI
+        run: node dist/cli.mjs guide > /dev/null

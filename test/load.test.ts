@@ -22,6 +22,11 @@ describe('loadDiagram', () => {
     expect(diagram.root.children[0]).toMatchObject({ kind: 'group', direction: 'horizontal' });
   });
 
+  it('accepts a group without children, such as an unused subnet', () => {
+    const diagram = load(lines('nodes:', '  - { group: aws.public_subnet, label: Public }'));
+    expect(diagram.root.children[0]).toMatchObject({ kind: 'group', children: [] });
+  });
+
   it('turns both link forms into the same structure', () => {
     const diagram = load(
       lines(
@@ -82,9 +87,9 @@ describe('loadDiagram errors', () => {
     ]);
   });
 
-  it('reports an empty list of children', () => {
-    expect(problemsOf(lines('nodes:', '  - { group: aws.vpc, children: [] }'))).toEqual([
-      '2:33: "children" must not be empty',
+  it('reports an empty row', () => {
+    expect(problemsOf(lines('nodes:', '  - { row: [] }'))).toEqual([
+      '2:12: "row" must not be empty',
     ]);
   });
 

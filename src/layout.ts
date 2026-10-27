@@ -1,6 +1,6 @@
 import type { DiagramNode, Direction, GroupNode, LeafNode, StackNode } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
-import { labelSize, textWidth } from './text.ts';
+import { LINE_HEIGHT, labelSize, textWidth } from './text.ts';
 
 export const ICON_SIZE = 48;
 export const LABEL_GAP = 4;
@@ -97,7 +97,12 @@ export function layoutDiagram(root: StackNode): Layout {
         height: ICON_SIZE + (label.height > 0 ? LABEL_GAP + label.height : 0) + LEAF_PADDING_BOTTOM,
       };
     } else if (node.kind === 'group') {
-      const content = measureChildren(node.direction, node.children.map(measure));
+      // An empty box (an unused subnet) is as tall as one holding an icon, so it lines up with its
+      // neighbors in the other AZs
+      const content =
+        node.children.length > 0
+          ? measureChildren(node.direction, node.children.map(measure))
+          : { width: 0, height: ICON_SIZE + LABEL_GAP + LINE_HEIGHT + LEAF_PADDING_BOTTOM };
       const { outside, padding } = frameOf(node);
       const labelEnd = GROUP_ICON_AREA + textWidth(node.label);
       const width = Math.max(

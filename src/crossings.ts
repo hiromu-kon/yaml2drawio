@@ -19,29 +19,41 @@ interface Obstacle {
   rect: Rect;
 }
 
+export interface CrossingReport {
+  crossings: Problem[];
+  /** Links with an end that has no side; draw.io picks the side, so their lines are not predicted. */
+  unchecked: Link[];
+}
+
 /**
  * Links whose lines run over an icon or a label. draw.io routes the parts of a line between its
- * bend points, so the path is predicted the way draw.io usually draws it. Lines without a fixed
- * side at both ends float, and are not checked.
+ * bend points, so the path is predicted the way draw.io usually draws it.
  */
-export function findCrossings(diagram: Diagram, layout: Layout): Problem[] {
+export function findCrossings(diagram: Diagram, layout: Layout): CrossingReport {
   const obstacles = obstaclesOf(diagram.root, layout);
   const context = routeContext(diagram.root, layout);
-  const problems: Problem[] = [];
+  const report: CrossingReport = { crossings: [], unchecked: [] };
   for (const link of diagram.links) {
     const path = predictPath(link, context);
-    if (!path) continue;
+    if (!path) {
+      report.unchecked.push(link);
+      continue;
+    }
     const segments = path.slice(1).map((end, index) => [path[index] ?? end, end] as const);
     for (const { owner, name, rect } of obstacles) {
       if (owner === link.from.id || owner === link.to.id) continue;
       if (!segments.some(([a, b]) => crosses(a, b, rect))) continue;
-      problems.push({
-        message: `link ${endpointText(link.from)} -> ${endpointText(link.to)} crosses ${name}`,
+      report.crossings.push({
+        message: `link ${linkText(link)} crosses ${name}`,
         ...link.location,
       });
     }
   }
-  return problems;
+  return report;
+}
+
+export function linkText(link: Link): string {
+  return `${endpointText(link.from)} -> ${endpointText(link.to)}`;
 }
 
 function obstaclesOf(root: DiagramNode, layout: Layout): Obstacle[] {

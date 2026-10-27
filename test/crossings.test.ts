@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { findCrossings } from '../src/crossings.ts';
+import { findCrossings, linkText } from '../src/crossings.ts';
 import { layoutDiagram } from '../src/layout.ts';
 import { formatProblem } from '../src/load.ts';
 import { load } from './helpers.ts';
 
 function crossingsOf(...lines: string[]): string[] {
   const diagram = load(lines.join('\n'));
-  return findCrossings(diagram, layoutDiagram(diagram.root)).map((problem) =>
+  return findCrossings(diagram, layoutDiagram(diagram.root)).crossings.map((problem) =>
     formatProblem(problem),
   );
 }
@@ -72,17 +72,21 @@ describe('findCrossings', () => {
     ).toEqual([]);
   });
 
-  it('skips lines whose ends float, because draw.io picks their sides', () => {
-    expect(
-      crossingsOf(
+  it('lists lines whose ends float as unchecked, because draw.io picks their sides', () => {
+    const diagram = load(
+      [
         'nodes:',
         '  - { id: a, icon: aws.lambda }',
         '  - { id: b, icon: aws.sqs }',
         '  - { id: c, icon: aws.s3 }',
         'links:',
         '  - [a, c]',
-      ),
-    ).toEqual([]);
+        '  - [a.e, b]',
+      ].join('\n'),
+    );
+    const { crossings, unchecked } = findCrossings(diagram, layoutDiagram(diagram.root));
+    expect(crossings).toEqual([]);
+    expect(unchecked.map(linkText)).toEqual(['a -> c', 'a.e -> b']);
   });
 
   it.each([

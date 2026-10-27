@@ -28,6 +28,7 @@
   "files": [
     "dist",
     "catalog",
+    "docs/guide.md",
     "schema.json"
   ],
   "type": "module",
