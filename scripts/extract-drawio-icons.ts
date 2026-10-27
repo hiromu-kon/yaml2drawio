@@ -21,6 +21,14 @@ interface Source {
   name?: (entry: RawEntry) => string;
 }
 
+// The General Resources palette is AWS's set for things outside AWS, apart from these
+const AWS_ONLY_GENERAL = new Set(['All Products', 'General', 'Management Console', 'Marketplace']);
+const GENERAL_GROUPS: Record<string, string> = {
+  'Generic group': 'generic',
+  'Corporate data center': 'data_center',
+  'Server contents': 'server_contents',
+};
+
 const SOURCES: Source[] = [
   {
     namespace: 'aws',
@@ -60,6 +68,27 @@ const SOURCES: Source[] = [
       entry.style.includes('kubernetesLabel=1')
         ? `${slug(entry.title)}_labeled`
         : slug(entry.title),
+  },
+  {
+    // Provider-neutral icons and groups. draw.io keeps them in its AWS library, but a diagram of
+    // another cloud should not have to call them aws.*
+    namespace: 'general',
+    file: 'Sidebar-AWS4.js',
+    palette: 'addAWS4Palette',
+    include: (entry) =>
+      entry.palette === 'AWS / General Resources'
+        ? !AWS_ONLY_GENERAL.has(entry.title)
+        : entry.palette === 'AWS / Groups' && entry.title in GENERAL_GROUPS,
+    kind: (entry) => (entry.palette === 'AWS / Groups' ? 'group' : 'resource'),
+    category: () => 'General',
+    name: (entry) => {
+      const group = GENERAL_GROUPS[entry.title];
+      if (!group) return slug(entry.title);
+      // The two generic groups differ only in being filled
+      return group === 'generic' && !entry.style.includes('fillColor=none')
+        ? 'generic_filled'
+        : group;
+    },
   },
   {
     // Devices and on-premises equipment that no cloud library has, such as routers and switches
@@ -218,14 +247,26 @@ function sortKeys<T>(record: Record<string, T>): Record<string, T> {
   return Object.fromEntries(Object.entries(record).toSorted(([a], [b]) => a.localeCompare(b)));
 }
 
+// Two sources read the AWS library, so each file is fetched once
+const fetched = new Map<string, Promise<string>>();
+function fetchSource(url: string): Promise<string> {
+  let text = fetched.get(url);
+  if (!text) {
+    text = fetch(url).then((response) => {
+      if (!response.ok) throw new Error(`failed to fetch ${url}: ${response.status}`);
+      return response.text();
+    });
+    fetched.set(url, text);
+  }
+  return text;
+}
+
 // evaluateSidebar runs synchronously after each fetch, so the sources cannot mix up their entries
 await Promise.all(
   SOURCES.map(async (source) => {
     const path = `${SIDEBAR_DIR}/${source.file}`;
     const url = `https://raw.githubusercontent.com/jgraph/drawio/${DRAWIO_TAG}/${path}`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`failed to fetch ${url}: ${response.status}`);
-    const entries = evaluateSidebar(await response.text(), source.palette);
+    const entries = evaluateSidebar(await fetchSource(url), source.palette);
     const catalog = buildCatalog(entries.filter(source.include ?? (() => true)), source);
     await writeFile(
       new URL(`../catalog/${source.namespace}.json`, import.meta.url),
