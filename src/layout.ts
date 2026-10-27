@@ -122,12 +122,7 @@ export function layoutDiagram(root: StackNode): Layout {
 
   const place = (node: DiagramNode, box: Rect): void => {
     if (node.kind === 'leaf') {
-      const icon = iconSize(node.shape);
-      cells.set(node, {
-        x: box.x + Math.round((box.width - icon.width) / 2),
-        y: box.y + Math.round((ICON_SIZE - icon.height) / 2),
-        ...icon,
-      });
+      cells.set(node, iconAt(node.shape, box.x + box.width / 2, box.y + ICON_SIZE / 2));
       return;
     }
     if (node.kind === 'stack') {
@@ -141,7 +136,8 @@ export function layoutDiagram(root: StackNode): Layout {
       width: box.width - outside.x * 2,
       height: box.height - outside.top - outside.bottom,
     };
-    cells.set(node, visible);
+    const drawn = roundRect(visible);
+    cells.set(node, drawn);
     placeChildren(node, {
       x: visible.x + padding.x,
       y: visible.y + padding.top,
@@ -150,12 +146,10 @@ export function layoutDiagram(root: StackNode): Layout {
     });
     for (const { position, node: child } of node.border) {
       const [px, py] = POSITION_POINTS[position];
-      const icon = iconSize(child.shape);
-      cells.set(child, {
-        x: Math.round(visible.x + px * visible.width - icon.width / 2),
-        y: Math.round(visible.y + py * visible.height - icon.height / 2),
-        ...icon,
-      });
+      cells.set(
+        child,
+        iconAt(child.shape, drawn.x + px * drawn.width, drawn.y + py * drawn.height),
+      );
     }
   };
 
@@ -165,7 +159,7 @@ export function layoutDiagram(root: StackNode): Layout {
     const total = measureChildren(node.direction, childSizes);
     const mainSpace = horizontal ? content.width : content.height;
     const crossSpace = horizontal ? content.height : content.width;
-    let main = Math.round((mainSpace - (horizontal ? total.width : total.height)) / 2);
+    let main = (mainSpace - (horizontal ? total.width : total.height)) / 2;
 
     node.children.forEach((child, index) => {
       const size = childSizes[index] ?? measure(child);
@@ -195,7 +189,33 @@ export function layoutDiagram(root: StackNode): Layout {
  */
 export function iconSize({ width, height }: Pick<Shape, 'width' | 'height'>): Size {
   const scale = ICON_SIZE / Math.max(width, height);
-  return { width: Math.round(width * scale), height: Math.round(height * scale) };
+  return { width: even(width * scale), height: even(height * scale) };
+}
+
+// Boxes are placed with fractions so that rounding at each level cannot shift one of two stacked
+// icons by a pixel; only the center is rounded, and even sizes keep it on a whole pixel
+function iconAt(shape: Pick<Shape, 'width' | 'height'>, centerX: number, centerY: number): Rect {
+  const icon = iconSize(shape);
+  return {
+    x: Math.round(centerX) - icon.width / 2,
+    y: Math.round(centerY) - icon.height / 2,
+    ...icon,
+  };
+}
+
+function roundRect({ x, y, width, height }: Rect): Rect {
+  const left = Math.round(x);
+  const top = Math.round(y);
+  return {
+    x: left,
+    y: top,
+    width: Math.round(x + width) - left,
+    height: Math.round(y + height) - top,
+  };
+}
+
+function even(value: number): number {
+  return 2 * Math.round(value / 2);
 }
 
 /**
@@ -204,8 +224,7 @@ export function iconSize({ width, height }: Pick<Shape, 'width' | 'height'>): Si
  * middles of neighbors stay straight.
  */
 export function labelDrop(shape: Pick<Shape, 'width' | 'height'>): number {
-  const { height } = iconSize(shape);
-  return ICON_SIZE - height - Math.round((ICON_SIZE - height) / 2);
+  return (ICON_SIZE - iconSize(shape).height) / 2;
 }
 
 // The group label sits at the top left, so a border child on the top edge needs the group to be
@@ -279,6 +298,6 @@ function measureChildren(direction: Direction, sizes: Size[]): Size {
 
 function crossOffset(align: StackNode['align'], space: number, size: number): number {
   if (align === 'end') return space - size;
-  if (align === 'center') return Math.round((space - size) / 2);
+  if (align === 'center') return (space - size) / 2;
   return 0;
 }

@@ -137,8 +137,12 @@ function port(
   // A label below the icon would be crossed, so a line leaving from the bottom starts under it
   const dy = y === 1 ? (belowIcon.get(endpoint.id) ?? 0) : 0;
   const keys = [`${prefix}X=${x}`, `${prefix}Y=${y}`, `${prefix}Dx=0`, `${prefix}Dy=${dy}`];
-  // draw.io moves a port onto the outline of the shape, which would pull it back above the label
-  return dy > 0 ? [...keys, `${prefix}Perimeter=0`] : keys;
+  if (dy === 0) return keys;
+  // draw.io moves a port onto the outline of the shape, which would pull it back above the label.
+  // Off the outline, it no longer knows which side the port is on and may start the line sideways,
+  // so the direction is given as well.
+  const constraint = prefix === 'exit' ? 'sourcePortConstraint' : 'targetPortConstraint';
+  return [...keys, `${prefix}Perimeter=0`, `${constraint}=south`];
 }
 
 function html(text: string): string {
