@@ -1,0 +1,188 @@
+# Writing a yaml2drawio diagram
+
+yaml2drawio turns a YAML file into a laid-out draw.io diagram. You describe what goes inside what and which lines connect what; positions are computed, so never write coordinates.
+
+## Workflow
+
+```sh
+npx yaml2drawio icons <word>                  # find icon and group names
+npx yaml2drawio build diagram.yaml --strict   # writes diagram.drawio, exits with 1 on errors or warnings
+npx yaml2drawio build diagram.yaml --png      # also renders diagram.png (needs draw.io Desktop)
+```
+
+1. Look up every icon and group name with `icons`. Do not guess names.
+2. Write the YAML.
+3. Run `build --strict` and fix what it reports, until it exits with 0.
+   - Errors (unknown key, unknown icon, unknown id) stop the build and point at `file:line:column`, often with a suggestion.
+   - Warnings say which link crosses which icon or label. The file is still written.
+
+## Example
+
+```yaml
+title: Web service
+direction: vertical
+nodes:
+  - { id: users, icon: aws.users, label: Users }
+  - group: aws.vpc
+    label: Production VPC
+    direction: vertical
+    border:
+      n: { id: igw, icon: aws.igw, label: IGW }
+    children:
+      - { id: alb, icon: aws.alb, label: ALB }
+      - row:
+          - { id: api, icon: aws.ecs, label: API }
+          - { id: db, icon: aws.aurora, label: Aurora }
+links:
+  - [users.s, igw.n]
+  - [igw.s, alb.n]
+  - [alb.s, api.n]
+  - { from: api.e, to: db.w, label: SQL, style: dashed }
+```
+
+## Document
+
+| Key         | Meaning                                                           |
+| ----------- | ----------------------------------------------------------------- |
+| `title`     | Name of the draw.io page                                          |
+| `direction` | `horizontal` (default) or `vertical`: how top-level nodes line up |
+| `nodes`     | List of nodes (required)                                          |
+| `links`     | List of links                                                     |
+
+## Nodes
+
+A node is one of four kinds, told apart by its key.
+
+**Icon** `{ id, icon, label }`
+
+- `id`: unique, starts with a letter; letters, digits, `_` and `-`. Links refer to it.
+- `icon`: a name from `icons`, such as `aws.ecs`.
+- `label`: text under the icon; defaults to the icon's title. Use `\n` in a quoted string for a line break.
+
+**Group** `{ group, label, children, direction, align, border, id }`
+
+- `group`: a group style such as `aws.cloud`, `aws.region`, `aws.vpc`, `aws.az`, `aws.public_subnet`, `aws.private_subnet`, `aws.security_group`, `aws.generic`.
+- `children`: nodes inside the box. Leave it out for an empty box, such as a subnet with nothing drawn in it.
+- `direction`: `horizontal` (default) or `vertical`.
+- `align`: `start`, `center` (default), `end`, or `expand` to give all children the same size across the direction. Use `expand` on the AZs in a row so their subnets line up.
+- `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`.
+- `id`: needed only to link to the group itself.
+
+**Row** `{ row, align }`: `row` is a list of nodes laid out left to right without a box.
+
+**Column** `{ column, align }`: `column` is a list of nodes laid out top to bottom without a box.
+
+## Positions
+
+Positions name points on the edge of a box, like a compass. They are used for border icons and for the side a line leaves or enters.
+
+```
+nw   nnw   n   nne   ne
+wnw                  ene
+w                    e
+wsw                  ese
+sw   ssw   s   sse   se
+```
+
+## Links
+
+```yaml
+links:
+  - [alb.s, api.n] # from alb's bottom to api's top
+  - [api, db] # no sides: draw.io picks them
+  - { from: api.e, to: queue.w, label: jobs, style: dashed, arrow: both, route: drawio }
+```
+
+- A link is `[from, to]`, or an object with `from` and `to` when it needs more keys.
+- An endpoint is `<id>` or `<id>.<position>`.
+- `style`: `solid` (default) or `dashed`. `arrow`: `end` (default), `start`, `both` or `none`.
+- `route`: `auto` (default) bends the line in the gaps around groups; `drawio` leaves the whole route to draw.io.
+
+## Getting a clean layout
+
+### Structure
+
+- Nest groups the way the system is built: cloud, region, VPC, AZ, subnet.
+- Use `direction: vertical` for a request flow from top to bottom, and put the entry point (users, DNS, CDN) first.
+- A resource that spans AZs, such as an ALB, goes inside the VPC above the row of AZs, not inside one subnet.
+- A service that runs in several subnets, such as an ECS service or an Aurora cluster, gets one icon per subnet (`api_a`, `api_c`).
+- Put the AZs in a row with `align: expand`, and give each AZ `direction: vertical` and `align: expand`, so the AZs and their subnets line up.
+- Draw unused subnets as empty groups rather than leaving them out.
+
+### Lines
+
+- Give both ends of every link a side that faces the other end: `a.s -> b.n` when b is below, `a.e -> b.w` when b is to the right.
+- Only links with a side at both ends are checked for crossings (with either `route`). Links without sides are reported as `note:` lines; never drop sides just to get rid of a warning.
+- Labels of AWS groups with an icon (region, VPC, subnets) sit at the top left; labels of AZs and generic groups are centered at the top. A line coming down into the top of an icon right below such a label crosses it.
+- So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
+- Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
+- When a link still crosses something, try other sides, reorder the children, move the icon to a group's `border`, or set `route: drawio`.
+
+### Example: a VPC across two AZs
+
+```yaml
+title: Multi-AZ web service
+direction: vertical
+nodes:
+  - { id: users, icon: aws.users, label: Users }
+  - group: aws.region
+    label: ap-northeast-1
+    direction: vertical
+    children:
+      - group: aws.vpc
+        label: VPC 10.0.0.0/16
+        direction: vertical
+        border:
+          n: { id: igw, icon: aws.igw, label: IGW }
+        children:
+          - { id: alb, icon: aws.alb, label: ALB }
+          - align: expand
+            row:
+              - group: aws.az
+                label: ap-northeast-1a
+                direction: vertical
+                align: expand
+                children:
+                  - group: aws.public_subnet
+                    label: Public 10.0.0.0/24
+                    children:
+                      - { id: nat, icon: aws.nat_gateway, label: NAT gateway }
+                  - group: aws.private_subnet
+                    label: App 10.0.10.0/24
+                    children:
+                      - { id: api_a, icon: aws.ecs, label: API }
+                  - group: aws.private_subnet
+                    label: Data 10.0.20.0/24
+                    children:
+                      - { id: db_a, icon: aws.aurora, label: Aurora writer }
+              - group: aws.az
+                label: ap-northeast-1c
+                direction: vertical
+                align: expand
+                children:
+                  - group: aws.public_subnet
+                    label: Public 10.0.1.0/24
+                  - group: aws.private_subnet
+                    label: App 10.0.11.0/24
+                    children:
+                      - { id: api_c, icon: aws.ecs, label: API }
+                  - group: aws.private_subnet
+                    label: Data 10.0.21.0/24
+                    children:
+                      - { id: db_c, icon: aws.aurora, label: Aurora reader }
+links:
+  - [users.s, igw.n]
+  - [igw.s, alb.n]
+  - [alb.w, api_a.w]
+  - [alb.e, api_c.e]
+  - [api_a.e, db_a.e]
+  - [api_c.w, db_c.w]
+```
+
+## Editor support
+
+Add this first line to get completion and checks in editors that support JSON Schema:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/hiromu-kon/yaml2drawio/main/schema.json
+```

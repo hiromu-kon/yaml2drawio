@@ -47,6 +47,7 @@ yaml2drawio keeps the diagram in version control as readable text and still give
 Requires Node.js 24 or later. PNG output also needs [draw.io Desktop](https://www.drawio.com/).
 
 ```sh
+npx yaml2drawio guide                       # how to write the YAML
 npx yaml2drawio build diagram.yaml          # writes diagram.drawio
 npx yaml2drawio build diagram.yaml --png    # also renders diagram.png with draw.io Desktop
 npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
@@ -57,6 +58,12 @@ npx yaml2drawio icons redis                 # search icon names
 Errors point at the line and column to fix, for example `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`.
 Lines that would run over an icon or a label are reported as warnings at the link, for example `diagram.yaml:21:5: warning: link api.s -> db.n crosses the label of "Data 10.0.20.0/24"`. The file is still written; `--strict` makes the exit code 1 so CI and AI agents can loop until it is clean. draw.io routes the parts of a line between its bends, so the check predicts them and may miss some.
 If draw.io Desktop is not found, set `DRAWIO_CLI` to its executable.
+
+### With an AI agent
+
+`yaml2drawio guide` prints the whole YAML format, the workflow and layout tips as Markdown ([docs/guide.md](docs/guide.md)), so an agent that has never seen yaml2drawio can learn it from the CLI. For example:
+
+> Draw our AWS architecture from the Terraform in `infra/` with `npx yaml2drawio`. Read `npx yaml2drawio guide` first.
 
 ## Example
 

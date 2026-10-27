@@ -47,6 +47,7 @@ yaml2drawio は、図を読みやすいテキストとしてバージョン管�
 Node.js 24 以上が必要です。PNG を出力するには [draw.io Desktop](https://www.drawio.com/) も必要です。
 
 ```sh
+npx yaml2drawio guide                       # YAML の書き方を表示する
 npx yaml2drawio build diagram.yaml          # diagram.drawio を出力する
 npx yaml2drawio build diagram.yaml --png    # draw.io Desktop で diagram.png も出力する
 npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
@@ -57,6 +58,12 @@ npx yaml2drawio icons redis                 # アイコン名を検索する
 エラーは直す場所の行と列を示します（例: `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`）。
 線がアイコンやラベルの上を通りそうなときは、その線の行に警告を出します（例: `diagram.yaml:21:5: warning: link api.s -> db.n crosses the label of "Data 10.0.20.0/24"`）。ファイルはそのまま出力します。`--strict` を付けると終了コードが 1 になるので、CI や AI エージェントは警告が消えるまで直せます。折れ点の間の経路は draw.io が決めるため、その経路を予測して調べており、見逃すこともあります。
 draw.io Desktop が見つからない場合は、環境変数 `DRAWIO_CLI` に実行ファイルのパスを設定してください。
+
+### AI エージェントと使う
+
+`yaml2drawio guide` は、YAML の書き方・作業の流れ・きれいに配置するコツを Markdown で表示します（[docs/guide.md](docs/guide.md)、英語）。yaml2drawio を知らないエージェントでも、CLI から使い方を覚えられます。たとえば次のように頼みます。
+
+> `infra/` の Terraform から AWS の構成図を `npx yaml2drawio` で描いて。先に `npx yaml2drawio guide` を読んで。
 
 ## 書き方の例
 
