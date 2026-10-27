@@ -36,7 +36,7 @@ If your shell does not activate mise, prefix commands with `mise exec --`.
 
 1. Bump `version` in `package.json` in a pull request. Follow [semantic versioning](https://semver.org/); while the version is 0.x, a change to the YAML format bumps the minor version.
 2. After it is merged, create a GitHub release with the tag `v<version>` (for example `v0.2.0`).
-3. The Release workflow checks that the tag matches `package.json`, runs `pnpm check`, and stages the package on npm through trusted publishing, with provenance.
+3. The Release workflow runs in the `npm` environment, which only `v*` tags may use. It checks that the tag matches `package.json`, runs `pnpm check`, and stages the package on npm through trusted publishing, with provenance.
 4. Approve the staged version with two-factor authentication, either under Staged Packages on npmjs.com or with `npm stage approve <stage-id>` (npm 11.15.0 or later). It is not public until then.
 
 ## Conventions

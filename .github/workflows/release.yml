@@ -13,6 +13,11 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # The npm trusted publisher is bound to this environment, which only v* tags may deploy to, so
+    # no other branch or workflow can stage a release
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/yaml2drawio
     steps:
       - uses: actions/checkout@v7
       # Node and pnpm versions come from mise.toml
