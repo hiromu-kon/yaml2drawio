@@ -1239,6 +1239,14 @@
                 "both",
                 "none"
               ]
+            },
+            "route": {
+              "description": "auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io. Defaults to auto.",
+              "type": "string",
+              "enum": [
+                "auto",
+                "drawio"
+              ]
             }
           },
           "required": [

@@ -1,32 +1,54 @@
 import type { Layout, Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
-import { POSITION_POINTS } from './position.ts';
+import { POSITION_POINTS, sideOf } from './position.ts';
 import { bendPoints, routeContext, type Point } from './route.ts';
 import { LINE_HEIGHT } from './text.ts';
 
+// Later keys win in a draw.io style, so these override the catalog's label-below placement. The
+// label goes above the middle of the side, where lines to the outside usually leave.
+const SIDE_LABEL_STYLE = {
+  left: 'labelPosition=left;verticalLabelPosition=top;align=right;verticalAlign=bottom;spacingRight=4;',
+  right:
+    'labelPosition=right;verticalLabelPosition=top;align=left;verticalAlign=bottom;spacingLeft=4;',
+} as const;
+
 export function toDrawio(diagram: Diagram, layout: Layout): string {
   const cells: string[] = [];
+  // How many label lines hang below each icon; labels of side border children sit beside theirs
+  const labelLinesBelow = new Map<string, number>();
 
-  const visit = (node: DiagramNode, parent: GroupNode | undefined): void => {
+  const visit = (
+    node: DiagramNode,
+    parent: GroupNode | undefined,
+    labelSide?: 'left' | 'right',
+  ): void => {
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child, parent);
       return;
     }
     const geometry = relativeTo(cellRect(layout, node), parent && cellRect(layout, parent));
     if (node.kind === 'leaf') {
-      cells.push(vertex(node.id, node.label, node.shape.style, parent?.id, geometry));
+      const style = labelSide
+        ? withSemicolon(node.shape.style) + SIDE_LABEL_STYLE[labelSide]
+        : node.shape.style;
+      if (!labelSide && node.label !== '')
+        labelLinesBelow.set(node.id, node.label.split('\n').length);
+      cells.push(vertex(node.id, node.label, style, parent?.id, geometry));
       return;
     }
     cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), parent?.id, geometry));
     for (const child of node.children) visit(child, node);
     // Border children belong to the group so that moving it in draw.io moves them too
-    for (const { node: child } of node.border) visit(child, node);
+    for (const { node: child, position } of node.border) {
+      const side = sideOf(position);
+      visit(child, node, side === 'left' || side === 'right' ? side : undefined);
+    }
   };
   visit(diagram.root, undefined);
 
   const context = routeContext(diagram.root, layout);
   for (const link of diagram.links) {
-    cells.push(edge(link, context.leaves, bendPoints(link, context)));
+    cells.push(edge(link, labelLinesBelow, bendPoints(link, context)));
   }
 
   return [
@@ -69,11 +91,15 @@ function vertex(
   );
 }
 
+function withSemicolon(style: string): string {
+  return style.endsWith(';') ? style : `${style};`;
+}
+
 function groupStyle(style: string): string {
   return style.includes('container=1') ? style : `${style}container=1;collapsible=0;`;
 }
 
-function edge(link: Link, leaves: Map<string, LeafNode>, bends: Point[]): string {
+function edge(link: Link, labelLinesBelow: Map<string, number>, bends: Point[]): string {
   const style = [
     'edgeStyle=orthogonalEdgeStyle',
     'rounded=0',
@@ -85,8 +111,8 @@ function edge(link: Link, leaves: Map<string, LeafNode>, bends: Point[]): string
     `startArrow=${link.arrow === 'start' || link.arrow === 'both' ? 'open' : 'none'}`,
     'startFill=0',
     ...(link.dashed ? ['dashed=1'] : []),
-    ...port('exit', link.from, leaves),
-    ...port('entry', link.to, leaves),
+    ...port('exit', link.from, labelLinesBelow),
+    ...port('entry', link.to, labelLinesBelow),
   ].join(';');
   return (
     `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="1" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
@@ -100,13 +126,12 @@ function edge(link: Link, leaves: Map<string, LeafNode>, bends: Point[]): string
 function port(
   prefix: 'exit' | 'entry',
   endpoint: Endpoint,
-  leaves: Map<string, LeafNode>,
+  labelLinesBelow: Map<string, number>,
 ): string[] {
   if (!endpoint.position) return [];
   const [x, y] = POSITION_POINTS[endpoint.position];
-  // A leaf's label hangs below its icon, so a line leaving from the bottom starts under the label
-  const leaf = leaves.get(endpoint.id);
-  const lines = leaf && leaf.label !== '' ? leaf.label.split('\n').length : 0;
+  // A label below the icon would be crossed, so a line leaving from the bottom starts under it
+  const lines = labelLinesBelow.get(endpoint.id) ?? 0;
   const dy = y === 1 && lines > 0 ? lines * LINE_HEIGHT + 4 : 0;
   return [`${prefix}X=${x}`, `${prefix}Y=${y}`, `${prefix}Dx=0`, `${prefix}Dy=${dy}`];
 }

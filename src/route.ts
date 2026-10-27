@@ -49,7 +49,25 @@ export function routeContext(root: DiagramNode, layout: Layout): RouteContext {
  * rules move the bends into the gaps around groups instead.
  */
 export function bendPoints(link: Link, context: RouteContext): Point[] {
-  return sideEntry(link, context) ?? leaveGroup(link, context) ?? sameSideLoop(link, context) ?? [];
+  if (link.route === 'drawio') return [];
+  for (const rule of [sideEntry, leaveGroup, sameSideLoop]) {
+    const bends = rule(link, context);
+    if (bends && leavesForward(link, bends, context)) return bends;
+  }
+  return [];
+}
+
+// A first bend behind the side a line leaves from would make it turn back on itself (leave the
+// right side, then head left), so a rule that suggests one is skipped
+function leavesForward(link: Link, bends: Point[], context: RouteContext): boolean {
+  const source = anchor(context, link.from);
+  const first = bends[0];
+  if (!source || !first || !link.from.position) return true;
+  const side = sideOf(link.from.position);
+  if (side === 'right') return first.x >= source.x;
+  if (side === 'left') return first.x <= source.x;
+  if (side === 'bottom') return first.y >= source.y;
+  return first.y <= source.y;
 }
 
 // A line entering a leaf from the left or right bends just outside the group around that leaf

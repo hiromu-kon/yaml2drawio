@@ -182,6 +182,25 @@ describe('layoutDiagram', () => {
     expect(cellOf(layout, 'api').x).toBe(cellOf(layout, 'aurora').x);
   });
 
+  it('leaves room beside a group for the label of a border child on its right edge', () => {
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - group: aws.vpc',
+          '    border:',
+          '      e: { id: endpoint, icon: aws.vpc_endpoint, label: Interface endpoints }',
+          '    children: [{ id: fn, icon: aws.lambda }]',
+          '  - { id: neighbor, icon: aws.sqs }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const endpoint = cellOf(layout, 'endpoint');
+    const labelEnd = endpoint.x + endpoint.width + textWidth('Interface endpoints');
+    expect(cellOf(layout, 'neighbor').x).toBeGreaterThan(labelEnd);
+  });
+
   it('produces the same coordinates every time', () => {
     const source =
       'nodes:\n  - group: aws.vpc\n    children:\n      - { id: a, icon: aws.lambda }\n';

@@ -62,6 +62,44 @@ describe('bendPoints', () => {
     expect(bendsOf(diagram, layout, 0)).toEqual([]);
   });
 
+  const UNDER_THE_SOURCE = [
+    'direction: vertical',
+    'nodes:',
+    '  - { id: alb, icon: aws.alb }',
+    '  - group: aws.private_subnet',
+    '    children:',
+    '      - { id: api, icon: aws.ecs }',
+    '      - { id: worker, icon: aws.ecs }',
+    'links:',
+    '  - [alb.e, api.w]',
+    '',
+  ].join('\n');
+
+  it('does not bend a line behind the side it leaves from', () => {
+    // api sits left of the ALB, so bending outside the subnet would turn the line back
+    const { diagram, layout, rect } = setUp(UNDER_THE_SOURCE);
+    expect(rect('api').x).toBeLessThan(rect('alb').x);
+    expect(bendsOf(diagram, layout, 0)).toEqual([]);
+  });
+
+  it('leaves the whole route to draw.io with route: drawio', () => {
+    const { diagram, layout } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - group: aws.generic',
+        '    children: [{ id: cdn, icon: aws.cloudfront }, { id: s3, icon: aws.s3 }]',
+        '  - { id: alb, icon: aws.alb }',
+        'links:',
+        '  - [cdn.s, alb.n]',
+        '  - { from: cdn.s, to: alb.n, route: drawio }',
+        '',
+      ].join('\n'),
+    );
+    expect(bendsOf(diagram, layout, 0)).not.toEqual([]);
+    expect(bendsOf(diagram, layout, 1)).toEqual([]);
+  });
+
   it('runs a bottom-to-bottom line below the groups that hold only one of its ends', () => {
     const { diagram, layout, rect } = setUp(
       [

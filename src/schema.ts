@@ -141,6 +141,12 @@ const LinkObject = z.strictObject({
     .enum(['end', 'start', 'both', 'none'])
     .optional()
     .describe('Which ends get an arrowhead. Defaults to end.'),
+  route: z
+    .enum(['auto', 'drawio'])
+    .optional()
+    .describe(
+      'auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io. Defaults to auto.',
+    ),
 });
 
 // The tuple comes first; load.ts relies on this order when reporting errors

@@ -48,6 +48,7 @@ export interface Link {
   label: string;
   dashed: boolean;
   arrow: 'end' | 'start' | 'both' | 'none';
+  route: 'auto' | 'drawio';
 }
 
 export interface Diagram {
