@@ -14,12 +14,12 @@ nodes:
             label: Edge / Auth / Static delivery
             children:
               - { id: route53, icon: aws.route_53, label: Route 53 }
+              - { id: cognito, icon: aws.cognito, label: Cognito }
               - { id: shield, icon: aws.shield_advanced, label: Shield Advanced }
               - { id: waf, icon: aws.waf, label: WAF }
               - { id: cloudfront, icon: aws.cloudfront, label: CloudFront }
               - { id: static_assets, icon: aws.s3, label: Static assets }
               - { id: acm, icon: aws.acm, label: ACM }
-              - { id: cognito, icon: aws.cognito, label: Cognito }
           - align: expand
             row:
               # Tokyo: production
@@ -110,15 +110,15 @@ nodes:
                                       - { id: dynamodb, icon: aws.dynamodb, label: DynamoDB }
                                       - { id: ses, icon: aws.ses, label: SES }
                       - group: aws.generic
-                        label: Storage
-                        children:
-                          - { id: uploads, icon: aws.s3, label: User uploads }
-                      - group: aws.generic
                         label: Security
                         children:
                           - { id: secrets, icon: aws.secrets_manager, label: Secrets Manager }
                           - { id: kms, icon: aws.kms, label: KMS }
                           - { id: guardduty, icon: aws.guardduty, label: GuardDuty }
+                      - group: aws.generic
+                        label: Storage
+                        children:
+                          - { id: uploads, icon: aws.s3, label: User uploads }
                       - group: aws.generic
                         label: Observability
                         children:
@@ -164,19 +164,19 @@ links:
   - { from: cloudfront.s, to: igw_osaka.n, style: dashed, label: failover }
   - [igw.s, alb.n]
   - [alb.w, api_a.n]
-  - [alb.e, api_c.w]
+  - [alb.e, api_c.wnw]
   - [igw_osaka.s, alb_osaka.n]
   - [alb_osaka.s, api_osaka.n]
   # Data
   - [api_a.s, aurora_writer.n]
-  - [worker_a.s, redis_primary.n]
-  - [api_c.s, aurora_reader.n]
+  - [worker_a.wsw, redis_primary.w]
+  - [api_c.wsw, aurora_reader.wnw]
   - [worker_c.s, redis_replica.n]
   - { from: aurora_writer.e, to: aurora_reader.w, style: dashed, label: replication }
   - { from: redis_primary.s, to: redis_replica.s, style: dashed }
-  - [api_osaka.s, aurora_secondary.n]
+  - [api_osaka.e, aurora_secondary.e]
   - { from: aurora_reader.s, to: aurora_secondary.s, style: dashed, label: Global Database }
-  - { from: worker_a.n, to: nat_a.s, label: outbound }
+  - { from: api_a.ene, to: nat_a.e, label: outbound }
   # AWS services through VPC endpoints
   - [worker_c.e, interface_endpoints.w]
   - [worker_c.e, s3_endpoint.w]
@@ -196,8 +196,8 @@ links:
   - [codepipeline.n, codebuild.s]
   - [codebuild.n, ecr.s]
   - [ecr.n, codedeploy.s]
-  - { from: codedeploy.e, to: worker_a.w, label: deploy }
-  - { from: ecr.e, to: worker_a.w, style: dashed, label: image pull }
+  - { from: codedeploy.e, to: worker_a.wnw, label: deploy }
+  - { from: ecr.e, to: worker_a.wnw, style: dashed, label: image pull }
   # Monitoring
   - [cloudwatch.e, alerts.w]
   - { from: alerts.s, to: oncall.e, label: alarm }
