@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
+import { GROUP_PADDING, layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
 import type { Diagram, Link } from '../src/model.ts';
 import { bendPoints, routeContext } from '../src/route.ts';
 import { load } from './helpers.ts';
@@ -60,6 +60,63 @@ describe('bendPoints', () => {
       ].join('\n'),
     );
     expect(bendsOf(diagram, layout, 0)).toEqual([]);
+  });
+
+  it('bends a line entering from the side outside the outermost group it enters', () => {
+    // Bending just outside the security group would run the line through the subnet's label
+    const { diagram, layout, rect } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - { id: alb, icon: aws.alb }',
+        '  - group: aws.az',
+        '    id: az',
+        '    children:',
+        '      - group: aws.private_subnet',
+        '        children:',
+        '          - group: aws.security_group',
+        '            children:',
+        '              - { id: api, icon: aws.ecs }',
+        'links:',
+        '  - [alb.w, api.w]',
+        '',
+      ].join('\n'),
+    );
+    const api = rect('api');
+    expect(bendsOf(diagram, layout, 0)).toEqual([
+      { x: rect('az').x - GROUP_PADDING / 2, y: api.y + api.height / 2 },
+    ]);
+  });
+
+  it('bends inside the outer group when bending outside it would turn the line back', () => {
+    // The ALB sits over the gap between the AZs, so outside the AZ is behind its right side
+    const { diagram, layout, rect } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - { id: alb, icon: aws.alb }',
+        '  - row:',
+        '      - group: aws.az',
+        '        children:',
+        '          - group: aws.private_subnet',
+        '            children: [{ id: api_a, icon: aws.ecs }]',
+        '      - group: aws.az',
+        '        id: az_c',
+        '        children:',
+        '          - group: aws.private_subnet',
+        '            id: subnet_c',
+        '            children: [{ id: api_c, icon: aws.ecs }]',
+        'links:',
+        '  - [alb.e, api_c.w]',
+        '',
+      ].join('\n'),
+    );
+    const alb = rect('alb');
+    expect(rect('az_c').x - GROUP_PADDING / 2).toBeLessThan(alb.x + alb.width);
+    const api = rect('api_c');
+    expect(bendsOf(diagram, layout, 0)).toEqual([
+      { x: rect('subnet_c').x - GROUP_PADDING / 2, y: api.y + api.height / 2 },
+    ]);
   });
 
   const UNDER_THE_SOURCE = [
