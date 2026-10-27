@@ -41,6 +41,7 @@ describe('loadDiagram', () => {
         label: '',
         dashed: false,
         arrow: 'end',
+        route: 'auto',
       },
       {
         id: 'link-2',
@@ -49,6 +50,7 @@ describe('loadDiagram', () => {
         label: 'poll',
         dashed: true,
         arrow: 'both',
+        route: 'auto',
       },
     ]);
   });

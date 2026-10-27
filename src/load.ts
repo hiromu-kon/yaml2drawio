@@ -280,6 +280,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
         label: '',
         dashed: false,
         arrow: 'end',
+        route: 'auto',
       };
     }
     return {
@@ -289,6 +290,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
       label: link.label ?? '',
       dashed: link.style === 'dashed',
       arrow: link.arrow ?? 'end',
+      route: link.route ?? 'auto',
     };
   });
 
