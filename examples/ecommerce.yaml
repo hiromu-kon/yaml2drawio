@@ -40,6 +40,13 @@ nodes:
                     direction: vertical
                     border:
                       n: { id: igw, icon: aws.igw, label: IGW }
+                      ene:
+                        {
+                          id: interface_endpoints,
+                          icon: aws.vpc_endpoint,
+                          label: Interface endpoints,
+                        }
+                      ese: { id: s3_endpoint, icon: aws.vpc_endpoint, label: S3 gateway endpoint }
                     children:
                       # The ALB runs in the public subnets of both AZs, so it is drawn above them
                       - { id: alb, icon: aws.alb, label: ALB }
@@ -90,20 +97,6 @@ nodes:
                                       label: Aurora Reader,
                                     }
                                   - { id: redis_replica, icon: aws.redis, label: Redis Replica }
-                          - group: aws.generic
-                            label: VPC Endpoints
-                            direction: vertical
-                            children:
-                              - {
-                                  id: interface_endpoints,
-                                  icon: aws.vpc_endpoint,
-                                  label: Interface endpoints,
-                                }
-                              - {
-                                  id: s3_endpoint,
-                                  icon: aws.vpc_endpoint,
-                                  label: S3 gateway endpoint,
-                                }
                   - column:
                       - group: aws.generic
                         label: Async processing
