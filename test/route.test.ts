@@ -118,6 +118,30 @@ describe('bendPoints', () => {
     ]);
   });
 
+  it('bends a later line inside the outer group when outside it would run along an earlier one', () => {
+    const { diagram, layout, rect } = setUp(
+      [
+        'nodes:',
+        '  - column:',
+        '      - { id: deploy, icon: aws.codedeploy }',
+        '      - { id: registry, icon: aws.ecr }',
+        '  - group: aws.vpc',
+        '    id: vpc',
+        '    children:',
+        '      - group: aws.private_subnet',
+        '        id: subnet',
+        '        children:',
+        '          - { id: app, icon: aws.ecs }',
+        'links:',
+        '  - [registry.e, app.w]',
+        '  - [deploy.e, app.wsw]',
+        '',
+      ].join('\n'),
+    );
+    expect(bendsOf(diagram, layout, 0)[0]?.x).toBe(rect('vpc').x - GROUP_PADDING / 2);
+    expect(bendsOf(diagram, layout, 1)[0]?.x).toBe(rect('subnet').x - GROUP_PADDING / 2);
+  });
+
   it('bends inside the outer group when bending outside it would turn the line back', () => {
     // The ALB sits over the gap between the AZs, so outside the AZ is behind its right side
     const { diagram, layout, rect } = setUp(

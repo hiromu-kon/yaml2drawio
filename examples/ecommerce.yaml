@@ -154,14 +154,14 @@ nodes:
 links:
   # Requests
   - [web_users.s, route53.n]
-  - [web_users.s, cloudfront.n]
-  - [mobile.s, cloudfront.n]
+  - [web_users.s, cloudfront.nnw]
+  - [mobile.s, cloudfront.nne]
   - { from: mobile.s, to: cognito.n, label: Sign-in }
   - { from: shield.e, to: waf.w, style: dashed, arrow: none }
   - { from: waf.e, to: cloudfront.w, style: dashed, arrow: none }
   - [cloudfront.e, static_assets.w]
   - [cloudfront.s, igw.n]
-  - { from: cloudfront.s, to: igw_osaka.n, style: dashed, label: failover }
+  - { from: cloudfront.sse, to: igw_osaka.n, style: dashed, label: failover }
   - [igw.s, alb.n]
   - [alb.w, api_a.n]
   - [alb.e, api_c.wnw]
@@ -182,11 +182,11 @@ links:
   - [worker_c.e, s3_endpoint.w]
   - [interface_endpoints.e, eventbridge.w]
   - [interface_endpoints.e, sqs.w]
-  - { from: interface_endpoints.e, to: secrets.w, style: dashed }
+  - { from: interface_endpoints.ese, to: secrets.w, style: dashed }
   - [s3_endpoint.e, uploads.w]
   - { from: uploads.e, to: replica.w, style: dashed, label: CRR }
   # Async processing
-  - [eventbridge.e, sqs.w]
+  - [eventbridge.n, sqs.wsw]
   - [eventbridge.e, lambda.w]
   - [lambda.e, dynamodb.w]
   - [lambda.e, ses.w]
@@ -196,8 +196,8 @@ links:
   - [codepipeline.n, codebuild.s]
   - [codebuild.n, ecr.s]
   - [ecr.n, codedeploy.s]
+  - { from: ecr.e, to: worker_a.w, style: dashed, label: image pull }
   - { from: codedeploy.e, to: worker_a.wnw, label: deploy }
-  - { from: ecr.e, to: worker_a.wnw, style: dashed, label: image pull }
   # Monitoring
   - [cloudwatch.e, alerts.w]
   - { from: alerts.s, to: oncall.e, label: alarm }
