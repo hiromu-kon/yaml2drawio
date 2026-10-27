@@ -34,13 +34,13 @@ yaml2drawio keeps the diagram in version control as readable text and still give
 - **Structure, not coordinates**
   Nesting, order and direction decide the layout, so the same YAML always produces the same diagram.
 - **Official draw.io shapes**
-  Icons come from a catalog extracted from draw.io's own shape library (930 AWS icons and 20 groups). An unknown name is an error with suggestions, never a guess.
+  Icons come from a catalog extracted from draw.io's own shape library (about 1,900 icons: 930 for AWS, 143 for Google Cloud, 701 for Azure and 78 for Kubernetes, plus AWS's 20 groups). An unknown name is an error with suggestions, never a guess.
 - **Editable output**
   The result is a native `.drawio` file you can open in draw.io or the VS Code extension.
 - **Made for AI agents too**
   Compact YAML and strict validation let an agent write a diagram, check it, and fix it without guessing.
 - **Beyond AWS**
-  Icon names are namespaced (`aws.ecs`, `aws.vpc`), with provider-neutral icons (`general.server`) and on-premises equipment (`network.switch`) for hybrid and multi-cloud diagrams; other providers can be added side by side.
+  Icons for AWS, Google Cloud, Azure and Kubernetes (`aws.ecs`, `gcp.cloud_run`, `azure.aks`, `k8s.pod`), plus provider-neutral icons (`general.server`) and on-premises equipment (`network.switch`), so one diagram can span clouds and data centers.
 
 ## Getting started
 
@@ -106,12 +106,12 @@ Point your YAML file at the JSON Schema to get completion for keys, icon names a
 
 ## Comparison
 
-|             | yaml2drawio                     | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
-| ----------- | ------------------------------- | ---------------------------------------------------- | -------------------------------------------------- | --------------------------------------- |
-| Input       | YAML                            | YAML                                                 | Python                                             | D2 language                             |
-| Output      | `.drawio` (editable)            | PNG                                                  | PNG, JPG, SVG, PDF, DOT                            | SVG, PNG, GIF, PDF, PPTX                |
-| Layout      | Computed from nesting and order | Computed from nesting and order                      | Graphviz                                           | Dagre, ELK or TALA                      |
-| Cloud icons | AWS (more planned)              | AWS (extensible with definition files)               | AWS, Azure, GCP, Kubernetes and more               | Any image                               |
+|             | yaml2drawio                          | [awsdac](https://github.com/awslabs/diagram-as-code) | [Diagrams](https://github.com/mingrammer/diagrams) | [D2](https://github.com/terrastruct/d2) |
+| ----------- | ------------------------------------ | ---------------------------------------------------- | -------------------------------------------------- | --------------------------------------- |
+| Input       | YAML                                 | YAML                                                 | Python                                             | D2 language                             |
+| Output      | `.drawio` (editable)                 | PNG                                                  | PNG, JPG, SVG, PDF, DOT                            | SVG, PNG, GIF, PDF, PPTX                |
+| Layout      | Computed from nesting and order      | Computed from nesting and order                      | Graphviz                                           | Dagre, ELK or TALA                      |
+| Cloud icons | AWS, Google Cloud, Azure, Kubernetes | AWS (extensible with definition files)               | AWS, Azure, GCP, Kubernetes and more               | Any image                               |
 
 ## Contributing
 

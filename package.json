@@ -5,11 +5,15 @@
   "keywords": [
     "architecture",
     "aws",
+    "azure",
     "cli",
     "diagram",
     "diagram-as-code",
     "draw.io",
     "drawio",
+    "gcp",
+    "google-cloud",
+    "kubernetes",
     "yaml"
   ],
   "homepage": "https://github.com/hiromu-kon/yaml2drawio#readme",

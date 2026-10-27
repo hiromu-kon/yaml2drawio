@@ -54,10 +54,15 @@ links:
 Names start with a namespace. `npx yaml2drawio --help` lists them.
 
 - `aws.*`: AWS services, resources and groups
+- `gcp.*`: Google Cloud products, such as `gcp.cloud_run`, `gcp.gke`, `gcp.cloud_sql`, `gcp.pubsub`
+- `azure.*`: Azure services, such as `azure.app_service`, `azure.aks`, `azure.cosmos_db`, `azure.key_vault`
+- `k8s.*`: Kubernetes objects, such as `k8s.deployment`, `k8s.service`, `k8s.ingress`; add `_labeled` for the version with its abbreviation written in it (`k8s.service_labeled`)
 - `general.*`: provider-neutral icons in the same flat style, such as `general.users`, `general.internet`, `general.server`, `general.database`, `general.firewall`, and the group `general.data_center`
 - `network.*`: on-premises equipment the others lack, such as `network.switch`, `network.mainframe` and `network.laptop`, in draw.io's older gray network style
 
 Prefer the provider's own icon, then `general.*`, and use `network.*` only for what neither has, so the diagram keeps one look.
+
+Only AWS has its own groups so far. For Google Cloud, Azure and Kubernetes, use `general.generic` groups and say what they are in the label, such as `Project: shop-prod`, `VNet 10.1.0.0/16` or `Namespace: payments`.
 
 ## Nodes
 
