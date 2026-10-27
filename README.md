@@ -65,6 +65,12 @@ If draw.io Desktop is not found, set `DRAWIO_CLI` to its executable.
 
 > Draw our AWS architecture from the Terraform in `infra/` with `npx yaml2drawio`. Read `npx yaml2drawio guide` first.
 
+For more than the format, install the agent skill. It covers reading Terraform, CloudFormation, CDK or a running account, what to leave out, and diagrams that span several clouds. It works with Claude Code, Codex, Cursor and other agents that support [Agent Skills](https://agentskills.io/):
+
+```sh
+npx skills add hiromu-kon/yaml2drawio
+```
+
 ## Example
 
 ```yaml

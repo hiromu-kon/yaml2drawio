@@ -48,7 +48,7 @@ export interface Catalog {
   search(query: string): SearchResult[];
 }
 
-const PROVIDERS = ['aws'] as const;
+export const PROVIDERS = ['aws'] as const;
 
 function readCatalogFile(name: string): unknown {
   return JSON.parse(readFileSync(new URL(`../catalog/${name}`, import.meta.url), 'utf8'));
@@ -106,10 +106,20 @@ export function loadCatalog(): Catalog {
         const text = `${name} ${shape.title} ${shape.category}`.toLowerCase();
         return words.every((word) => text.includes(word));
       };
-      return [
-        ...namesWithShapes(groups, aliases.group),
-        ...namesWithShapes(icons, aliases.icon),
-      ].filter(matches);
+      // A word like "internet" is also part of a category ("Internet of Things"), so the names that
+      // match best come first
+      const phrase = words.join('_');
+      const rank = ({ name, shape }: SearchResult) => {
+        const short = name.slice(name.indexOf('.') + 1);
+        if (short === phrase) return 0;
+        if (short.startsWith(phrase)) return 1;
+        if (words.every((word) => short.includes(word))) return 2;
+        if (words.every((word) => shape.title.toLowerCase().includes(word))) return 3;
+        return 4;
+      };
+      return [...namesWithShapes(groups, aliases.group), ...namesWithShapes(icons, aliases.icon)]
+        .filter(matches)
+        .toSorted((a, b) => rank(a) - rank(b));
     },
   };
 }

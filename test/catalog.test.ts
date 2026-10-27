@@ -48,6 +48,13 @@ describe('catalog', () => {
     expect(names).toContain('aws.elasticache_for_redis');
   });
 
+  it('lists the names that match best before matches in titles and categories', () => {
+    // "internet" is also in the category "Internet of Things", which sorts before it
+    const names = catalog.search('internet').map((result) => result.name);
+    expect(names[0]).toBe('aws.internet');
+    expect(catalog.search('elasticache redis')[0]?.name).toBe('aws.elasticache_for_redis');
+  });
+
   it('finds aliases by their short name', () => {
     expect(catalog.search('sqs')).toContainEqual({
       name: 'aws.sqs',

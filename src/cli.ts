@@ -3,7 +3,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
-import { loadCatalog } from './catalog.ts';
+import { loadCatalog, PROVIDERS } from './catalog.ts';
 import { findCrossings, linkText } from './crossings.ts';
 import { toDrawio } from './drawio.ts';
 import { layoutDiagram } from './layout.ts';
@@ -14,7 +14,7 @@ const USAGE = `yaml2drawio: describe infrastructure diagrams in YAML and get a l
 
 Usage:
   yaml2drawio guide                    how to write the YAML; start here
-  yaml2drawio icons <word...>          search icon and group names
+  yaml2drawio icons <word...>          search icon and group names (providers: ${PROVIDERS.join(', ')})
   yaml2drawio build <input.yaml> [options]
 
 Options for build:

@@ -72,6 +72,21 @@ describe('findCrossings', () => {
     ).toEqual([]);
   });
 
+  it('checks a line to the side of a group', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - { id: office, icon: aws.corporate_data_center }',
+        '  - { id: router, icon: aws.vpn_gateway }',
+        '  - group: aws.vpc',
+        '    id: vpc',
+        '    children: [{ id: api, icon: aws.ecs }]',
+        'links:',
+        '  - [office.e, vpc.w]',
+      ),
+    ).toEqual(['8:5: link office.e -> vpc.w crosses the icon of "router"']);
+  });
+
   it('lists lines whose ends float as unchecked, because draw.io picks their sides', () => {
     const diagram = load(
       [

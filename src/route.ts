@@ -10,6 +10,7 @@ export interface Point {
 export interface RouteContext {
   layout: Layout;
   leaves: Map<string, LeafNode>;
+  groups: Map<string, GroupNode>;
   /** The group each leaf sits inside; border children are left out because they sit on its edge. */
   enclosing: Map<string, GroupNode>;
   /** The group each group sits inside. */
@@ -22,6 +23,7 @@ export function routeContext(root: DiagramNode, layout: Layout): RouteContext {
   const context: RouteContext = {
     layout,
     leaves: new Map(),
+    groups: new Map(),
     enclosing: new Map(),
     parents: new Map(),
   };
@@ -35,6 +37,7 @@ export function routeContext(root: DiagramNode, layout: Layout): RouteContext {
       if (parent && !onBorder) context.enclosing.set(node.id, parent);
       return;
     }
+    context.groups.set(node.id, node);
     if (parent) context.parents.set(node, parent);
     for (const child of node.children) visit(child, node);
     for (const { node: child } of node.border) visit(child, node, true);
@@ -169,7 +172,8 @@ function ancestors(context: RouteContext, id: string): GroupNode[] {
 }
 
 export function anchor(context: RouteContext, endpoint: Endpoint): Point | undefined {
-  const rect = leafRect(context, endpoint.id);
+  const group = context.groups.get(endpoint.id);
+  const rect = group ? rectOf(context, group) : leafRect(context, endpoint.id);
   if (!rect || !endpoint.position) return undefined;
   const [px, py] = POSITION_POINTS[endpoint.position];
   return { x: Math.round(rect.x + px * rect.width), y: Math.round(rect.y + py * rect.height) };
