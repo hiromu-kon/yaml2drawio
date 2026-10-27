@@ -65,6 +65,12 @@ draw.io Desktop が見つからない場合は、環境変数 `DRAWIO_CLI` に�
 
 > `infra/` の Terraform から AWS の構成図を `npx yaml2drawio` で描いて。先に `npx yaml2drawio guide` を読んで。
 
+書き方より先のこと（Terraform・CloudFormation・CDK・実際のアカウントの読み取り方、何を省くか、複数のクラウドにまたがる図）まで任せるなら、エージェント用のスキルを入れてください。Claude Code・Codex・Cursor など、[Agent Skills](https://agentskills.io/) に対応したエージェントで使えます。
+
+```sh
+npx skills add hiromu-kon/yaml2drawio
+```
+
 ## 書き方の例
 
 ```yaml
