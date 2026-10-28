@@ -46,6 +46,19 @@ function vpcWithBorder(border: string): string {
   ].join('\n');
 }
 
+// The width of a subnet holding one icon under the given label
+function subnetWidth(label: string): number {
+  const source = [
+    'nodes:',
+    '  - group: aws.private_subnet',
+    '    id: data',
+    `    label: ${JSON.stringify(label)}`,
+    '    children: [{ id: db, icon: aws.aurora }]',
+    '',
+  ].join('\n');
+  return cellOf(layoutDiagram(load(source).root), 'data').width;
+}
+
 describe('layoutDiagram', () => {
   it('places the children of a row left to right without overlapping', () => {
     const diagram = load(
@@ -225,6 +238,12 @@ describe('layoutDiagram', () => {
     const nat = cellOf(layout, 'nat');
     const api = cellOf(layout, 'api');
     expect(nat.x + nat.width / 2).toBe(api.x + api.width / 2);
+  });
+
+  it('measures a group label of two lines by its longer line', () => {
+    expect(subnetWidth('Data 10.0.20.0/24 with a long name')).toBeGreaterThan(
+      subnetWidth('Data\n10.0.20.0/24 with a long name'),
+    );
   });
 
   it('lines up leaves in rows stacked in the same column', () => {

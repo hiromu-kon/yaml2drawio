@@ -1,7 +1,7 @@
 import type { Shape } from './catalog.ts';
 import type { DiagramNode, Direction, EmptyNode, GroupNode, LeafNode, StackNode } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
-import { LINE_HEIGHT, labelSize, textWidth } from './text.ts';
+import { LINE_HEIGHT, labelSize } from './text.ts';
 
 export const ICON_SIZE = 48;
 export const LABEL_GAP = 4;
@@ -272,7 +272,7 @@ function widthToClearLabel(group: GroupNode, labelEnd: number): number {
 }
 
 function labelEndOf(group: GroupNode): number {
-  return GROUP_ICON_AREA + textWidth(group.label);
+  return GROUP_ICON_AREA + labelSize(group.label).width;
 }
 
 function leafWidth(leaf: LeafNode): number {
