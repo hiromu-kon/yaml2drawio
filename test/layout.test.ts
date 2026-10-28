@@ -287,6 +287,28 @@ describe('layoutDiagram', () => {
     expect(cellOf(layout, 'api').x).toBe(cellOf(layout, 'aurora').x);
   });
 
+  it('leaves room for border labels only on the side that has them', () => {
+    // The endpoint's label sits beyond the right edge, so the neighbor on the left stays close
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - { id: neighbor, icon: aws.sqs }',
+          '  - group: aws.vpc',
+          '    id: vpc',
+          '    border:',
+          '      e: { id: endpoint, icon: aws.vpc_endpoint, label: Interface endpoints }',
+          '    children: [{ id: fn, icon: aws.lambda }]',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const neighbor = cellOf(layout, 'neighbor');
+    expect(cellOf(layout, 'vpc').x - (neighbor.x + neighbor.width)).toBeLessThan(
+      textWidth('Interface endpoints'),
+    );
+  });
+
   it('leaves room beside a group for the label of a border child on its right edge', () => {
     const layout = layoutDiagram(
       load(
