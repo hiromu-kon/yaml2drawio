@@ -96,18 +96,53 @@ describe('findCrossings', () => {
     ).toEqual(['6:5: link a.e -> c.w crosses the icon of "b"']);
   });
 
-  it('lets a line touch the icons and labels at its own ends', () => {
+  const LABELED_PAIR = [
+    'direction: vertical',
+    'nodes:',
+    '  - { id: a, icon: aws.lambda, label: A long label under the icon }',
+    '  - { id: b, icon: aws.sqs, label: Another long label }',
+    'links:',
+  ];
+
+  it('lets a line touch the icons at its ends, and leave below the label', () => {
+    expect(crossingsOf(...LABELED_PAIR, '  - [a.s, b.n]')).toEqual([]);
+  });
+
+  it('reports a line that runs through the label of an icon at its own end', () => {
+    // The label is wider than the icon, so a line coming back to its side runs through it
+    expect(crossingsOf(...LABELED_PAIR, '  - [b.e, a.e]')).toEqual([
+      '6:5: link b.e -> a.e crosses the label of "a"',
+    ]);
+  });
+
+  it('reports an end at a corner, where draw.io may start the line along either edge', () => {
     expect(
       crossingsOf(
-        'direction: vertical',
         'nodes:',
-        '  - { id: a, icon: aws.lambda, label: A long label under the icon }',
-        '  - { id: b, icon: aws.sqs, label: Another long label }',
+        '  - { id: a, icon: aws.lambda }',
+        '  - { id: b, icon: aws.sqs }',
         'links:',
-        '  - [a.s, b.n]',
-        '  - [b.e, a.e]',
+        '  - [a.se, b.w]',
       ),
-    ).toEqual([]);
+    ).toEqual([
+      '5:5: link a.se -> b.w has an end at the corner of "a", where draw.io may start the line along either edge; use sse or ese',
+    ]);
+  });
+
+  it('reports a line that runs along the border of a group', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - group: aws.vpc',
+        '    label: VPC',
+        '    border:',
+        '      n: { id: igw, icon: aws.igw }',
+        '    children: [{ id: api, icon: aws.ecs }]',
+        '  - { id: db, icon: aws.aurora }',
+        'links:',
+        '  - [igw.e, db.n]',
+      ),
+    ).toEqual(['9:5: link igw.e -> db.n runs along the border of "VPC"']);
   });
 
   it('checks a line to the side of a group', () => {
@@ -155,6 +190,22 @@ describe('findCrossings', () => {
     ).toEqual(['8:5: link cdn.e -> standby.w runs along link cdn.e -> primary.w']);
   });
 
+  const JOINING = [
+    'nodes:',
+    '  - column:',
+    '      - { id: web, icon: aws.users }',
+    '      - { id: app, icon: aws.lambda }',
+    '  - { id: logs, icon: aws.cloudwatch }',
+    'links:',
+  ];
+
+  it('reports lines from different icons whose ends nearly meet, which read as one line', () => {
+    // Both bend halfway, so the line down from web nearly meets the line up from app
+    expect(crossingsOf(...JOINING, '  - [web.e, logs.w]', '  - [app.e, logs.wsw]')).toEqual([
+      '8:5: link app.e -> logs.wsw runs along link web.e -> logs.w',
+    ]);
+  });
+
   it('passes lines drawn alike that leave one point together and split, like branches', () => {
     expect(
       crossingsOf(
@@ -168,6 +219,18 @@ describe('findCrossings', () => {
         '  - [cdn.e, assets.w]',
       ),
     ).toEqual([]);
+  });
+
+  it('reports the label of a line that has no clear place along it', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - { id: a, icon: aws.lambda }',
+        '  - { id: b, icon: aws.sqs }',
+        'links:',
+        '  - { from: a.e, to: b.w, label: A label far longer than the line }',
+      ),
+    ).toContain('5:5: the label of link a.e -> b.w covers the icon of "a"');
   });
 
   it('lists lines whose ends float as unchecked, because draw.io picks their sides', () => {

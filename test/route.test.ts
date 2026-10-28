@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GROUP_PADDING, layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
 import type { Diagram, Link } from '../src/model.ts';
-import { bendPoints, entryShift, routeContext } from '../src/route.ts';
+import { bendPoints, entryShift, predictPath, routeContext } from '../src/route.ts';
 import { load } from './helpers.ts';
 
 function setUp(source: string): { diagram: Diagram; layout: Layout; rect: (id: string) => Rect } {
@@ -302,6 +302,27 @@ function storage(bucketColumn: string[]): string {
   ].join('\n');
 }
 
+describe('predictPath', () => {
+  it('starts a line from the bottom below the label, where draw.io starts it', () => {
+    const { diagram, layout, rect } = setUp(
+      [
+        'direction: vertical',
+        'nodes:',
+        '  - { id: a, icon: aws.lambda, label: Lambda }',
+        '  - { id: b, icon: aws.sqs }',
+        'links:',
+        '  - [a.s, b.n]',
+        '',
+      ].join('\n'),
+    );
+    const [link] = diagram.links;
+    if (!link) throw new Error('no link');
+    const [start] = predictPath(link, routeContext(diagram.root, layout, diagram.links)) ?? [];
+    const a = rect('a');
+    expect(start?.y).toBeGreaterThan(a.y + a.height + 15);
+  });
+});
+
 describe('entryShift', () => {
   it('moves the end along the side of an icon that is almost level, so the line runs straight', () => {
     // The group's header pushes the bucket a little below the app beside the group
@@ -316,6 +337,29 @@ describe('entryShift', () => {
     });
     const middle = rect('app').y + rect('app').height / 2;
     expect(bendsOf(diagram, layout, 0).map((point) => point.y)).toEqual([middle]);
+  });
+
+  it('keeps a shifted end in the middle half of the side, clear of the label below', () => {
+    // The app sits 4px below the lower quarter of the bucket's left side, where its end would be
+    const { diagram, layout } = setUp(
+      [
+        'nodes:',
+        '  - group: aws.generic',
+        '    children:',
+        '      - group: aws.generic',
+        '        children: [{ id: app, icon: aws.ecs }]',
+        '  - { id: bucket, icon: aws.s3 }',
+        'links:',
+        '  - [app.e, bucket.wsw]',
+        '',
+      ].join('\n'),
+    );
+    const [link] = diagram.links;
+    if (!link) throw new Error('no link');
+    expect(entryShift(link, routeContext(diagram.root, layout, diagram.links))).toEqual({
+      x: 0,
+      y: 0,
+    });
   });
 
   it('keeps the end in the middle when the icons are clearly apart', () => {

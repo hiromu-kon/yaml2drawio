@@ -14,7 +14,7 @@ npx yaml2drawio build diagram.yaml --png      # also renders diagram.png (needs 
 2. Write the YAML.
 3. Run `build --strict` and fix what it reports, until it exits with 0.
    - Errors (unknown key, unknown icon, unknown id) stop the build and point at `file:line:column`, often with a suggestion.
-   - Warnings say which link crosses which icon or label. The file is still written.
+   - Warnings say which link crosses which icon or label, or runs along which line or group border. The file is still written.
 
 ## Example
 
@@ -176,6 +176,8 @@ links:
 - So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
 - When a line should come straight down instead, such as from an icon right above (`api.s -> db.n` with the database alone in its subnet), give the groups under it `clear_label: true`. Give it to the groups stacked with it as well, so they keep the same width.
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
+- Do not end a line at a corner (`ne`, `se`, `sw`, `nw`): draw.io may start it along either edge. Use the point beside it, such as `sse` or `ese`. Corners are fine for border icons.
+- A line's label goes halfway along it, or as near as it can without covering an icon or a label, and off group borders when there is room.
 - Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
 - Lines that run along each other read as one, and a dashed line along a solid one looks solid. Lines may share a start point and split later, like branches, when they are drawn alike. Give lines from different icons their own end points (`deploy.e -> app.wnw`, `registry.e -> app.w`), and give a dashed line its own start point (`cdn.s -> igw.n`, `cdn.sse -> igw_dr.n`).
 - When a link still crosses something, try other sides, reorder the children, move the icon to a group's `border`, or set `route: drawio`.
