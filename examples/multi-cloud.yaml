@@ -1,22 +1,26 @@
 # yaml-language-server: $schema=../schema.json
 title: Multi-cloud
 direction: vertical
+layers: [Google Cloud, Azure, Kubernetes]
 nodes:
   - { id: users, icon: general.users, label: Users }
   - row:
       - group: gcp.project
+        layer: Google Cloud
         label: 'Google Cloud project: shop-prod'
         children:
           - { id: lb, icon: gcp.lb, label: Cloud Load Balancing }
           - { id: run, icon: gcp.cloud_run, label: Cloud Run }
           - { id: sql, icon: gcp.cloud_sql, label: Cloud SQL }
       - group: azure.subscription
+        layer: Azure
         label: 'Azure subscription: corporate'
         children:
           - { id: cosmos, icon: azure.cosmos_db, label: Cosmos DB }
           - { id: app, icon: azure.app_service, label: App Service }
           - { id: front_door, icon: azure.front_door, label: Front Door }
   - group: k8s.cluster
+    layer: Kubernetes
     label: 'GKE cluster: orders'
     children:
       - group: k8s.namespace
