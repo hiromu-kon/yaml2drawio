@@ -47,6 +47,7 @@ export function routeContext(
     links,
   };
   const visit = (node: DiagramNode, parent: GroupNode | undefined, onBorder = false): void => {
+    if (node.kind === 'empty') return;
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child, parent);
       return;

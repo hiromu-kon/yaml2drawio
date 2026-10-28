@@ -11,6 +11,7 @@ function cellOf(layout: Layout, id: string): Rect {
 
 function findNode(nodes: DiagramNode[], id: string): LeafNode | GroupNode | undefined {
   for (const node of nodes) {
+    if (node.kind === 'empty') continue;
     if (node.kind !== 'stack' && node.id === id) return node;
     if (node.kind !== 'leaf') {
       const found = findNode(node.children, id);
@@ -200,6 +201,30 @@ describe('layoutDiagram', () => {
     expect(cellOf(layout, 'api').x).toBeGreaterThan(
       vpc.x + 32 + textWidth('A rather long VPC label'),
     );
+  });
+
+  it('lines up an icon with the column of a longer row, after an empty slot', () => {
+    // The NAT gateway sits over the second task, not halfway between the two
+    const layout = layoutDiagram(
+      load(
+        [
+          'direction: vertical',
+          'nodes:',
+          '  - group: aws.public_subnet',
+          '    children:',
+          '      - { empty: true }',
+          '      - { id: nat, icon: aws.nat_gateway }',
+          '  - group: aws.private_subnet',
+          '    children:',
+          '      - { id: worker, icon: aws.ecs }',
+          '      - { id: api, icon: aws.ecs }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const nat = cellOf(layout, 'nat');
+    const api = cellOf(layout, 'api');
+    expect(nat.x + nat.width / 2).toBe(api.x + api.width / 2);
   });
 
   it('lines up leaves in rows stacked in the same column', () => {

@@ -1,5 +1,5 @@
 import type { Shape } from './catalog.ts';
-import type { DiagramNode, Direction, GroupNode, LeafNode, StackNode } from './model.ts';
+import type { DiagramNode, Direction, EmptyNode, GroupNode, LeafNode, StackNode } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
 import { LINE_HEIGHT, labelSize, textWidth } from './text.ts';
 
@@ -94,7 +94,7 @@ export function layoutDiagram(root: StackNode): Layout {
   // How far right of a node's left edge its leftmost icon can start. Children of a vertical stack
   // are taken as flush left, which can only overestimate the padding clear_label needs.
   const iconInset = (node: DiagramNode): number => {
-    if (node.kind === 'leaf') return (measure(node).width - ICON_SIZE) / 2;
+    if (node.kind === 'leaf' || node.kind === 'empty') return (measure(node).width - ICON_SIZE) / 2;
     const inner = contentInset(node);
     if (node.kind === 'stack') return inner;
     const { outside, padding } = frameOf(node);
@@ -117,6 +117,11 @@ export function layoutDiagram(root: StackNode): Layout {
       size = {
         width: columnWidths.get(node) ?? leafWidth(node),
         height: ICON_SIZE + (label.height > 0 ? LABEL_GAP + label.height : 0) + LEAF_PADDING_BOTTOM,
+      };
+    } else if (node.kind === 'empty') {
+      size = {
+        width: columnWidths.get(node) ?? slotWidth(node),
+        height: ICON_SIZE + LEAF_PADDING_BOTTOM,
       };
     } else if (node.kind === 'group') {
       // An empty box (an unused subnet) is as tall as one holding an icon, so it lines up with its
@@ -142,6 +147,7 @@ export function layoutDiagram(root: StackNode): Layout {
   };
 
   const place = (node: DiagramNode, box: Rect): void => {
+    if (node.kind === 'empty') return;
     if (node.kind === 'leaf') {
       cells.set(node, iconAt(node.shape, box.x + box.width / 2, box.y + ICON_SIZE / 2));
       return;
@@ -278,10 +284,10 @@ function leafWidth(leaf: LeafNode): number {
  * width per column. Otherwise labels of different lengths shift the icons by a few pixels and a
  * line from one row to the next needs a small jog.
  */
-function alignColumns(root: DiagramNode): Map<LeafNode, number> {
-  const widths = new Map<LeafNode, number>();
+function alignColumns(root: DiagramNode): Map<LeafNode | EmptyNode, number> {
+  const widths = new Map<LeafNode | EmptyNode, number>();
   const visit = (node: DiagramNode): void => {
-    if (node.kind === 'leaf') return;
+    if (node.kind === 'leaf' || node.kind === 'empty') return;
     if (node.direction === 'vertical') {
       const rows = node.children.flatMap((child) => {
         const row = leafRow(child);
@@ -292,7 +298,7 @@ function alignColumns(root: DiagramNode): Map<LeafNode, number> {
         if (sameCount.length < 2) continue;
         for (let column = 0; column < count; column++) {
           const leaves = sameCount.flatMap((row) => row[column] ?? []);
-          const width = Math.max(...leaves.map(leafWidth));
+          const width = Math.max(...leaves.map(slotWidth));
           for (const leaf of leaves) widths.set(leaf, width);
         }
       }
@@ -303,10 +309,17 @@ function alignColumns(root: DiagramNode): Map<LeafNode, number> {
   return widths;
 }
 
-function leafRow(node: DiagramNode): LeafNode[] | undefined {
-  if (node.kind === 'leaf' || node.direction !== 'horizontal') return undefined;
-  const leaves = node.children.filter((child) => child.kind === 'leaf');
-  return leaves.length === node.children.length ? leaves : undefined;
+// An empty slot counts as an icon, which is how it lines up a short row with a longer one
+function leafRow(node: DiagramNode): (LeafNode | EmptyNode)[] | undefined {
+  if (node.kind === 'leaf' || node.kind === 'empty' || node.direction !== 'horizontal') {
+    return undefined;
+  }
+  const slots = node.children.filter((child) => child.kind === 'leaf' || child.kind === 'empty');
+  return slots.length === node.children.length ? slots : undefined;
+}
+
+function slotWidth(slot: LeafNode | EmptyNode): number {
+  return slot.kind === 'leaf' ? leafWidth(slot) : ICON_SIZE + LEAF_PADDING_X * 2;
 }
 
 function max(values: number[]): number {

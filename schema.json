@@ -54,6 +54,9 @@
           "$ref": "#/definitions/ImageLeaf"
         },
         {
+          "$ref": "#/definitions/Empty"
+        },
+        {
           "$ref": "#/definitions/Group"
         },
         {
@@ -63,7 +66,7 @@
           "$ref": "#/definitions/Column"
         }
       ],
-      "description": "An icon, an image, a group, a row or a column."
+      "description": "An icon, an image, an empty slot, a group, a row or a column."
     },
     "Leaf": {
       "type": "object",
@@ -2181,6 +2184,21 @@
       ],
       "additionalProperties": false,
       "description": "An icon drawn from an image file."
+    },
+    "Empty": {
+      "type": "object",
+      "properties": {
+        "empty": {
+          "type": "boolean",
+          "const": true,
+          "description": "An empty slot the size of an icon, to line icons up with a longer row above or below."
+        }
+      },
+      "required": [
+        "empty"
+      ],
+      "additionalProperties": false,
+      "description": "An empty slot the size of an icon."
     },
     "Group": {
       "type": "object",

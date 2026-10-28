@@ -32,6 +32,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     parent: GroupNode | undefined,
     labelSide?: 'left' | 'right',
   ): void => {
+    if (node.kind === 'empty') return;
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child, parent);
       return;

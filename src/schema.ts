@@ -65,6 +65,18 @@ const ImageLeafSchema = z
 
 export type ImageLeafInput = z.infer<typeof ImageLeafSchema>;
 
+const EmptySchema = z
+  .strictObject({
+    empty: z
+      .literal(true)
+      .describe(
+        'An empty slot the size of an icon, to line icons up with a longer row above or below.',
+      ),
+  })
+  .meta({ id: 'Empty', description: 'An empty slot the size of an icon.' });
+
+export type EmptyInput = z.infer<typeof EmptySchema>;
+
 export interface GroupInput {
   id?: string | undefined;
   group: string;
@@ -89,7 +101,13 @@ export interface ColumnInput {
   layer?: string | undefined;
 }
 
-export type NodeInput = LeafInput | ImageLeafInput | GroupInput | RowInput | ColumnInput;
+export type NodeInput =
+  | LeafInput
+  | ImageLeafInput
+  | EmptyInput
+  | GroupInput
+  | RowInput
+  | ColumnInput;
 
 const GroupObject = z.strictObject({
   id: Id.optional().describe('Unique id, needed only to link to the group.'),
@@ -149,11 +167,15 @@ const ColumnSchema: z.ZodType<ColumnInput> = ColumnObject.meta({
 // Keep the order in sync with NODE_BRANCHES, which load.ts uses to pick the branch a node was
 // meant to match when reporting errors
 export const NodeSchema: z.ZodType<NodeInput> = z
-  .union([LeafSchema, ImageLeafSchema, GroupSchema, RowSchema, ColumnSchema])
-  .meta({ id: 'Node', description: 'An icon, an image, a group, a row or a column.' });
+  .union([LeafSchema, ImageLeafSchema, EmptySchema, GroupSchema, RowSchema, ColumnSchema])
+  .meta({
+    id: 'Node',
+    description: 'An icon, an image, an empty slot, a group, a row or a column.',
+  });
 export const NODE_BRANCHES = [
   { key: 'icon', keys: Object.keys(LeafSchema.shape) },
   { key: 'image', keys: Object.keys(ImageLeafSchema.shape) },
+  { key: 'empty', keys: Object.keys(EmptySchema.shape) },
   { key: 'group', keys: Object.keys(GroupObject.shape) },
   { key: 'row', keys: Object.keys(RowObject.shape) },
   { key: 'column', keys: Object.keys(ColumnObject.shape) },
