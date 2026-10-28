@@ -14,7 +14,7 @@ npx yaml2drawio build diagram.yaml --png      # also renders diagram.png (needs 
 2. Write the YAML.
 3. Run `build --strict` and fix what it reports, until it exits with 0.
    - Errors (unknown key, unknown icon, unknown id) stop the build and point at `file:line:column`, often with a suggestion.
-   - Warnings say which link crosses which icon or label, or runs along which line or group border. The file is still written.
+   - Warnings say which link crosses which icon or label, or runs along which line or group border. The file, and the PNG with `--png`, is still written.
 
 ## Example
 
@@ -93,7 +93,7 @@ A node is one of five kinds, told apart by its key.
 - `children`: nodes inside the box. Leave it out for an empty box, such as a subnet with nothing drawn in it.
 - `direction`: `horizontal` (default) puts the children side by side; `vertical` stacks them.
 - `align`: `start`, `center` (default), `end`, or `expand` to give all children the same size across the direction. Use `expand` on the AZs in a row so their subnets line up.
-- `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`.
+- `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`. Only for what sits on the boundary itself, such as gateways and endpoints: an icon on the border reads as part of the group.
 - `clear_label`: `true` widens the box on both sides until its first icon starts right of the label at the top left, so a line can come down into that icon, or go up out of it. Only for groups whose label sits at the top left.
 - `id`: needed only to link to the group itself.
 
