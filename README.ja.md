@@ -121,5 +121,5 @@ YAML ファイルの先頭で JSON Schema を指定すると、キー・アイ�
 
 [MIT](LICENSE)
 
-アイコンは draw.io のサイドバー定義（[jgraph/drawio](https://github.com/jgraph/drawio)、Apache-2.0）から抜き出しています。
-yaml2drawio は draw.io や JGraph とは関係のない非公式のツールです。
+アイコンは draw.io のサイドバー定義（[jgraph/drawio](https://github.com/jgraph/drawio)）から抜き出しています。draw.io のソースコードは Apache-2.0 ですが、アイコンとステンシルには、許可なく Atlassian の製品やプラグインに使うことを禁じる[追加の条件](https://github.com/jgraph/drawio#license)があります。
+yaml2drawio は draw.io Ltd や draw.io AG とは関係のない非公式のツールで、両社の推薦も受けていません。

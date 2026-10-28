@@ -121,5 +121,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 [MIT](LICENSE)
 
-Icons are extracted from draw.io's sidebar definitions ([jgraph/drawio](https://github.com/jgraph/drawio), Apache-2.0).
-yaml2drawio is not affiliated with draw.io or JGraph.
+Icons are extracted from draw.io's sidebar definitions ([jgraph/drawio](https://github.com/jgraph/drawio)). The draw.io source code is Apache-2.0, but its icon sets and stencil libraries come with [extra terms](https://github.com/jgraph/drawio#license) that bar their use in Atlassian products and plugins without permission.
+yaml2drawio is not affiliated with or endorsed by draw.io Ltd or draw.io AG.
