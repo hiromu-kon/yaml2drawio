@@ -111,6 +111,19 @@ describe('catalog', () => {
     expect(catalog.search('elasticache redis')[0]?.name).toBe('aws.elasticache_for_redis');
   });
 
+  it.each(['route53', 'route 53', 'Route-53'])(
+    'finds a name however its words are separated: %s',
+    (query) => {
+      expect(catalog.search(query)[0]?.name).toBe('aws.route_53');
+    },
+  );
+
+  it('narrows to a namespace given as a word', () => {
+    const names = catalog.search('gcp storage').map((result) => result.name);
+    expect(names.length).toBeGreaterThan(0);
+    expect(names.every((name) => name.startsWith('gcp.'))).toBe(true);
+  });
+
   it('finds aliases by their short name', () => {
     expect(catalog.search('sqs')).toContainEqual({
       name: 'aws.sqs',

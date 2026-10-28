@@ -14,7 +14,7 @@ const USAGE = `yaml2drawio: describe infrastructure diagrams in YAML and get a l
 
 Usage:
   yaml2drawio guide                    how to write the YAML; start here
-  yaml2drawio icons <word...>          search icon and group names
+  yaml2drawio icons <word...>          search icon and group names; add a namespace to narrow (icons gcp storage)
   yaml2drawio build <input.yaml> [options]
 
 Icon namespaces: ${NAMESPACES.join(', ')}
@@ -22,10 +22,12 @@ Icon namespaces: ${NAMESPACES.join(', ')}
 Options for build:
   -o, --output <file>  where to write the .drawio file (default: next to the input)
   --png                also render a PNG with draw.io Desktop
-  --strict             exit with 1 when a line crosses an icon or a label
+  --strict             exit with 1 when there are warnings (lines crossing icons, labels or other lines)
 
   -h, --help           show this help
   -v, --version        show the version`;
+
+const ICON_RESULTS = 20;
 
 let parsed;
 try {
@@ -93,9 +95,22 @@ async function run(): Promise<void> {
       process.stdout.write(await readFile(new URL('../docs/guide.md', import.meta.url), 'utf8'));
       break;
     case 'icons': {
-      for (const { name, shape } of loadCatalog().search(args.join(' '))) {
+      const query = args.join(' ');
+      const results = loadCatalog().search(query);
+      // A long list buries the right name, while listing everything without a query is for browsing
+      const shown = query === '' ? results : results.slice(0, ICON_RESULTS);
+      for (const { name, shape } of shown) {
         const alias = name === shape.key ? '' : `\t(= ${shape.key})`;
         console.log(`${name}\t${shape.kind}\t${shape.title}${alias}`);
+      }
+      // Notes go to stderr so that stdout stays one name per line
+      if (results.length === 0) {
+        console.error(`no icon or group matches "${query}"; try fewer or shorter words`);
+        process.exitCode = 1;
+      } else if (shown.length < results.length) {
+        console.error(
+          `${results.length - shown.length} more; add a word to narrow, such as a namespace (${NAMESPACES.join(', ')})`,
+        );
       }
       break;
     }

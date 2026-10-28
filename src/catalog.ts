@@ -172,20 +172,26 @@ export function loadCatalog(): Catalog {
       return rankByCloseness(key, this.names(type)).slice(0, 3);
     },
     search(query) {
+      // Names, titles and queries spell the same thing differently (route_53, Route 53, route53),
+      // so words are compared without separators too
       const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-      const matches = ({ name, shape }: SearchResult) => {
-        const text = `${name} ${shape.title} ${shape.category}`.toLowerCase();
-        return words.every((word) => text.includes(word));
-      };
+      const compactWords = words.map(compact);
+      const contains = (text: string) =>
+        words.every((word, index) => {
+          const short = compactWords[index] ?? word;
+          return text.toLowerCase().includes(word) || compact(text).includes(short);
+        });
+      const matches = ({ name, shape }: SearchResult) =>
+        contains(`${name} ${shape.title} ${shape.category}`);
       // A word like "internet" is also part of a category ("Internet of Things"), so the names that
       // match best come first
-      const phrase = words.join('_');
+      const phrase = compactWords.join('');
       const rank = ({ name, shape }: SearchResult) => {
-        const short = name.slice(name.indexOf('.') + 1);
+        const short = compact(name.slice(name.indexOf('.') + 1));
         if (short === phrase) return 0;
         if (short.startsWith(phrase)) return 1;
-        if (words.every((word) => short.includes(word))) return 2;
-        if (words.every((word) => shape.title.toLowerCase().includes(word))) return 3;
+        if (contains(name)) return 2;
+        if (contains(shape.title)) return 3;
         return 4;
       };
       return [...namesWithShapes(groups, aliases.group), ...namesWithShapes(icons, aliases.icon)]
@@ -193,6 +199,10 @@ export function loadCatalog(): Catalog {
         .toSorted((a, b) => rank(a) - rank(b));
     },
   };
+}
+
+function compact(text: string): string {
+  return text.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
 }
 
 function namesWithShapes(shapes: Map<string, Shape>, aliases: Map<string, string>): SearchResult[] {
