@@ -80,13 +80,14 @@ A node is one of four kinds, told apart by its key.
 - `icon`: a name from `icons`, such as `aws.ecs`.
 - `label`: text under the icon; defaults to the icon's title. Use `\n` in a quoted string for a line break.
 
-**Group** `{ group, label, children, direction, align, border, id }`
+**Group** `{ group, label, children, direction, align, border, clear_label, id }`
 
 - `group`: a group style such as `aws.cloud`, `aws.region`, `aws.vpc`, `aws.az`, `aws.public_subnet`, `aws.private_subnet`, `aws.security_group`, `aws.generic`, `gcp.project`, `azure.vnet`, `k8s.namespace`.
 - `children`: nodes inside the box. Leave it out for an empty box, such as a subnet with nothing drawn in it.
 - `direction`: `horizontal` (default) puts the children side by side; `vertical` stacks them.
 - `align`: `start`, `center` (default), `end`, or `expand` to give all children the same size across the direction. Use `expand` on the AZs in a row so their subnets line up.
 - `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`.
+- `clear_label`: `true` widens the box on both sides until its first icon starts right of the label at the top left, so a line can come down into that icon. Only for groups whose label sits at the top left.
 - `id`: needed only to link to the group itself.
 
 **Row** `{ row, align }`: `row` is a list of nodes laid out left to right without a box.
@@ -137,6 +138,7 @@ links:
 - Labels of AWS groups with an icon (region, VPC, subnets) and of the Google Cloud, Azure and Kubernetes groups sit at the top left; labels of AWS AZs and generic groups are centered at the top. A line coming down into the top of an icon right below such a label crosses it.
 - In a vertical group with a centered label, the first child sits right under the label. Start the group with something no line enters from above, bring the line in from the side, or lay the group out horizontally so the target is not in the middle.
 - So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
+- When a line should come straight down instead, such as from an icon right above (`api.s -> db.n` with the database alone in its subnet), give the groups under it `clear_label: true`. Give it to the groups stacked with it as well, so they keep the same width.
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
 - Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
 - Lines that run along each other read as one, and a dashed line along a solid one looks solid. Lines may share a start point and split later, like branches, when they are drawn alike. Give lines from different icons their own end points (`deploy.e -> app.wnw`, `registry.e -> app.w`), and give a dashed line its own start point (`cdn.s -> igw.n`, `cdn.sse -> igw_dr.n`).

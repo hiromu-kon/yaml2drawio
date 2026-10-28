@@ -140,10 +140,12 @@ nodes:
                       - { id: alb_osaka, icon: aws.alb, label: ALB }
                       - group: aws.private_subnet
                         label: App 10.1.10.0/24
+                        clear_label: true
                         children:
                           - { id: api_osaka, icon: aws.ecs, label: ECS API (pilot light) }
                       - group: aws.private_subnet
                         label: Data 10.1.20.0/24
+                        clear_label: true
                         children:
                           - {
                               id: aurora_secondary,
@@ -174,7 +176,7 @@ links:
   - [worker_c.s, redis_replica.n]
   - { from: aurora_writer.e, to: aurora_reader.w, style: dashed, label: replication }
   - { from: redis_primary.s, to: redis_replica.s, style: dashed }
-  - [api_osaka.e, aurora_secondary.e]
+  - [api_osaka.s, aurora_secondary.n]
   - { from: aurora_reader.s, to: aurora_secondary.s, style: dashed, label: Global Database }
   - { from: api_a.ene, to: nat_a.e, label: outbound }
   # AWS services through VPC endpoints
