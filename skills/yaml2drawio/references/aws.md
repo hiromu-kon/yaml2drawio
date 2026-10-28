@@ -7,7 +7,7 @@ Nest them in this order, leaving out levels that add nothing:
 `aws.account` (only when several accounts appear) > `aws.cloud` > `aws.region` > `aws.vpc` > `aws.az` > `aws.public_subnet` or `aws.private_subnet`
 
 - Global services (CloudFront, Route 53, IAM Identity Center, WAF on CloudFront, Shield) go inside `aws.cloud` but outside every region.
-- Regional services without a VPC (S3, DynamoDB, SQS, SNS, EventBridge, Lambda without `vpc_config`) go inside the region, outside the VPC.
+- Regional services without a VPC (S3, DynamoDB, SQS, SNS, EventBridge, Lambda without `vpc_config`) go inside the region, outside the VPC, in a `column` beside it.
 - Draw every subnet the code defines, as an empty group when nothing in the diagram runs in it.
 
 ## Inside a VPC
