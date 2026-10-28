@@ -1,0 +1,25 @@
+{
+  "cluster": {
+    "title": "Cluster",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=12;strokeColor=#326CE5;strokeWidth=2;fillColor=none;fontColor=#326CE5;fontStyle=1;",
+    "source": "https://github.com/kubernetes/community/tree/main/icons (example: a solid blue rounded border); #326CE5 from https://kubernetes.io/docs/contribute/style/diagram-guide/"
+  },
+  "namespace": {
+    "title": "Namespace",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=12;dashed=1;strokeColor=#326CE5;fillColor=none;fontColor=#326CE5;",
+    "icon": "ns",
+    "source": "https://github.com/kubernetes/community/tree/main/icons (example: a dashed rounded border with the ns icon at the top left)"
+  },
+  "node": {
+    "title": "Node",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=12;strokeColor=#326CE5;fillColor=#EFF5FF;fontColor=#326CE5;",
+    "icon": "node",
+    "source": "https://github.com/kubernetes/website/blob/main/static/images/docs/components-of-kubernetes.svg (control plane fill #EFF5FF; its node fill #9BB3DD is too dark under icons)"
+  },
+  "control_plane": {
+    "title": "Control plane",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=12;strokeColor=#326CE5;fillColor=#EFF5FF;fontColor=#326CE5;",
+    "icon": "control_plane",
+    "source": "https://github.com/kubernetes/website/blob/main/static/images/docs/components-of-kubernetes.svg (control plane fill #EFF5FF)"
+  }
+}

@@ -62,7 +62,13 @@ Names start with a namespace. `npx yaml2drawio --help` lists them.
 
 Prefer the provider's own icon, then `general.*`, and use `network.*` only for what neither has, so the diagram keeps one look.
 
-Only AWS has its own groups so far. For Google Cloud, Azure and Kubernetes, use `general.generic` groups and say what they are in the label, such as `Project: shop-prod`, `VNet 10.1.0.0/16` or `Namespace: payments`.
+Groups for boundaries:
+
+- Google Cloud: `gcp.project`, `gcp.vpc`, `gcp.region`, `gcp.subnet`, `gcp.zone`
+- Azure: `azure.subscription`, `azure.resource_group`, `azure.region`, `azure.vnet`, `azure.subnet`, `azure.az`
+- Kubernetes: `k8s.cluster`, `k8s.namespace` (or `k8s.ns`), `k8s.node`, `k8s.control_plane`
+
+For a boundary without its own group, such as a Google Cloud folder or another provider, use `general.generic` and say what it is in the label, such as `Folder: production`.
 
 ## Nodes
 
@@ -76,7 +82,7 @@ A node is one of four kinds, told apart by its key.
 
 **Group** `{ group, label, children, direction, align, border, id }`
 
-- `group`: a group style such as `aws.cloud`, `aws.region`, `aws.vpc`, `aws.az`, `aws.public_subnet`, `aws.private_subnet`, `aws.security_group`, `aws.generic`.
+- `group`: a group style such as `aws.cloud`, `aws.region`, `aws.vpc`, `aws.az`, `aws.public_subnet`, `aws.private_subnet`, `aws.security_group`, `aws.generic`, `gcp.project`, `azure.vnet`, `k8s.namespace`.
 - `children`: nodes inside the box. Leave it out for an empty box, such as a subnet with nothing drawn in it.
 - `direction`: `horizontal` (default) puts the children side by side; `vertical` stacks them.
 - `align`: `start`, `center` (default), `end`, or `expand` to give all children the same size across the direction. Use `expand` on the AZs in a row so their subnets line up.
@@ -128,7 +134,7 @@ links:
 
 - Give both ends of every link a side that faces the other end: `a.s -> b.n` when b is below, `a.e -> b.w` when b is to the right.
 - Only links with a side at both ends are checked for crossings (with either `route`). Links without sides are reported as `note:` lines; never drop sides just to get rid of a warning.
-- Labels of AWS groups with an icon (region, VPC, subnets) sit at the top left; labels of AZs and generic groups are centered at the top. A line coming down into the top of an icon right below such a label crosses it.
+- Labels of AWS groups with an icon (region, VPC, subnets) and of the Google Cloud, Azure and Kubernetes groups sit at the top left; labels of AWS AZs and generic groups are centered at the top. A line coming down into the top of an icon right below such a label crosses it.
 - In a vertical group with a centered label, the first child sits right under the label. Start the group with something no line enters from above, bring the line in from the side, or lay the group out horizontally so the target is not in the middle.
 - So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.

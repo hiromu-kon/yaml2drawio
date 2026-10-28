@@ -1,0 +1,28 @@
+{
+  "project": {
+    "title": "Project",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=2;strokeColor=none;fillColor=#F6F6F6;fontColor=#212121;",
+    "source": "https://docs.google.com/presentation/d/1fD1AwQo4E9Un6012zyPEb7NvUAGlzF6L-vo5DbUe4NQ (zones are fills without a border; Project zone #F6F6F6, heading 87% black)"
+  },
+  "region": {
+    "title": "Region",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=2;strokeColor=none;fillColor=#ECEFF1;fontColor=#757575;",
+    "source": "https://docs.google.com/presentation/d/1fD1AwQo4E9Un6012zyPEb7NvUAGlzF6L-vo5DbUe4NQ (Region zone #ECEFF1); label color from https://github.com/jgraph/drawio/blob/v32.6.1/src/main/webapp/js/diagramly/sidebar/Sidebar-GCP2.js"
+  },
+  "zone": {
+    "title": "Zone",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=2;strokeColor=none;fillColor=#FFF3E0;fontColor=#757575;",
+    "source": "https://docs.google.com/presentation/d/1fD1AwQo4E9Un6012zyPEb7NvUAGlzF6L-vo5DbUe4NQ (Zone #FFF3E0)"
+  },
+  "subnet": {
+    "title": "Subnet",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=2;strokeColor=none;fillColor=#EDE7F6;fontColor=#757575;",
+    "source": "https://docs.google.com/presentation/d/1fD1AwQo4E9Un6012zyPEb7NvUAGlzF6L-vo5DbUe4NQ (SubNetwork #EDE7F6)"
+  },
+  "vpc": {
+    "title": "VPC network",
+    "style": "rounded=1;absoluteArcSize=1;arcSize=2;dashed=1;strokeColor=#1F2124;fillColor=none;fontColor=#757575;",
+    "icon": "virtual_private_cloud",
+    "source": "https://docs.cloud.google.com/static/architecture/blueprints/security-foundations/images/example-vpc-network.svg (the slides have no VPC; current diagrams draw it dashed without a fill)"
+  }
+}

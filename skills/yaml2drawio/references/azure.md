@@ -1,14 +1,15 @@
 # Azure conventions
 
-Azure has no group styles yet. Draw each boundary as a `general.generic` group whose label says what it is, such as `VNet: hub 10.0.0.0/16`.
-
 ## Boundaries
 
 Nest them in this order, leaving out levels that add nothing:
 
-`Subscription: <name>` > `Region: <name>` > `VNet: <name> <range>` > `Subnet: <name> <range>`
+`azure.subscription` > `azure.region` > `azure.vnet` > `azure.subnet` > `azure.az`
 
-- Resource groups are a management boundary, not a network one. Leave them out unless the diagram is about ownership; when needed, group by resource group instead of by VNet, not both.
+- Label each group with its name: `Subscription: corporate`, `VNet: hub 10.0.0.0/16`, `Subnet: app 10.0.1.0/24`. A tenant or management group has no group of its own: use `general.generic` labeled `Management group: corp`.
+- Draw availability zones only when resources are pinned to zones (zonal VMs, zone-redundant pairs).
+
+- Resource groups are a management boundary, not a network one. Leave them out unless the diagram is about ownership; when needed, group by `azure.resource_group` instead of by VNet, not both.
 - PaaS services without VNet integration (App Service, Functions, Cosmos DB, Storage accounts, Key Vault, Service Bus) go in the region, outside the VNet. With a private endpoint, put a `azure.private_endpoints` icon in the subnet and draw the line through it.
 - Global services (Front Door, Traffic Manager, Entra ID, DNS) go in the subscription, outside every region.
 - An AKS cluster lives in a subnet: put it there, with its workloads inside, as in [kubernetes.md](kubernetes.md).

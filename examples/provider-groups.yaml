@@ -1,0 +1,57 @@
+# yaml-language-server: $schema=../schema.json
+title: Provider groups
+direction: horizontal
+nodes:
+  - group: gcp.project
+    label: 'Project: shop-prod'
+    children:
+      - group: gcp.vpc
+        label: 'VPC: shop'
+        children:
+          - group: gcp.region
+            label: 'Region: asia-northeast1'
+            children:
+              - group: gcp.subnet
+                label: 'Subnet: app 10.0.0.0/24'
+                children:
+                  - group: gcp.zone
+                    label: 'Zone: a'
+                    children:
+                      - { id: gce, icon: gcp.compute_engine, label: VM }
+  - group: azure.subscription
+    label: 'Subscription: corporate'
+    children:
+      - group: azure.region
+        label: 'Region: Japan East'
+        children:
+          - group: azure.vnet
+            label: 'VNet: hub 10.1.0.0/16'
+            children:
+              - group: azure.subnet
+                label: 'Subnet: app 10.1.1.0/24'
+                children:
+                  - group: azure.az
+                    label: 'Zone 1'
+                    children:
+                      - { id: vm, icon: azure.vm, label: VM }
+      - group: azure.resource_group
+        label: 'Resource group: rg-shop'
+        children:
+          - { id: kv, icon: azure.key_vault, label: Key Vault }
+  - group: k8s.cluster
+    label: 'Cluster: orders'
+    direction: vertical
+    children:
+      - group: k8s.control_plane
+        label: Control plane
+        children:
+          - { id: api, icon: k8s.api_labeled, label: API server }
+      - row:
+          - group: k8s.ns
+            label: 'Namespace: payments'
+            children:
+              - { id: deploy, icon: k8s.deployment_labeled, label: Deployment }
+          - group: k8s.node
+            label: 'Node: pool-a-1'
+            children:
+              - { id: pod, icon: k8s.pod_labeled, label: Pod }

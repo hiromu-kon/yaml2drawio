@@ -81,18 +81,25 @@ function leavesForward(link: Link, bends: Point[], context: RouteContext): boole
 
 // A line entering a leaf from the left or right bends just outside the groups it has to enter,
 // the outermost first, so it runs down beside them rather than through the labels of the groups
-// nested inside
+// nested inside. A line leaving a top or bottom side first turns in the gap above (or below) that
+// group: left to draw.io, it would turn about 20px out of the side, wherever that is.
 function sideEntry(link: Link, context: RouteContext): Point[][] {
   const side = link.to.position && sideOf(link.to.position);
+  const exit = link.from.position && sideOf(link.from.position);
   const source = leafRect(context, link.from.id);
+  const start = anchor(context, link.from);
   const target = anchor(context, link.to);
-  if ((side !== 'left' && side !== 'right') || !source || !target) return [];
+  if ((side !== 'left' && side !== 'right') || !source || !start || !target) return [];
 
   return enteredGroups(context, link.to.id, center(source))
     .toReversed()
     .map((group) => {
       const box = rectOf(context, group);
-      return [{ x: side === 'left' ? box.x - GAP : box.x + box.width + GAP, y: target.y }];
+      const x = side === 'left' ? box.x - GAP : box.x + box.width + GAP;
+      const beside = { x, y: target.y };
+      if (exit !== 'top' && exit !== 'bottom') return [beside];
+      const y = exit === 'bottom' ? box.y - GAP : box.y + box.height + GAP;
+      return [{ x: start.x, y }, { x, y }, beside];
     });
 }
 

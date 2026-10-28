@@ -47,6 +47,11 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
       return;
     }
     cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), parent?.id, geometry));
+    // The AWS group shape draws only draw.io's one-color stencils at its corner, not the image
+    // icons of Google Cloud and Azure, so the icon is a cell of its own. Ids never contain ".".
+    if (node.shape.badge) {
+      cells.push(vertex(`${node.id}.icon`, '', badgeStyle(node.shape.badge), node.id, BADGE));
+    }
     for (const child of node.children) visit(child, node);
     // Border children belong to the group so that moving it in draw.io moves them too
     for (const { node: child, position } of node.border) {
@@ -103,6 +108,14 @@ function vertex(
 
 function withSemicolon(style: string): string {
   return style.endsWith(';') ? style : `${style};`;
+}
+
+// Where draw.io's AWS groups draw their icon, a little inside so the border stays visible
+const BADGE: Rect = { x: 4, y: 4, width: 20, height: 20 };
+
+// Moving the icon by itself would only misplace it
+function badgeStyle(style: string): string {
+  return `${withSemicolon(style)}movable=0;resizable=0;rotatable=0;connectable=0;editable=0;`;
 }
 
 function groupStyle(style: string): string {

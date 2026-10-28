@@ -41,7 +41,7 @@
     "build": "tsdown",
     "catalog": "node scripts/extract-drawio-icons.ts",
     "schema": "node scripts/generate-json-schema.ts",
-    "docs:images": "node src/cli.ts build examples/quick-start.yaml -o docs/images/quick-start.drawio --png && node src/cli.ts build examples/ecommerce.yaml -o docs/images/ecommerce.drawio --png && node src/cli.ts build examples/multi-cloud.yaml -o docs/images/multi-cloud.drawio --png",
+    "docs:images": "node src/cli.ts build examples/quick-start.yaml -o docs/images/quick-start.drawio --png && node src/cli.ts build examples/ecommerce.yaml -o docs/images/ecommerce.drawio --png && node src/cli.ts build examples/multi-cloud.yaml -o docs/images/multi-cloud.drawio --png && node src/cli.ts build examples/provider-groups.yaml -o docs/images/provider-groups.drawio --png",
     "typecheck": "tsc",
     "lint": "oxlint --type-aware --deny-warnings",
     "test": "vitest run",
