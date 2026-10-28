@@ -12,6 +12,8 @@ export interface Shape {
   style: string;
   width: number;
   height: number;
+  /** Style of the icon at the top left of a group, drawn as a cell of its own. */
+  badge?: string;
 }
 
 const ShapeEntrySchema = z.object({
@@ -33,6 +35,22 @@ export const AliasFileSchema = z.object({
   groups: z.record(z.string(), z.string()),
 });
 
+const GroupFileSchema = z.record(
+  z.string(),
+  z.object({
+    title: z.string(),
+    style: z.string(),
+    /** An icon of the same namespace to put at the top left. */
+    icon: z.string().optional(),
+    /** Where the colors come from. */
+    source: z.string(),
+  }),
+);
+
+// Like the AWS groups: the label at the top left, after the icon when there is one
+const GROUP_STYLE =
+  'html=1;whiteSpace=wrap;container=1;collapsible=0;recursiveResize=0;verticalAlign=top;align=left;fontSize=12;fontStyle=0;';
+
 /** A name to write in a diagram, which may be an alias, and the shape it resolves to. */
 export interface SearchResult {
   name: string;
@@ -49,8 +67,9 @@ export interface Catalog {
 }
 
 /**
- * Name prefixes, each with a catalog/<namespace>.json of shapes and, when it has short names, a
- * catalog/<namespace>.aliases.json.
+ * Name prefixes, each with a catalog/<namespace>.json of shapes extracted from draw.io, and
+ * optionally a catalog/<namespace>.aliases.json of short names and a catalog/<namespace>.groups.json
+ * of groups draw.io lacks.
  */
 export const NAMESPACES = ['aws', 'gcp', 'azure', 'k8s', 'general', 'network'] as const;
 
@@ -69,6 +88,31 @@ function toShapes(
       return [key, { key, ...entry }];
     }),
   );
+}
+
+function groupShape(
+  key: string,
+  entry: z.infer<typeof GroupFileSchema>[string],
+  badge: Shape | undefined,
+): Shape {
+  return {
+    key,
+    title: entry.title,
+    category: 'Groups',
+    kind: 'group',
+    style: `${GROUP_STYLE}${entry.style}spacingLeft=${badge ? 30 : 10};`,
+    width: 130,
+    height: 130,
+    ...(badge && { badge: badge.style }),
+  };
+}
+
+function resolve(
+  map: Map<string, Shape>,
+  aliasMap: Map<string, string>,
+  key: string,
+): Shape | undefined {
+  return map.get(aliasMap.get(key) ?? key);
 }
 
 export function loadCatalog(): Catalog {
@@ -93,10 +137,19 @@ export function loadCatalog(): Catalog {
         aliases.group.set(`${namespace}.${alias}`, `${namespace}.${name}`);
       }
     }
+    const groupFile = readCatalogFile(`${namespace}.groups.json`);
+    if (groupFile !== undefined) {
+      for (const [name, entry] of Object.entries(GroupFileSchema.parse(groupFile))) {
+        const key = `${namespace}.${name}`;
+        let badge: Shape | undefined;
+        if (entry.icon !== undefined) {
+          badge = resolve(icons, aliases.icon, `${namespace}.${entry.icon}`);
+          if (!badge) throw new Error(`${key}: no icon ${namespace}.${entry.icon}`);
+        }
+        groups.set(key, groupShape(key, entry, badge));
+      }
+    }
   }
-
-  const resolve = (map: Map<string, Shape>, aliasMap: Map<string, string>, key: string) =>
-    map.get(aliasMap.get(key) ?? key);
 
   return {
     icon: (key) => resolve(icons, aliases.icon, key),

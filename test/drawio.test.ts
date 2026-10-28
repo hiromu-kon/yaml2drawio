@@ -57,6 +57,28 @@ describe('toDrawio', () => {
     expect(cellTag(xml, 'link-1')).toMatch(/entryX=0;entryY=0\.5;entryDx=0;entryDy=-8;/);
   });
 
+  it("draws a group's icon as a cell at its top left that does not move on its own", () => {
+    const xml = render(
+      [
+        'nodes:',
+        '  - group: azure.vnet',
+        '    id: hub',
+        '    children:',
+        '      - { id: vm, icon: azure.vm }',
+        '',
+      ].join('\n'),
+    );
+    const tag = cellTag(xml, String.raw`hub\.icon`);
+    expect(tag).toContain('parent="hub"');
+    expect(tag).toContain('image=img/lib/azure2/networking/Virtual_Networks.svg');
+    expect(tag).toContain('movable=0');
+    expect(tag).toContain('<mxGeometry x="4" y="4" width="20" height="20" ');
+  });
+
+  it('draws no icon cell for a group whose style has its own icon', () => {
+    expect(render(NESTED)).not.toContain('.icon"');
+  });
+
   it('uses the draw.io style from the icon catalog', () => {
     expect(cellTag(render(NESTED), 'fn')).toContain('resIcon=mxgraph.aws4.lambda');
   });

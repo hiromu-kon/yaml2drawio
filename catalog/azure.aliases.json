@@ -19,5 +19,7 @@
     "vm": "virtual_machine",
     "vnet": "virtual_networks"
   },
-  "groups": {}
+  "groups": {
+    "az": "availability_zone"
+  }
 }

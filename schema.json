@@ -2176,10 +2176,27 @@
             "aws.spot_fleet",
             "aws.step_functions_workflow",
             "aws.vpc",
+            "azure.availability_zone",
+            "azure.az",
+            "azure.region",
+            "azure.resource_group",
+            "azure.subnet",
+            "azure.subscription",
+            "azure.vnet",
+            "gcp.project",
+            "gcp.region",
+            "gcp.subnet",
+            "gcp.vpc",
+            "gcp.zone",
             "general.data_center",
             "general.generic",
             "general.generic_filled",
-            "general.server_contents"
+            "general.server_contents",
+            "k8s.cluster",
+            "k8s.control_plane",
+            "k8s.namespace",
+            "k8s.node",
+            "k8s.ns"
           ]
         },
         "label": {

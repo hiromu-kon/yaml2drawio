@@ -34,7 +34,7 @@ yaml2drawio keeps the diagram in version control as readable text and still give
 - **Structure, not coordinates**
   Nesting, order and direction decide the layout, so the same YAML always produces the same diagram.
 - **Official draw.io shapes**
-  Icons come from a catalog extracted from draw.io's own shape library (about 1,900 icons: 930 for AWS, 143 for Google Cloud, 701 for Azure and 78 for Kubernetes, plus AWS's 20 groups). An unknown name is an error with suggestions, never a guess.
+  Icons come from a catalog extracted from draw.io's own shape library (about 1,900 icons: 930 for AWS, 143 for Google Cloud, 701 for Azure and 78 for Kubernetes, plus AWS's 20 groups). Google Cloud, Azure and Kubernetes have 15 more groups, such as projects, VNets and namespaces, styled after each provider's own diagrams because draw.io has none. An unknown name is an error with suggestions, never a guess.
 - **Editable output**
   The result is a native `.drawio` file you can open in draw.io or the VS Code extension.
 - **Made for AI agents too**
