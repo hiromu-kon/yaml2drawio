@@ -124,6 +124,22 @@ describe('toDrawio', () => {
     expect(tag).toMatch(/width="48" height="24"/);
   });
 
+  it('moves the label of a line along it, off an icon its middle would cover', () => {
+    // The line runs over b, which sits right in its middle
+    const xml = render(
+      [
+        'nodes:',
+        '  - { id: a, icon: aws.lambda }',
+        '  - { id: b, icon: aws.sqs }',
+        '  - { id: c, icon: aws.s3 }',
+        'links:',
+        '  - { from: a.e, to: c.w, label: jobs }',
+        '',
+      ].join('\n'),
+    );
+    expect(cellTag(xml, 'link-1')).toMatch(/<mxGeometry x="-?0\.\d+" relative="1"/);
+  });
+
   it('uses the draw.io style from the icon catalog', () => {
     expect(cellTag(render(NESTED), 'fn')).toContain('resIcon=mxgraph.aws4.lambda');
   });

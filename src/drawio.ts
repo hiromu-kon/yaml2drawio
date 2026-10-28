@@ -1,6 +1,7 @@
 import { labelBelow, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
+import { placeLinkLabels } from './crossings.ts';
 import { bendPoints, entryShift, routeContext, type Point } from './route.ts';
 
 // Each draw.io library styles its labels its own way (gray bold for Google Cloud, blue for network
@@ -67,6 +68,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
   visit(diagram.root, undefined);
 
   const context = routeContext(diagram.root, layout, diagram.links);
+  const labels = placeLinkLabels(diagram, layout);
   for (const link of diagram.links) {
     cells.push(
       edge(
@@ -75,6 +77,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
         belowIcon,
         bendPoints(link, context),
         entryShift(link, context),
+        labels.get(link)?.position ?? 0,
       ),
     );
   }
@@ -145,6 +148,7 @@ function edge(
   belowIcon: Map<string, number>,
   bends: Point[],
   shift: Point,
+  labelPosition: number,
 ): string {
   const style = [
     'edgeStyle=orthogonalEdgeStyle',
@@ -160,11 +164,13 @@ function edge(
     ...port('exit', link.from, belowIcon),
     ...port('entry', link.to, belowIcon, shift),
   ].join(';');
+  // The label's place along the line, from -1 at the start to 1 at the end
+  const geometry = `<mxGeometry${labelPosition === 0 ? '' : ` x="${labelPosition}"`} relative="1" as="geometry"`;
   return (
     `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="${layer}" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
     (bends.length > 0
-      ? `<mxGeometry relative="1" as="geometry"><Array as="points">${bends.map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')}</Array></mxGeometry>`
-      : '<mxGeometry relative="1" as="geometry" />') +
+      ? `${geometry}><Array as="points">${bends.map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')}</Array></mxGeometry>`
+      : `${geometry} />`) +
     '</mxCell>'
   );
 }

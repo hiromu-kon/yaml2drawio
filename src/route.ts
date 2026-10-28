@@ -23,6 +23,8 @@ export interface RouteContext {
   enclosing: Map<string, GroupNode>;
   /** The group each group sits inside. */
   parents: Map<GroupNode, GroupNode>;
+  /** Leaves on a group's left or right edge, whose labels sit beside them instead of below. */
+  besideLabels: Set<string>;
   links: readonly Link[];
 }
 
@@ -41,6 +43,7 @@ export function routeContext(
     groups: new Map(),
     enclosing: new Map(),
     parents: new Map(),
+    besideLabels: new Set(),
     links,
   };
   const visit = (node: DiagramNode, parent: GroupNode | undefined, onBorder = false): void => {
@@ -56,7 +59,11 @@ export function routeContext(
     context.groups.set(node.id, node);
     if (parent) context.parents.set(node, parent);
     for (const child of node.children) visit(child, node);
-    for (const { node: child } of node.border) visit(child, node, true);
+    for (const { node: child, position } of node.border) {
+      const side = sideOf(position);
+      if (side === 'left' || side === 'right') context.besideLabels.add(child.id);
+      visit(child, node, true);
+    }
   };
   visit(root, undefined);
   return context;
@@ -213,12 +220,11 @@ function fanOutHeights(context: RouteContext): Map<string, number> {
   const candidates = [...fans].flatMap(([key, links]) => {
     const [first] = links;
     const source = first && anchor(context, first.from);
-    const leaf = first && context.leaves.get(first.from.id);
     const ends = links.flatMap((link) => {
       const end = arrival(context, link);
       return end ? [{ link, end }] : [];
     });
-    if (links.length < 2 || !source || !leaf || ends.length === 0) return [];
+    if (links.length < 2 || !source || ends.length === 0) return [];
     const heights = ends.map(({ link, end }) => {
       const outermost = enteredGroups(context, link.to.id, source).at(-1);
       return (outermost ? rectOf(context, outermost).y : end.y) - GAP;
@@ -229,8 +235,8 @@ function fanOutHeights(context: RouteContext): Map<string, number> {
         key,
         source,
         y: Math.min(...heights),
-        // Above the label of the source there is no room to turn
-        floor: source.y + labelBelow(leaf),
+        // The source point is below its label already; above it there is no room to turn
+        floor: source.y,
         left: Math.min(...xs),
         right: Math.max(...xs),
       },
@@ -334,8 +340,13 @@ export function entryShift(link: Link, context: RouteContext): Point {
   if (!facing) return none;
   const horizontal = entry === 'left' || entry === 'right';
   const offset = horizontal ? start.y - end.y : start.x - end.x;
-  const reach = (horizontal ? target.height : target.width) / 4;
-  if (offset === 0 || Math.abs(offset) > reach) return none;
+  // Only within the middle half of the side: nearer a corner, the arrowhead would reach past the
+  // icon, onto its label
+  const [from, length] = horizontal ? [target.y, target.height] : [target.x, target.width];
+  const shifted = (horizontal ? end.y : end.x) + offset;
+  const near = Math.abs(offset) <= length / 4;
+  const inMiddle = shifted >= from + length / 4 && shifted <= from + (length * 3) / 4;
+  if (offset === 0 || !near || !inMiddle) return none;
   return horizontal ? { x: 0, y: offset } : { x: offset, y: 0 };
 }
 
@@ -344,7 +355,17 @@ export function anchor(context: RouteContext, endpoint: Endpoint): Point | undef
   const rect = group ? rectOf(context, group) : leafRect(context, endpoint.id);
   if (!rect || !endpoint.position) return undefined;
   const [px, py] = POSITION_POINTS[endpoint.position];
-  return { x: Math.round(rect.x + px * rect.width), y: Math.round(rect.y + py * rect.height) };
+  return {
+    x: Math.round(rect.x + px * rect.width),
+    y: Math.round(rect.y + py * rect.height) + labelShift(context, endpoint),
+  };
+}
+
+// drawio.ts starts and ends a line at the bottom below the label under the icon
+function labelShift(context: RouteContext, endpoint: Endpoint): number {
+  const leaf = context.leaves.get(endpoint.id);
+  if (!leaf || !endpoint.position || sideOf(endpoint.position) !== 'bottom') return 0;
+  return context.besideLabels.has(leaf.id) ? 0 : labelBelow(leaf);
 }
 
 function leafRect(context: RouteContext, id: string): Rect | undefined {
@@ -385,7 +406,12 @@ export function predictPath(
   for (const bend of bends) {
     heading = turnTowards(path, heading, bend);
   }
-  arrive(path, heading, end, sideOf(link.to.position));
+  const endShift = labelShift(context, link.to);
+  // Off the outline, below a label, draw.io turns right at the end instead of running out first
+  const jetty = endShift > 0 ? 0 : JETTY;
+  // Halfway between two icons, draw.io measures from their outlines, above any label shift
+  const startShift = bends.length === 0 ? labelShift(context, link.from) : 0;
+  arrive(path, heading, end, sideOf(link.to.position), { jetty, startShift, endShift });
   return path;
 }
 
@@ -403,7 +429,13 @@ function turnTowards(path: Point[], heading: Direction, to: Point): Direction {
 // The last part has to come straight into the side of the target. A line heading across that side
 // turns once; one already heading into it turns twice, halfway if the side faces it or just beyond
 // the side if it faces away.
-function arrive(path: Point[], heading: Direction, end: Point, side: Side): void {
+function arrive(
+  path: Point[],
+  heading: Direction,
+  end: Point,
+  side: Side,
+  { jetty, startShift, endShift }: { jetty: number; startShift: number; endShift: number },
+): void {
   const from = path.at(-1) ?? end;
   const entry = directionOf(side);
   if (heading !== entry) {
@@ -419,17 +451,17 @@ function arrive(path: Point[], heading: Direction, end: Point, side: Side): void
     path.push(end);
   } else if (entry === 'vertical') {
     const y = facing
-      ? (from.y + end.y) / 2
+      ? (from.y - startShift + end.y - endShift) / 2
       : side === 'top'
-        ? Math.min(from.y, end.y) - JETTY
-        : Math.max(from.y, end.y) + JETTY;
+        ? Math.min(from.y, end.y) - jetty
+        : Math.max(from.y, end.y) + jetty;
     path.push({ x: from.x, y }, { x: end.x, y }, end);
   } else {
     const x = facing
       ? (from.x + end.x) / 2
       : side === 'left'
-        ? Math.min(from.x, end.x) - JETTY
-        : Math.max(from.x, end.x) + JETTY;
+        ? Math.min(from.x, end.x) - jetty
+        : Math.max(from.x, end.x) + jetty;
     path.push({ x, y: from.y }, { x, y: end.y }, end);
   }
 }
@@ -450,7 +482,11 @@ export function segmentsOf(path: Point[]): Segment[] {
 export function linesAlong(link: Link, segments: Segment[], lines: Placed[]): Link[] {
   return lines
     .filter((line) => !branches(line.link, link))
-    .filter((line) => line.segments.some((a) => segments.some((b) => runsAlong(a, b))))
+    .filter((line) =>
+      line.segments.some((a) =>
+        segments.some((b) => runsAlong(a, b, line.link.from.id === link.from.id ? 0 : JOIN)),
+      ),
+    )
     .map((line) => line.link);
 }
 
@@ -458,21 +494,30 @@ function branches(a: Link, b: Link): boolean {
   return a.from.id === b.from.id && a.from.position === b.from.position && a.dashed === b.dashed;
 }
 
-// Lines this close read as one
+// Lines this close side by side read as one
 const ALONG = 3;
+// Lines on one line whose ends are this close read as one line, too, which joins their ends. Lines
+// from one icon may meet that way: read as one line, they still start where they do.
+const JOIN = 16;
 
-function runsAlong([a, b]: Segment, [c, d]: Segment): boolean {
+/** Whether two segments overlap side by side, close enough to read as one line. */
+export function alongside(a: Segment, b: Segment): boolean {
+  return runsAlong(a, b, 0);
+}
+
+function runsAlong([a, b]: Segment, [c, d]: Segment, gap: number): boolean {
   if (a.x === b.x && c.x === d.x) {
-    return Math.abs(a.x - c.x) < ALONG && overlaps([a.y, b.y], [c.y, d.y]);
+    return Math.abs(a.x - c.x) < ALONG && overlaps([a.y, b.y], [c.y, d.y], gap);
   }
   if (a.y === b.y && c.y === d.y) {
-    return Math.abs(a.y - c.y) < ALONG && overlaps([a.x, b.x], [c.x, d.x]);
+    return Math.abs(a.y - c.y) < ALONG && overlaps([a.x, b.x], [c.x, d.x], gap);
   }
   return false;
 }
 
-function overlaps([a1, a2]: [number, number], [b1, b2]: [number, number]): boolean {
+function overlaps([a1, a2]: [number, number], [b1, b2]: [number, number], gap = 0): boolean {
   return (
-    Math.min(Math.max(a1, a2), Math.max(b1, b2)) > Math.max(Math.min(a1, a2), Math.min(b1, b2))
+    Math.min(Math.max(a1, a2), Math.max(b1, b2)) + gap >
+    Math.max(Math.min(a1, a2), Math.min(b1, b2))
   );
 }
