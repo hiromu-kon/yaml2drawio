@@ -39,7 +39,7 @@ yaml2drawio keeps the diagram in version control as readable text and still give
   The result is a native `.drawio` file you can open in draw.io or the VS Code extension.
 - **Made for AI agents too**
   Compact YAML and strict validation let an agent write a diagram, check it, and fix it without guessing.
-- **Beyond AWS**
+- **Multi-cloud and on-premises**
   Icons for AWS, Google Cloud, Azure and Kubernetes (`aws.ecs`, `gcp.cloud_run`, `azure.aks`, `k8s.pod`), plus provider-neutral icons (`general.server`) and on-premises equipment (`network.switch`), so one diagram can span clouds and data centers.
 
 ## Getting started

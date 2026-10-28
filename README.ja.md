@@ -39,7 +39,7 @@ yaml2drawio は、図を読みやすいテキストとしてバージョン管�
   出力は `.drawio` ファイルなので、draw.io や VS Code の拡張機能でそのまま開けます。
 - **AI エージェントでも扱いやすい**
   短く書ける YAML と厳密な検証により、エージェントが図を書き、確かめ、推測せずに直せます。
-- **AWS 以外にも広げられる**
+- **複数のクラウドとオンプレミスに対応**
   AWS・Google Cloud・Azure・Kubernetes のアイコン（`aws.ecs`、`gcp.cloud_run`、`azure.aks`、`k8s.pod`）に加えて、クラウドに依存しない汎用アイコン（`general.server`）とオンプレミスの機器（`network.switch`）があります。1 枚の図で、複数のクラウドやデータセンターにまたがる構成を描けます。
 
 ## 使い方
@@ -59,7 +59,7 @@ npx yaml2drawio icons redis                 # アイコン名を検索する
 線がアイコンやラベルの上を通りそうなときは、その線の行に警告を出します（例: `diagram.yaml:21:5: warning: link api.s -> db.n crosses the label of "Data 10.0.20.0/24"`）。ファイルはそのまま出力します。`--strict` を付けると終了コードが 1 になるので、CI や AI エージェントは警告が消えるまで直せます。折れ点の間の経路は draw.io が決めるため、その経路を予測して調べており、見逃すこともあります。
 draw.io Desktop が見つからない場合は、環境変数 `DRAWIO_CLI` に実行ファイルのパスを設定してください。
 
-### AI エージェントと使う
+### AI エージェントに描かせる
 
 `yaml2drawio guide` は、YAML の書き方・作業の流れ・きれいに配置するコツを Markdown で表示します（[docs/guide.md](docs/guide.md)、英語）。yaml2drawio を知らないエージェントでも、CLI から使い方を覚えられます。たとえば次のように頼みます。
 
