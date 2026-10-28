@@ -57,19 +57,19 @@ nodes:
                             align: expand
                             children:
                               - group: aws.public_subnet
-                                label: Public 10.0.0.0/24
+                                label: "Public\n10.0.0.0/24"
                                 children:
                                   # The empty slot puts the NAT gateway over the worker, so the line between runs straight
                                   - { id: nat_a, icon: aws.nat, label: NAT gateway }
                                   - { empty: true }
                               - group: aws.private_subnet
-                                label: App 10.0.10.0/24
+                                label: "App\n10.0.10.0/24"
                                 clear_label: true
                                 children:
                                   - { id: worker_a, icon: aws.ecs, label: ECS Worker }
                                   - { id: api_a, icon: aws.ecs, label: ECS API }
                               - group: aws.private_subnet
-                                label: Data 10.0.20.0/24
+                                label: "Data\n10.0.20.0/24"
                                 clear_label: true
                                 children:
                                   - { id: redis_primary, icon: aws.redis, label: Redis Primary }
@@ -84,17 +84,17 @@ nodes:
                             align: expand
                             children:
                               - group: aws.public_subnet
-                                label: Public 10.0.1.0/24
+                                label: "Public\n10.0.1.0/24"
                                 children:
                                   - { empty: true }
                                   - { id: nat_c, icon: aws.nat, label: NAT gateway }
                               - group: aws.private_subnet
-                                label: App 10.0.11.0/24
+                                label: "App\n10.0.11.0/24"
                                 children:
                                   - { id: api_c, icon: aws.ecs, label: ECS API }
                                   - { id: worker_c, icon: aws.ecs, label: ECS Worker }
                               - group: aws.private_subnet
-                                label: Data 10.0.21.0/24
+                                label: "Data\n10.0.21.0/24"
                                 clear_label: true
                                 children:
                                   - {
@@ -145,12 +145,12 @@ nodes:
                     children:
                       - { id: alb_osaka, icon: aws.alb, label: ALB }
                       - group: aws.private_subnet
-                        label: App 10.1.10.0/24
+                        label: "App\n10.1.10.0/24"
                         clear_label: true
                         children:
                           - { id: api_osaka, icon: aws.ecs, label: ECS API (pilot light) }
                       - group: aws.private_subnet
-                        label: Data 10.1.20.0/24
+                        label: "Data\n10.1.20.0/24"
                         clear_label: true
                         children:
                           - {
