@@ -73,6 +73,13 @@ export interface Catalog {
  */
 export const NAMESPACES = ['aws', 'gcp', 'azure', 'k8s', 'general', 'network'] as const;
 
+export function styleValue(style: string, key: string): string | undefined {
+  return style
+    .split(';')
+    .map((entry) => entry.split('='))
+    .findLast(([name]) => name === key)?.[1];
+}
+
 function readCatalogFile(name: string): unknown {
   const url = new URL(`../catalog/${name}`, import.meta.url);
   return existsSync(url) ? JSON.parse(readFileSync(url, 'utf8')) : undefined;

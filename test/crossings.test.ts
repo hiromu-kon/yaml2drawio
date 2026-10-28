@@ -49,6 +49,23 @@ describe('findCrossings', () => {
     ).toEqual(['9:5: link app.s -> db.n crosses the label of "Data 10.0.20.0/24"']);
   });
 
+  it('passes a line from above into an icon that clear_label moved out from under the label', () => {
+    expect(
+      crossingsOf(
+        'direction: vertical',
+        'nodes:',
+        '  - { id: app, icon: aws.ecs }',
+        '  - group: aws.private_subnet',
+        '    label: Data 10.0.20.0/24',
+        '    clear_label: true',
+        '    children:',
+        '      - { id: db, icon: aws.aurora }',
+        'links:',
+        '  - [app.s, db.n]',
+      ),
+    ).toEqual([]);
+  });
+
   it('knows that groups without an icon center their label', () => {
     expect(
       crossingsOf(

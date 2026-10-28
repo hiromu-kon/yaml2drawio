@@ -1,6 +1,6 @@
 import { LineCounter, isMap, isNode, isScalar, parseDocument, type Document } from 'yaml';
 import type { z } from 'zod';
-import type { Catalog } from './catalog.ts';
+import { styleValue, type Catalog } from './catalog.ts';
 import type {
   BorderChild,
   Diagram,
@@ -233,6 +233,14 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
       const shape = catalog.group(node.group);
       const children = toNodes(node.children ?? [], [...path, 'children']);
       if (!shape) return unknown('group', node.group, [...path, 'group']);
+      if (node.clear_label && styleValue(shape.style, 'align') !== 'left') {
+        problems.push(
+          source.problem(
+            [...path, 'clear_label'],
+            `clear_label needs a label at the top left, but "${node.group}" centers its label`,
+          ),
+        );
+      }
       return {
         kind: 'group',
         id,
@@ -241,6 +249,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
         direction: node.direction ?? 'horizontal',
         align: node.align ?? 'center',
         border,
+        clearLabel: node.clear_label ?? false,
         children,
       };
     }

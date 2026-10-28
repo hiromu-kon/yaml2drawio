@@ -54,6 +54,7 @@ export interface GroupInput {
   direction?: z.infer<typeof Direction> | undefined;
   align?: z.infer<typeof Align> | undefined;
   border?: Partial<Record<Position, LeafInput>> | undefined;
+  clear_label?: boolean | undefined;
   children?: NodeInput[] | undefined;
 }
 
@@ -79,6 +80,12 @@ const GroupObject = z.strictObject({
     .partialRecord(z.enum(POSITIONS), LeafSchema)
     .optional()
     .describe('Icons placed on the edge of the group, keyed by position (n, ne, e, ...).'),
+  clear_label: z
+    .boolean()
+    .optional()
+    .describe(
+      'Widen the group so its content starts right of its top-left label, and a line can enter the first icon from the top.',
+    ),
   get children() {
     return z
       .array(NodeSchema)

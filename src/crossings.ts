@@ -1,3 +1,4 @@
+import { styleValue } from './catalog.ts';
 import { LABEL_GAP, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Problem } from './load.ts';
 import type { Diagram, DiagramNode, Endpoint, Link } from './model.ts';
@@ -145,13 +146,6 @@ function groupLabelRect(
 
 function trimEnds(rect: Rect): Rect {
   return { ...rect, x: rect.x + LABEL_SLACK, width: rect.width - LABEL_SLACK * 2 };
-}
-
-function styleValue(style: string, key: string): string | undefined {
-  return style
-    .split(';')
-    .map((entry) => entry.split('='))
-    .findLast(([name]) => name === key)?.[1];
 }
 
 // Touching an edge is not a crossing, so a line along the side of an icon passes

@@ -120,6 +120,19 @@ describe('loadDiagram errors', () => {
     ]);
   });
 
+  it('reports clear_label on a group that centers its label, which no padding can clear', () => {
+    expect(
+      problemsOf(
+        lines(
+          'nodes:',
+          '  - group: aws.az',
+          '    clear_label: true',
+          '    children: [{ id: fn, icon: aws.lambda }]',
+        ),
+      ),
+    ).toEqual(['3:18: clear_label needs a label at the top left, but "aws.az" centers its label']);
+  });
+
   it('reports a link to an unknown id', () => {
     const problems = problemsOf(
       lines('nodes:', '  - { id: fn, icon: aws.lambda }', 'links:', '  - [fn.e, db.w]'),
