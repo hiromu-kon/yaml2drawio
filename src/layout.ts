@@ -78,7 +78,7 @@ export function layoutDiagram(root: StackNode): Layout {
     const frame: Frame = {
       outside: { top: max(reach.top), bottom: max(reach.bottom), x: max(reach.x) },
       padding: {
-        top: Math.max(GROUP_HEADER, max(intrude.top) + BORDER_GAP),
+        top: Math.max(headerOf(group), max(intrude.top) + BORDER_GAP),
         bottom: Math.max(GROUP_PADDING, max(intrude.bottom) + BORDER_GAP),
         x: Math.max(
           GROUP_PADDING,
@@ -269,6 +269,11 @@ function widthToClearLabel(group: GroupNode, labelEnd: number): number {
     .filter((px) => px > 0)
     .map((px) => Math.ceil((labelEnd + BORDER_GAP + ICON_SIZE / 2) / px));
   return Math.max(0, ...widths);
+}
+
+// The header fits one line of label; each further line pushes the content down
+function headerOf(group: GroupNode): number {
+  return GROUP_HEADER + Math.max(0, labelSize(group.label).height - LINE_HEIGHT);
 }
 
 function labelEndOf(group: GroupNode): number {

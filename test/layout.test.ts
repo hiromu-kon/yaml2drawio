@@ -46,17 +46,26 @@ function vpcWithBorder(border: string): string {
   ].join('\n');
 }
 
-// The width of a subnet holding one icon under the given label
-function subnetWidth(label: string): number {
-  const source = [
+// A subnet with one icon under the given label, quoted so that \\n breaks the line
+function subnet(label: string): string {
+  return [
     'nodes:',
     '  - group: aws.private_subnet',
-    '    id: data',
-    `    label: ${JSON.stringify(label)}`,
-    '    children: [{ id: db, icon: aws.aurora }]',
+    '    id: app',
+    `    label: "${label}"`,
+    '    children: [{ id: api, icon: aws.ecs }]',
     '',
   ].join('\n');
-  return cellOf(layoutDiagram(load(source).root), 'data').width;
+}
+
+// How far below the top of the subnet its icon starts
+function contentTop(label: string): number {
+  const layout = layoutDiagram(load(subnet(label)).root);
+  return cellOf(layout, 'api').y - cellOf(layout, 'app').y;
+}
+
+function subnetWidth(label: string): number {
+  return cellOf(layoutDiagram(load(subnet(label)).root), 'app').width;
 }
 
 describe('layoutDiagram', () => {
@@ -240,9 +249,16 @@ describe('layoutDiagram', () => {
     expect(nat.x + nat.width / 2).toBe(api.x + api.width / 2);
   });
 
+  it('pushes the content down a line for each further line of a group label', () => {
+    expect(contentTop('App\\n10.0.10.0/24') - contentTop('App 10.0.10.0/24')).toBe(15);
+    expect(
+      contentTop('App\\n10.0.10.0/24\\nap-northeast-1a') - contentTop('App 10.0.10.0/24'),
+    ).toBe(30);
+  });
+
   it('measures a group label of two lines by its longer line', () => {
     expect(subnetWidth('Data 10.0.20.0/24 with a long name')).toBeGreaterThan(
-      subnetWidth('Data\n10.0.20.0/24 with a long name'),
+      subnetWidth('Data\\n10.0.20.0/24 with a long name'),
     );
   });
 
