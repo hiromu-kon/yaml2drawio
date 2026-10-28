@@ -1,6 +1,6 @@
 {
   "name": "yaml2drawio",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Describe infrastructure diagrams in YAML and get a laid-out draw.io file",
   "keywords": [
     "architecture",
