@@ -9,6 +9,8 @@ export interface LeafNode {
   id: string;
   shape: Shape;
   label: string;
+  /** Set only outside groups; the children of a group share its layer. */
+  layer?: string | undefined;
 }
 
 export interface BorderChild {
@@ -25,6 +27,8 @@ export interface GroupNode {
   align: Align;
   border: BorderChild[];
   clearLabel: boolean;
+  /** Set only outside groups; the children of a group share its layer. */
+  layer?: string | undefined;
   children: DiagramNode[];
 }
 
@@ -56,11 +60,15 @@ export interface Link {
   dashed: boolean;
   arrow: 'end' | 'start' | 'both' | 'none';
   route: 'auto' | 'drawio';
+  /** Undefined for draw.io's Background layer. */
+  layer: string | undefined;
   location: SourceLocation | undefined;
 }
 
 export interface Diagram {
   title: string;
+  /** draw.io layers above Background, bottom first. */
+  layers: string[];
   root: StackNode;
   links: Link[];
 }

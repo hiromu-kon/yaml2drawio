@@ -75,6 +75,40 @@ describe('loadDiagram', () => {
       },
     ]);
   });
+
+  const LAYERED = [
+    'layers: [Cloud, Flows]',
+    'nodes:',
+    '  - { id: users, icon: general.users }',
+    '  - row:',
+    '      - group: general.generic',
+    '        layer: Cloud',
+    '        children: [{ id: app, icon: general.server }]',
+    '      - { id: db, icon: general.database }',
+    '    layer: Flows',
+  ];
+
+  it('puts a line on the upper layer of its ends unless it names a layer above them', () => {
+    const diagram = load(
+      lines(
+        ...LAYERED,
+        'links:',
+        '  - [users.e, app.w]',
+        '  - [app.e, db.w]',
+        '  - { from: users.s, to: app.s, layer: Flows }',
+      ),
+    );
+    expect(diagram.links.map((link) => link.layer)).toEqual(['Cloud', 'Flows', 'Flows']);
+  });
+
+  it('gives the children of a row its layer, and those inside a group none of their own', () => {
+    const [users, row] = load(lines(...LAYERED)).root.children;
+    expect(users).toMatchObject({ layer: undefined });
+    expect(row?.kind === 'stack' && row.children).toMatchObject([
+      { kind: 'group', layer: 'Cloud', children: [{ id: 'app', layer: undefined }] },
+      { id: 'db', layer: 'Flows' },
+    ]);
+  });
 });
 
 describe('loadDiagram errors', () => {
@@ -131,6 +165,54 @@ describe('loadDiagram errors', () => {
         ),
       ),
     ).toEqual(['3:18: clear_label needs a label at the top left, but "aws.az" centers its label']);
+  });
+
+  it.each([
+    ['Monitorng', '"Monitoring", "Network"', 'did you mean "Monitoring"?'],
+    ['Ops', '"Monitoring", "Network"', 'declared layers: Monitoring, Network'],
+  ])('reports the unknown layer %s with the layers it may mean', (name, declared, advice) => {
+    const source = lines(
+      `layers: [${declared}]`,
+      'nodes:',
+      `  - { id: fn, icon: aws.lambda, layer: ${name} }`,
+    );
+    expect(problemsOf(source)).toEqual([`3:40: unknown layer "${name}" (${advice})`]);
+  });
+
+  it('reports a layer inside a group, whose children are drawn on its layer', () => {
+    expect(
+      problemsOf(
+        lines(
+          'layers: [A]',
+          'nodes:',
+          '  - group: aws.vpc',
+          '    children: [{ id: fn, icon: aws.lambda, layer: A }]',
+        ),
+      ),
+    ).toEqual(['4:51: layer works only outside groups; the children of a group share its layer']);
+  });
+
+  it('reports a line on a layer below one of its ends, which would hide it', () => {
+    expect(
+      problemsOf(
+        lines(
+          'layers: [Flows, Cloud]',
+          'nodes:',
+          '  - { id: a, icon: aws.lambda }',
+          '  - { id: b, icon: aws.sqs, layer: Cloud }',
+          'links:',
+          '  - { from: a.e, to: b.w, layer: Flows }',
+        ),
+      ),
+    ).toEqual([
+      '6:34: link "a.e -> b.w" is on layer "Flows", below layer "Cloud" of "b", whose boxes would cover it',
+    ]);
+  });
+
+  it('reports a layer declared twice', () => {
+    expect(
+      problemsOf(lines('layers: [A, A]', 'nodes:', '  - { id: fn, icon: aws.lambda }')),
+    ).toEqual(['1:13: duplicate layer "A"']);
   });
 
   it('reports a link to an unknown id', () => {
