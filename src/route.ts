@@ -116,7 +116,7 @@ function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[
 // A first bend behind the side a line leaves from would make it turn back on itself (leave the
 // right side, then head left), so such options are skipped
 function leavesForward(link: Link, bends: Point[], context: RouteContext): boolean {
-  const source = anchor(context, link.from);
+  const source = departure(context, link);
   const first = bends[0];
   if (!source || !first || !link.from.position) return true;
   const side = sideOf(link.from.position);
@@ -134,7 +134,7 @@ function sideEntry(link: Link, context: RouteContext): Point[][] {
   const side = link.to.position && sideOf(link.to.position);
   const exit = link.from.position && sideOf(link.from.position);
   const source = leafRect(context, link.from.id);
-  const start = anchor(context, link.from);
+  const start = departure(context, link);
   const target = arrival(context, link);
   if ((side !== 'left' && side !== 'right') || !source || !start || !target) return [];
 
@@ -157,7 +157,7 @@ function leaveGroup(link: Link, context: RouteContext): Point[][] {
   const entry = link.to.position && sideOf(link.to.position);
   const downward = exit === 'bottom' && entry === 'top';
   const upward = exit === 'top' && entry === 'bottom';
-  const source = anchor(context, link.from);
+  const source = departure(context, link);
   const target = arrival(context, link);
   if ((!downward && !upward) || !source || !target) return [];
 
@@ -192,7 +192,7 @@ function enteredGroups(context: RouteContext, id: string, point: Point): GroupNo
 // and targets of different heights would split the shared part into steps
 function fanOut(link: Link, context: RouteContext): Point[][] {
   const y = fanOutHeights(context).get(pointKey(link.from));
-  const source = anchor(context, link.from);
+  const source = departure(context, link);
   const target = arrival(context, link);
   if (y === undefined || !source || !target || !link.to.position) return [];
   if (sideOf(link.to.position) !== 'top') return [];
@@ -273,7 +273,7 @@ function pointKey({ id, position }: Endpoint): string {
 function sameSideLoop(link: Link, context: RouteContext): Point[][] {
   const exit = link.from.position && sideOf(link.from.position);
   const entry = link.to.position && sideOf(link.to.position);
-  const source = anchor(context, link.from);
+  const source = departure(context, link);
   const target = arrival(context, link);
   if (exit !== entry || (exit !== 'bottom' && exit !== 'top') || !source || !target) {
     return [];
@@ -311,22 +311,32 @@ function ancestors(context: RouteContext, id: string): GroupNode[] {
   return chain;
 }
 
-/** Where a line ends: the point on the side of its target, moved along it by entryShift. */
+/** Where a line starts: the point on the side of its source, moved along it by levelShift. */
+export function departure(context: RouteContext, link: Link): Point | undefined {
+  const start = anchor(context, link.from);
+  if (!start) return undefined;
+  const { exit } = levelShift(link, context);
+  return { x: start.x + exit.x, y: start.y + exit.y };
+}
+
+/** Where a line ends: the point on the side of its target, moved along it by levelShift. */
 export function arrival(context: RouteContext, link: Link): Point | undefined {
   const end = anchor(context, link.to);
   if (!end) return undefined;
-  const shift = entryShift(link, context);
-  return { x: end.x + shift.x, y: end.y + shift.y };
+  const { entry } = levelShift(link, context);
+  return { x: end.x + entry.x, y: end.y + entry.y };
 }
 
 /**
- * How far a line enters its target off the middle of the side. Between two icons that face each
- * other and are almost level, draw.io would put a small step halfway, which reads as a mistake;
- * entering a little off the middle keeps the line straight. Only within the middle half of the side,
- * so the line still clearly meets the icon.
+ * How far a line leaves its source and enters its target off the middle of the sides. Between two
+ * icons that face each other and are almost level, draw.io would put a small step halfway, which
+ * reads as a mistake; meeting a little off the middle keeps the line straight. The target end moves
+ * first, and the source end only for what is left, since a point several lines leave from cannot
+ * move for one of them. Each end stays within the middle half of its side, so the line still
+ * clearly meets the icon, and its arrowhead does not reach past it onto the label.
  */
-export function entryShift(link: Link, context: RouteContext): Point {
-  const none = { x: 0, y: 0 };
+export function levelShift(link: Link, context: RouteContext): { exit: Point; entry: Point } {
+  const none = { exit: { x: 0, y: 0 }, entry: { x: 0, y: 0 } };
   const exit = link.from.position && sideOf(link.from.position);
   const entry = link.to.position && sideOf(link.to.position);
   const target = leafRect(context, link.to.id);
@@ -340,15 +350,29 @@ export function entryShift(link: Link, context: RouteContext): Point {
     (exit === 'top' && entry === 'bottom' && start.y > end.y);
   if (!facing) return none;
   const horizontal = entry === 'left' || entry === 'right';
-  const offset = horizontal ? start.y - end.y : start.x - end.x;
-  // Only within the middle half of the side: nearer a corner, the arrowhead would reach past the
-  // icon, onto its label
-  const [from, length] = horizontal ? [target.y, target.height] : [target.x, target.width];
-  const shifted = (horizontal ? end.y : end.x) + offset;
-  const near = Math.abs(offset) <= length / 4;
-  const inMiddle = shifted >= from + length / 4 && shifted <= from + (length * 3) / 4;
-  if (offset === 0 || !near || !inMiddle) return none;
-  return horizontal ? { x: 0, y: offset } : { x: offset, y: 0 };
+  const along = (point: Point) => (horizontal ? point.y : point.x);
+  const reach = (rect: Rect, point: number): [number, number] => {
+    const [from, length] = horizontal ? [rect.y, rect.height] : [rect.x, rect.width];
+    return [
+      Math.max(point - length / 4, from + length / 4),
+      Math.min(point + length / 4, from + (length * 3) / 4),
+    ];
+  };
+  const [targetLow, targetHigh] = reach(target, along(end));
+  const source = leafRect(context, link.from.id);
+  const shared = context.links.some(
+    (other) => other !== link && pointKey(other.from) === pointKey(link.from),
+  );
+  const [sourceLow, sourceHigh] =
+    source && !shared ? reach(source, along(start)) : [along(start), along(start)];
+  // The level both ends can reach that moves the source end least
+  const low = Math.max(targetLow, sourceLow);
+  const high = Math.min(targetHigh, sourceHigh);
+  if (along(start) === along(end) || low > high) return none;
+  const level = Math.min(Math.max(along(start), low), high);
+  const shift = (from: number): Point =>
+    horizontal ? { x: 0, y: level - from } : { x: level - from, y: 0 };
+  return { exit: shift(along(start)), entry: shift(along(end)) };
 }
 
 export function anchor(context: RouteContext, endpoint: Endpoint): Point | undefined {
@@ -398,7 +422,7 @@ export function predictPath(
   context: RouteContext,
   bends: Point[] = bendPoints(link, context),
 ): Point[] | undefined {
-  const start = anchor(context, link.from);
+  const start = departure(context, link);
   const end = arrival(context, link);
   if (!start || !end || !link.from.position || !link.to.position) return undefined;
 
