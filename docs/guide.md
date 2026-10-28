@@ -139,6 +139,7 @@ links:
 - So enter an icon inside nested groups from the side: `alb.w -> api_a.w`, `alb.e -> api_c.e`. The line then runs down in the gap beside the group.
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
 - Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
+- Lines that run along each other read as one, and a dashed line along a solid one looks solid. Lines may share a start point and split later, like branches, when they are drawn alike. Give lines from different icons their own end points (`deploy.e -> app.wnw`, `registry.e -> app.w`), and give a dashed line its own start point (`cdn.s -> igw.n`, `cdn.sse -> igw_dr.n`).
 - When a link still crosses something, try other sides, reorder the children, move the icon to a group's `border`, or set `route: drawio`.
 
 ### Example: a VPC across two AZs

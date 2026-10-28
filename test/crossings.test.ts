@@ -108,6 +108,51 @@ describe('findCrossings', () => {
     ).toEqual(['8:5: link office.e -> vpc.w crosses the icon of "router"']);
   });
 
+  it('reports lines from different icons that join into one point, at the later link', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - column:',
+        '      - { id: deploy, icon: aws.codedeploy }',
+        '      - { id: registry, icon: aws.ecr }',
+        '  - { id: app, icon: aws.ecs }',
+        'links:',
+        '  - [deploy.e, app.w]',
+        '  - [registry.e, app.w]',
+      ),
+    ).toEqual(['8:5: link registry.e -> app.w runs along link deploy.e -> app.w']);
+  });
+
+  it('reports a dashed line that leaves along a solid one, which hides its dashes', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - { id: cdn, icon: aws.cloudfront }',
+        '  - column:',
+        '      - { id: primary, icon: aws.alb }',
+        '      - { id: standby, icon: aws.alb }',
+        'links:',
+        '  - [cdn.e, primary.w]',
+        '  - { from: cdn.e, to: standby.w, style: dashed }',
+      ),
+    ).toEqual(['8:5: link cdn.e -> standby.w runs along link cdn.e -> primary.w']);
+  });
+
+  it('passes lines drawn alike that leave one point together and split, like branches', () => {
+    expect(
+      crossingsOf(
+        'nodes:',
+        '  - { id: cdn, icon: aws.cloudfront }',
+        '  - column:',
+        '      - { id: site, icon: aws.alb }',
+        '      - { id: assets, icon: aws.s3 }',
+        'links:',
+        '  - [cdn.e, site.w]',
+        '  - [cdn.e, assets.w]',
+      ),
+    ).toEqual([]);
+  });
+
   it('lists lines whose ends float as unchecked, because draw.io picks their sides', () => {
     const diagram = load(
       [

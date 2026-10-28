@@ -1,10 +1,18 @@
 import { GROUP_PADDING, labelBelow, type Layout, type Rect } from './layout.ts';
-import type { DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
-import { POSITION_POINTS, sideOf } from './position.ts';
+import type { DiagramNode, Direction, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
+import { POSITION_POINTS, sideOf, type Side } from './position.ts';
 
 export interface Point {
   x: number;
   y: number;
+}
+
+export type Segment = readonly [Point, Point];
+
+/** A link and the line predicted for it. */
+export interface Placed {
+  link: Link;
+  segments: Segment[];
 }
 
 export interface RouteContext {
@@ -19,6 +27,8 @@ export interface RouteContext {
 }
 
 const GAP = GROUP_PADDING / 2;
+// How far draw.io runs a line out of a side before turning back, when both ends face the same way
+const JETTY = 20;
 
 export function routeContext(
   root: DiagramNode,
@@ -58,10 +68,39 @@ export function routeContext(
  * rules move the bends into the gaps around groups instead.
  */
 export function bendPoints(link: Link, context: RouteContext): Point[] {
+  return placedBends(context).get(link) ?? chooseBends(link, context, []);
+}
+
+const placedCache = new WeakMap<RouteContext, Map<Link, Point[]>>();
+
+// Links are placed in order, and a later line keeps off the lines placed before it
+function placedBends(context: RouteContext): Map<Link, Point[]> {
+  const cached = placedCache.get(context);
+  if (cached) return cached;
+  const bends = new Map<Link, Point[]>();
+  const lines: Placed[] = [];
+  for (const link of context.links) {
+    const chosen = chooseBends(link, context, lines);
+    bends.set(link, chosen);
+    const path = predictPath(link, context, chosen);
+    if (path) lines.push({ link, segments: segmentsOf(path) });
+  }
+  placedCache.set(context, bends);
+  return bends;
+}
+
+// The first rule that applies decides; of the places it may bend, the first that keeps the line off
+// the lines already placed, or else its first
+function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[] {
   if (link.route === 'drawio') return [];
   for (const rule of [sideEntry, leaveGroup, fanOut, sameSideLoop]) {
-    const bends = rule(link, context).find((option) => leavesForward(link, option, context));
-    if (bends) return bends;
+    const options = rule(link, context).filter((option) => leavesForward(link, option, context));
+    const clear = options.find((option) => {
+      const path = predictPath(link, context, option);
+      return !path || linesAlong(link, segmentsOf(path), lines).length === 0;
+    });
+    const chosen = clear ?? options[0];
+    if (chosen) return chosen;
   }
   return [];
 }
@@ -325,4 +364,115 @@ function center({ x, y, width, height }: Rect): Point {
 
 function contains(box: Rect, { x, y }: Point): boolean {
   return x >= box.x && x <= box.x + box.width && y >= box.y && y <= box.y + box.height;
+}
+
+/**
+ * The path draw.io draws for a link, or undefined when an end has no side and draw.io picks it.
+ * draw.io routes the parts of a line between its bend points, so the path is predicted the way it
+ * usually draws them.
+ */
+export function predictPath(
+  link: Link,
+  context: RouteContext,
+  bends: Point[] = bendPoints(link, context),
+): Point[] | undefined {
+  const start = anchor(context, link.from);
+  const end = arrival(context, link);
+  if (!start || !end || !link.from.position || !link.to.position) return undefined;
+
+  const path = [start];
+  let heading = directionOf(sideOf(link.from.position));
+  for (const bend of bends) {
+    heading = turnTowards(path, heading, bend);
+  }
+  arrive(path, heading, end, sideOf(link.to.position));
+  return path;
+}
+
+// Keeps going the way the line heads until it is level with the point, then turns to it
+function turnTowards(path: Point[], heading: Direction, to: Point): Direction {
+  const from = path.at(-1) ?? to;
+  if (from.x !== to.x && from.y !== to.y) {
+    path.push(heading === 'horizontal' ? { x: to.x, y: from.y } : { x: from.x, y: to.y });
+  }
+  path.push(to);
+  const last = path.at(-2) ?? from;
+  return last.y === to.y ? 'horizontal' : 'vertical';
+}
+
+// The last part has to come straight into the side of the target. A line heading across that side
+// turns once; one already heading into it turns twice, halfway if the side faces it or just beyond
+// the side if it faces away.
+function arrive(path: Point[], heading: Direction, end: Point, side: Side): void {
+  const from = path.at(-1) ?? end;
+  const entry = directionOf(side);
+  if (heading !== entry) {
+    turnTowards(path, heading, end);
+    return;
+  }
+  const facing =
+    (side === 'top' && from.y < end.y) ||
+    (side === 'bottom' && from.y > end.y) ||
+    (side === 'left' && from.x < end.x) ||
+    (side === 'right' && from.x > end.x);
+  if (facing && (entry === 'vertical' ? from.x === end.x : from.y === end.y)) {
+    path.push(end);
+  } else if (entry === 'vertical') {
+    const y = facing
+      ? (from.y + end.y) / 2
+      : side === 'top'
+        ? Math.min(from.y, end.y) - JETTY
+        : Math.max(from.y, end.y) + JETTY;
+    path.push({ x: from.x, y }, { x: end.x, y }, end);
+  } else {
+    const x = facing
+      ? (from.x + end.x) / 2
+      : side === 'left'
+        ? Math.min(from.x, end.x) - JETTY
+        : Math.max(from.x, end.x) + JETTY;
+    path.push({ x, y: from.y }, { x, y: end.y }, end);
+  }
+}
+
+function directionOf(side: Side): Direction {
+  return side === 'left' || side === 'right' ? 'horizontal' : 'vertical';
+}
+
+export function segmentsOf(path: Point[]): Segment[] {
+  return path.slice(1).map((end, index): Segment => [path[index] ?? end, end]);
+}
+
+/**
+ * The links of these lines that the line of a link runs along. Lines that share a stretch read as
+ * one, so which way each goes is lost. Lines drawn alike that leave one point together and split
+ * later still read as branches of one line, which is common, so they are left out.
+ */
+export function linesAlong(link: Link, segments: Segment[], lines: Placed[]): Link[] {
+  return lines
+    .filter((line) => !branches(line.link, link))
+    .filter((line) => line.segments.some((a) => segments.some((b) => runsAlong(a, b))))
+    .map((line) => line.link);
+}
+
+function branches(a: Link, b: Link): boolean {
+  return a.from.id === b.from.id && a.from.position === b.from.position && a.dashed === b.dashed;
+}
+
+// Lines this close read as one
+const ALONG = 3;
+
+function runsAlong([a, b]: Segment, [c, d]: Segment): boolean {
+  if (a.x === b.x && c.x === d.x) {
+    return Math.abs(a.x - c.x) < ALONG && overlaps([a.y, b.y], [c.y, d.y]);
+  }
+  if (a.y === b.y && c.y === d.y) {
+    return Math.abs(a.y - c.y) < ALONG && overlaps([a.x, b.x], [c.x, d.x]);
+  }
+  return false;
+}
+
+function overlaps([a1, a2]: [number, number], [b1, b2]: [number, number]): boolean {
+  return (
+    Math.min(Math.max(a1, a2), Math.max(b1, b2)) > Math.max(Math.min(a1, a2), Math.min(b1, b2))
+  );
 }
