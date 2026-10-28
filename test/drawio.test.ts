@@ -1,6 +1,9 @@
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
+import { loadCatalog } from '../src/catalog.ts';
 import { toDrawio } from '../src/drawio.ts';
 import { layoutDiagram } from '../src/layout.ts';
+import { loadDiagram } from '../src/load.ts';
 import { load } from './helpers.ts';
 
 function render(source: string): string {
@@ -107,6 +110,18 @@ describe('toDrawio', () => {
     expect(cellTag(xml, 'app')).toContain('parent="cloud"');
     expect(cellTag(xml, 'link-1')).toContain('parent="layer-1"');
     expect(cellTag(xml, 'link-2')).toContain('parent="layer-2"');
+  });
+
+  it('draws an image file next to the YAML file, keeping its proportions', () => {
+    const diagram = loadDiagram(
+      'nodes:\n  - { id: cdn, image: wide.svg, label: Cloudflare }\n',
+      loadCatalog(),
+      fileURLToPath(new URL('fixtures/images', import.meta.url)),
+    );
+    const tag = cellTag(toDrawio(diagram, layoutDiagram(diagram.root)), 'cdn');
+    expect(tag).toContain('shape=image;');
+    expect(tag).toContain('image=data:image/svg+xml,');
+    expect(tag).toMatch(/width="48" height="24"/);
   });
 
   it('uses the draw.io style from the icon catalog', () => {

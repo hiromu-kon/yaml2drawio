@@ -124,7 +124,7 @@ describe('loadDiagram errors', () => {
 
   it('says which keys make a node when it has none of them', () => {
     expect(problemsOf(lines('nodes:', '  - { id: fn, icn: aws.lambda }'))).toEqual([
-      '2:5: a node needs one of "icon", "group", "row", "column"',
+      '2:5: a node needs one of "icon", "image", "group", "row", "column"',
       '2:15: unknown key "icn" (did you mean "icon"?)',
     ]);
   });
@@ -213,6 +213,18 @@ describe('loadDiagram errors', () => {
     expect(
       problemsOf(lines('layers: [A, A]', 'nodes:', '  - { id: fn, icon: aws.lambda }')),
     ).toEqual(['1:13: duplicate layer "A"']);
+  });
+
+  it('reports a node with both an icon and an image', () => {
+    expect(
+      problemsOf(lines('nodes:', '  - { id: cdn, icon: aws.cloudfront, image: cdn.svg }')),
+    ).toEqual(['2:5: a node takes either "icon" or "image", not both']);
+  });
+
+  it('reports an image that cannot be read at its path', () => {
+    expect(problemsOf(lines('nodes:', '  - { id: cdn, image: logos/cloudflare.svg }'))).toEqual([
+      '2:23: image "logos/cloudflare.svg" not found (paths are relative to the YAML file)',
+    ]);
   });
 
   it('reports a link to an unknown id', () => {
