@@ -41,6 +41,7 @@ Read the reference for the source you have:
 - Firewall groups (security groups, network security groups) become lines, not boxes. Draw them as boxes only when the user asks, or when the diagram is about access control.
 - A resource with no known place goes in the smallest boundary that surely holds it (inside the region, outside the VPC) and is reported.
 - Prefer one clear diagram over a complete one. If there are more than about 40 icons, ask whether to split it (for example network and data flow) before drawing.
+- When readers will want to look at flows or sites one at a time (requests, CI/CD, a DR site), put them on `layers` so they can be shown and hidden in draw.io. See "Layers" in the guide.
 
 ## Several clouds in one diagram
 
