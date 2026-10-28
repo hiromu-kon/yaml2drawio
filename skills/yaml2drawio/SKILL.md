@@ -46,10 +46,11 @@ Read the reference for the source you have:
 ## Several clouds in one diagram
 
 - Give each cloud, and each on-premises site, its own top-level group, and connect them with lines (VPN, interconnect, API calls). A line may end on a group's side (`office.e`) as well as on an icon.
+- Order the top-level groups so that the ones with lines between them sit next to each other; a line between two groups apart runs through the ones between.
 - Icon names start with a namespace (`aws.ecs`). `npx yaml2drawio --help` lists the namespaces; the guide explains them.
 - AWS, Google Cloud, Azure and Kubernetes have icons (`aws.*`, `gcp.*`, `azure.*`, `k8s.*`). Each has groups for its boundaries (`aws.vpc`, `gcp.project`, `azure.vnet`, `k8s.namespace`), nested as the provider reference says.
 - For a provider without icons yet, use the `general.*` icons and name the service in the label: `general.database`, `general.server`, `general.servers`, `general.application`, `general.firewall`, `general.internet`, `general.users`, `general.client`. Put them in a `general.generic` group labeled with the provider's name.
-- For a product with no icon (a SaaS such as Cloudflare or Datadog), use a `general.*` icon with its name in the label. Use `image:` with a logo only when the user gives you the file; do not download logos, since using one is the user's call.
+- For a product with no icon (a SaaS such as Cloudflare or Datadog), use a `general.*` icon with its name in the label. Use an image node with a logo only when the user gives you the file, such as `{ id: cdn, image: logos/cloudflare.svg, label: Cloudflare }`; do not download logos, since using one is the user's call.
 - An on-premises site is a `general.data_center` group. Use `network.*` only for equipment `general.*` lacks, such as `network.switch` or `network.mainframe`.
 - Provider conventions: [references/aws.md](references/aws.md), [references/gcp.md](references/gcp.md), [references/azure.md](references/azure.md), [references/kubernetes.md](references/kubernetes.md).
 

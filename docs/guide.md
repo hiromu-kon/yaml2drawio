@@ -94,7 +94,7 @@ A node is one of five kinds, told apart by its key.
 - `direction`: `horizontal` (default) puts the children side by side; `vertical` stacks them.
 - `align`: `start`, `center` (default), `end`, or `expand` to give all children the same size across the direction. Use `expand` on the AZs in a row so their subnets line up.
 - `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`.
-- `clear_label`: `true` widens the box on both sides until its first icon starts right of the label at the top left, so a line can come down into that icon. Only for groups whose label sits at the top left.
+- `clear_label`: `true` widens the box on both sides until its first icon starts right of the label at the top left, so a line can come down into that icon, or go up out of it. Only for groups whose label sits at the top left.
 - `id`: needed only to link to the group itself.
 
 **Row** `{ row, align, layer }`: `row` is a list of nodes laid out left to right without a box.
@@ -166,6 +166,8 @@ links:
 - A service that runs in several subnets, such as an ECS service or an Aurora cluster, gets one icon per subnet (`api_a`, `api_c`).
 - Put the AZs in a row with `align: expand`, and give each AZ `direction: vertical` and `align: expand`, so the AZs and their subnets line up.
 - Draw unused subnets as empty groups rather than leaving them out.
+- Put services that sit in a region but outside the VPC (S3, SQS, Lambda) in a `column` beside the VPC, inside the region, on the side their lines come from. Above or below the VPC, they sit in the way of the lines into it.
+- Stack several icons in one subnet with `direction: vertical` when lines go between subnets: side by side, a line out of one icon's side runs over its neighbor.
 
 ### Lines
 
@@ -178,7 +180,7 @@ links:
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
 - Do not end a line at a corner (`ne`, `se`, `sw`, `nw`): draw.io may start it along either edge. Use the point beside it, such as `sse` or `ese`. Corners are fine for border icons.
 - A line's label goes halfway along it, or as near as it can without covering an icon or a label, and off group borders when there is room.
-- Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one.
+- Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one. The side you leave from must face open space: with a neighbor on that side, the line crosses it.
 - Lines that run along each other read as one, and a dashed line along a solid one looks solid. Lines may share a start point and split later, like branches, when they are drawn alike. Give lines from different icons their own end points (`deploy.e -> app.wnw`, `registry.e -> app.w`), and give a dashed line its own start point (`cdn.s -> igw.n`, `cdn.sse -> igw_dr.n`).
 - When a link still crosses something, try other sides, reorder the children, move the icon to a group's `border`, or set `route: drawio`.
 
