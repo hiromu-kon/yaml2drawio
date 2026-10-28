@@ -49,6 +49,7 @@ Read the reference for the source you have:
 - Icon names start with a namespace (`aws.ecs`). `npx yaml2drawio --help` lists the namespaces; the guide explains them.
 - AWS, Google Cloud, Azure and Kubernetes have icons (`aws.*`, `gcp.*`, `azure.*`, `k8s.*`). Each has groups for its boundaries (`aws.vpc`, `gcp.project`, `azure.vnet`, `k8s.namespace`), nested as the provider reference says.
 - For a provider without icons yet, use the `general.*` icons and name the service in the label: `general.database`, `general.server`, `general.servers`, `general.application`, `general.firewall`, `general.internet`, `general.users`, `general.client`. Put them in a `general.generic` group labeled with the provider's name.
+- For a product with no icon (a SaaS such as Cloudflare or Datadog), use a `general.*` icon with its name in the label. Use `image:` with a logo only when the user gives you the file; do not download logos, since using one is the user's call.
 - An on-premises site is a `general.data_center` group. Use `network.*` only for equipment `general.*` lacks, such as `network.switch` or `network.mainframe`.
 - Provider conventions: [references/aws.md](references/aws.md), [references/gcp.md](references/gcp.md), [references/azure.md](references/azure.md), [references/kubernetes.md](references/kubernetes.md).
 

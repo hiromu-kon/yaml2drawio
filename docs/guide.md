@@ -61,7 +61,7 @@ Names start with a namespace. `npx yaml2drawio --help` lists them.
 - `general.*`: provider-neutral icons in the same flat style, such as `general.users`, `general.internet`, `general.server`, `general.database`, `general.firewall`, and the group `general.data_center`
 - `network.*`: on-premises equipment the others lack, such as `network.switch`, `network.mainframe` and `network.laptop`, in draw.io's older gray network style
 
-Prefer the provider's own icon, then `general.*`, and use `network.*` only for what neither has, so the diagram keeps one look.
+Prefer the provider's own icon, then `general.*`, and use `network.*` only for what neither has, so the diagram keeps one look. For a product none of them has, such as a SaaS, use `general.*` with its name in the label, or an `image` of its logo when you have the file.
 
 Groups for boundaries:
 
@@ -73,13 +73,19 @@ For a boundary without its own group, such as a Google Cloud folder or another p
 
 ## Nodes
 
-A node is one of four kinds, told apart by its key.
+A node is one of five kinds, told apart by its key.
 
 **Icon** `{ id, icon, label, layer }`
 
 - `id`: unique, starts with a letter; letters, digits, `_` and `-`. Links refer to it.
 - `icon`: a name from `icons`, such as `aws.ecs`.
 - `label`: text under the icon; defaults to the icon's title. Use `\n` in a quoted string for a line break.
+
+**Image** `{ id, image, label, layer }`: an icon drawn from your own file, for a service no catalog has, such as `{ id: cdn, image: logos/cloudflare.svg, label: Cloudflare }`.
+
+- `image`: an `.svg` or `.png` file, relative to the YAML file. It is embedded in the `.drawio` file, which stays one file that opens anywhere.
+- It fits the same square as an icon, keeping its proportions, and works anywhere an icon does, including `border`.
+- `label` defaults to the file name. A node takes `icon` or `image`, not both.
 
 **Group** `{ group, label, children, direction, align, border, clear_label, layer, id }`
 

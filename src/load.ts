@@ -1,6 +1,7 @@
 import { LineCounter, isMap, isNode, isScalar, parseDocument, type Document } from 'yaml';
 import type { z } from 'zod';
-import { styleValue, type Catalog } from './catalog.ts';
+import { styleValue, type Catalog, type Shape } from './catalog.ts';
+import { readImage } from './image.ts';
 import type {
   BorderChild,
   Diagram,
@@ -17,6 +18,7 @@ import {
   NODE_BRANCHES,
   POSITIONS,
   type DocumentInput,
+  type ImageLeafInput,
   type LeafInput,
   type NodeInput,
   type Position,
@@ -87,7 +89,8 @@ class Source {
   }
 }
 
-export function loadDiagram(text: string, catalog: Catalog): Diagram {
+/** `baseDir` is where image paths start, the directory of the YAML file. */
+export function loadDiagram(text: string, catalog: Catalog, baseDir = '.'): Diagram {
   const lines = new LineCounter();
   const document = parseDocument(text, { lineCounter: lines, prettyErrors: false });
   if (document.errors.length > 0) {
@@ -104,7 +107,7 @@ export function loadDiagram(text: string, catalog: Catalog): Diagram {
   const parsed = DocumentSchema.safeParse(data);
   if (!parsed.success)
     throw new DiagramError(describeIssues(parsed.error.issues, [], data, source));
-  return resolve(parsed.data, catalog, source);
+  return resolve(parsed.data, catalog, source, baseDir);
 }
 
 function describeIssues(
@@ -151,6 +154,9 @@ function describeUnion(
   const kinds = NODE_BRANCHES.map((branch) => `"${branch.key}"`).join(', ');
   if (!isRecord(value))
     return [source.problem(path, `a node must be a mapping with one of ${kinds}`)];
+  if ('icon' in value && 'image' in value) {
+    return [source.problem(path, 'a node takes either "icon" or "image", not both')];
+  }
   const index = NODE_BRANCHES.findIndex((branch) => branch.key in value);
   if (index >= 0) return describeIssues(branches[index] ?? [], path, data, source);
 
@@ -196,7 +202,7 @@ interface Place {
   layer: string | undefined;
 }
 
-function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagram {
+function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir: string): Diagram {
   const problems: Problem[] = [];
   const ids = new Map<string, Problem>();
   let groupCount = 0;
@@ -256,10 +262,34 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
     return undefined;
   };
 
-  const toLeaf = (node: LeafInput, path: Path, place: Place): LeafNode | undefined => {
+  const imageShape = (image: string, path: Path): Shape | undefined => {
+    try {
+      return readImage(image, baseDir);
+    } catch (error) {
+      problems.push(source.problem(path, error instanceof Error ? error.message : String(error)));
+      return undefined;
+    }
+  };
+
+  const toLeaf = (
+    node: LeafInput | ImageLeafInput,
+    path: Path,
+    place: Place,
+  ): LeafNode | undefined => {
     claimId(node.id, [...path, 'id']);
     const layer = layerOf(node, path, place);
     nodeLayers.set(node.id, layer);
+    if ('image' in node) {
+      const shape = imageShape(node.image, [...path, 'image']);
+      if (!shape) return undefined;
+      return {
+        kind: 'leaf',
+        id: node.id,
+        shape,
+        label: node.label ?? shape.title,
+        layer: place.inGroup ? undefined : layer,
+      };
+    }
     const shape = catalog.icon(node.icon);
     if (!shape) return unknown('icon', node.icon, [...path, 'icon']);
     return {
@@ -272,7 +302,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source): Diagra
   };
 
   const toNode = (node: NodeInput, path: Path, place: Place): DiagramNode | undefined => {
-    if ('icon' in node) return toLeaf(node, path, place);
+    if ('icon' in node || 'image' in node) return toLeaf(node, path, place);
     if ('group' in node) {
       const id = node.id ?? `group-${++groupCount}`;
       if (node.id !== undefined) claimId(id, [...path, 'id']);

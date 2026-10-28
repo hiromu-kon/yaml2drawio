@@ -50,13 +50,28 @@ const LeafSchema = z
 
 export type LeafInput = z.infer<typeof LeafSchema>;
 
+const ImageLeafSchema = z
+  .strictObject({
+    id: Id.describe('Unique id, used by links.'),
+    image: z
+      .string()
+      .describe(
+        'SVG or PNG file to draw instead of a catalog icon, relative to the YAML file. It is embedded in the draw.io file.',
+      ),
+    label: Label.optional().describe('Text under the image. Defaults to the file name.'),
+    layer: z.string().optional().describe(describeLayer),
+  })
+  .meta({ id: 'ImageLeaf', description: 'An icon drawn from an image file.' });
+
+export type ImageLeafInput = z.infer<typeof ImageLeafSchema>;
+
 export interface GroupInput {
   id?: string | undefined;
   group: string;
   label?: string | undefined;
   direction?: z.infer<typeof Direction> | undefined;
   align?: z.infer<typeof Align> | undefined;
-  border?: Partial<Record<Position, LeafInput>> | undefined;
+  border?: Partial<Record<Position, LeafInput | ImageLeafInput>> | undefined;
   clear_label?: boolean | undefined;
   layer?: string | undefined;
   children?: NodeInput[] | undefined;
@@ -74,7 +89,7 @@ export interface ColumnInput {
   layer?: string | undefined;
 }
 
-export type NodeInput = LeafInput | GroupInput | RowInput | ColumnInput;
+export type NodeInput = LeafInput | ImageLeafInput | GroupInput | RowInput | ColumnInput;
 
 const GroupObject = z.strictObject({
   id: Id.optional().describe('Unique id, needed only to link to the group.'),
@@ -83,7 +98,7 @@ const GroupObject = z.strictObject({
   direction: Direction.optional().describe(describeDirection),
   align: Align.optional().describe(describeAlign),
   border: z
-    .partialRecord(z.enum(POSITIONS), LeafSchema)
+    .partialRecord(z.enum(POSITIONS), z.union([LeafSchema, ImageLeafSchema]))
     .optional()
     .describe('Icons placed on the edge of the group, keyed by position (n, ne, e, ...).'),
   clear_label: z
@@ -134,10 +149,11 @@ const ColumnSchema: z.ZodType<ColumnInput> = ColumnObject.meta({
 // Keep the order in sync with NODE_BRANCHES, which load.ts uses to pick the branch a node was
 // meant to match when reporting errors
 export const NodeSchema: z.ZodType<NodeInput> = z
-  .union([LeafSchema, GroupSchema, RowSchema, ColumnSchema])
-  .meta({ id: 'Node', description: 'An icon, a group, a row or a column.' });
+  .union([LeafSchema, ImageLeafSchema, GroupSchema, RowSchema, ColumnSchema])
+  .meta({ id: 'Node', description: 'An icon, an image, a group, a row or a column.' });
 export const NODE_BRANCHES = [
   { key: 'icon', keys: Object.keys(LeafSchema.shape) },
+  { key: 'image', keys: Object.keys(ImageLeafSchema.shape) },
   { key: 'group', keys: Object.keys(GroupObject.shape) },
   { key: 'row', keys: Object.keys(RowObject.shape) },
   { key: 'column', keys: Object.keys(ColumnObject.shape) },

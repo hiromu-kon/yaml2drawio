@@ -53,7 +53,7 @@ function fail(message: string): never {
 
 async function build(input: string): Promise<void> {
   const output = values.output ?? input.replace(/\.ya?ml$/, '') + '.drawio';
-  const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog());
+  const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog(), dirname(input));
   const layout = layoutDiagram(diagram.root);
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, toDrawio(diagram, layout));
