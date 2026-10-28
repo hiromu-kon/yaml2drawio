@@ -41,5 +41,7 @@
     "volume": "vol",
     "volume_labeled": "vol_labeled"
   },
-  "groups": {}
+  "groups": {
+    "ns": "namespace"
+  }
 }

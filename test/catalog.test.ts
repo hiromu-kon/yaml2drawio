@@ -19,11 +19,18 @@ function readOptional(name: string): unknown {
   return existsSync(url) ? readCatalogFile(name) : { icons: {}, groups: {} };
 }
 
-const files = NAMESPACES.map((namespace) => ({
-  namespace,
-  aliases: AliasFileSchema.parse(readOptional(`${namespace}.aliases.json`)),
-  shapes: ShapeNamesSchema.parse(readOptional(`${namespace}.json`)),
-}));
+const files = NAMESPACES.map((namespace) => {
+  const extracted = ShapeNamesSchema.parse(readOptional(`${namespace}.json`));
+  const url = new URL(`../catalog/${namespace}.groups.json`, import.meta.url);
+  const handWritten = existsSync(url)
+    ? z.record(z.string(), z.unknown()).parse(readCatalogFile(`${namespace}.groups.json`))
+    : {};
+  return {
+    namespace,
+    aliases: AliasFileSchema.parse(readOptional(`${namespace}.aliases.json`)),
+    shapes: { icons: extracted.icons, groups: { ...extracted.groups, ...handWritten } },
+  };
+});
 
 describe('catalog', () => {
   it('looks up shapes by "<provider>.<name>"', () => {
@@ -70,6 +77,18 @@ describe('catalog', () => {
     expect(catalog.icon('general.management_console')).toBeUndefined();
     // aws.router is AWS's VPC router, drawn in AWS purple
     expect(catalog.icon('general.router')).toBeUndefined();
+  });
+
+  it('has groups for the providers whose draw.io library has none', () => {
+    expect(catalog.group('gcp.project')?.style).toContain('fillColor=#F6F6F6');
+    expect(catalog.group('azure.az')).toEqual(catalog.group('azure.availability_zone'));
+    expect(catalog.group('k8s.ns')?.title).toBe('Namespace');
+  });
+
+  it("puts the provider's icon at the top left of a group when it names one", () => {
+    expect(catalog.group('azure.vnet')?.badge).toBe(catalog.icon('azure.virtual_networks')?.style);
+    expect(catalog.group('k8s.namespace')?.badge).toBe(catalog.icon('k8s.ns')?.style);
+    expect(catalog.group('gcp.project')?.badge).toBeUndefined();
   });
 
   it('has on-premises network equipment under network.*', () => {
