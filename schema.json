@@ -15,6 +15,14 @@
         "horizontal"
       ]
     },
+    "layers": {
+      "description": "draw.io layers to split the diagram into, bottom first, above the Background layer that holds everything without a layer.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
     "nodes": {
       "minItems": 1,
       "type": "array",
@@ -2127,6 +2135,10 @@
             "string",
             "number"
           ]
+        },
+        "layer": {
+          "description": "Layer from layers to draw this node and everything in it on. Only outside groups, whose children share their layer.",
+          "type": "string"
         }
       },
       "required": [
@@ -2256,6 +2268,10 @@
           "description": "Widen the group so its content starts right of its top-left label, and a line can enter the first icon from the top.",
           "type": "boolean"
         },
+        "layer": {
+          "description": "Layer from layers to draw this node and everything in it on. Only outside groups, whose children share their layer.",
+          "type": "string"
+        },
         "children": {
           "description": "What the group contains. Leave it out for an empty box, such as an unused subnet.",
           "type": "array",
@@ -2282,6 +2298,10 @@
             "end",
             "expand"
           ]
+        },
+        "layer": {
+          "description": "Layer from layers to draw this node and everything in it on. Only outside groups, whose children share their layer.",
+          "type": "string"
         },
         "row": {
           "minItems": 1,
@@ -2310,6 +2330,10 @@
             "end",
             "expand"
           ]
+        },
+        "layer": {
+          "description": "Layer from layers to draw this node and everything in it on. Only outside groups, whose children share their layer.",
+          "type": "string"
         },
         "column": {
           "minItems": 1,
@@ -2383,6 +2407,10 @@
                 "auto",
                 "drawio"
               ]
+            },
+            "layer": {
+              "description": "Layer from layers to draw the line on. Defaults to the upper layer of its two ends; it cannot be below either of them.",
+              "type": "string"
             }
           },
           "required": [

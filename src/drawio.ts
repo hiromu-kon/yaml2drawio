@@ -22,6 +22,10 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
   // How far below each icon its label ends; labels of side border children sit beside theirs
   const belowIcon = new Map<string, number>();
 
+  // Background, the layer draw.io makes for every diagram, is cell 1; layers above it follow
+  const layerId = (layer: string | undefined) =>
+    layer === undefined ? '1' : `layer-${diagram.layers.indexOf(layer) + 1}`;
+
   const visit = (
     node: DiagramNode,
     parent: GroupNode | undefined,
@@ -32,6 +36,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
       return;
     }
     const geometry = relativeTo(cellRect(layout, node), parent && cellRect(layout, parent));
+    const container = parent?.id ?? layerId(node.layer);
     if (node.kind === 'leaf') {
       const drop = labelSide || node.label === '' ? 0 : labelDrop(node.shape);
       const base = withSemicolon(node.shape.style) + LEAF_LABEL_STYLE;
@@ -43,10 +48,10 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
       if (!labelSide && node.label !== '') {
         belowIcon.set(node.id, labelBelow(node));
       }
-      cells.push(vertex(node.id, node.label, style, parent?.id, geometry));
+      cells.push(vertex(node.id, node.label, style, container, geometry));
       return;
     }
-    cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), parent?.id, geometry));
+    cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), container, geometry));
     // The AWS group shape draws only draw.io's one-color stencils at its corner, not the image
     // icons of Google Cloud and Azure, so the icon is a cell of its own. Ids never contain ".".
     if (node.shape.badge) {
@@ -63,7 +68,15 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
 
   const context = routeContext(diagram.root, layout, diagram.links);
   for (const link of diagram.links) {
-    cells.push(edge(link, belowIcon, bendPoints(link, context), entryShift(link, context)));
+    cells.push(
+      edge(
+        link,
+        layerId(link.layer),
+        belowIcon,
+        bendPoints(link, context),
+        entryShift(link, context),
+      ),
+    );
   }
 
   return [
@@ -73,6 +86,10 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     '      <root>',
     '        <mxCell id="0" />',
     '        <mxCell id="1" parent="0" />',
+    ...diagram.layers.map(
+      (layer, index) =>
+        `        <mxCell id="layer-${index + 1}" value="${xml(layer)}" parent="0" />`,
+    ),
     ...cells.map((cell) => `        ${cell}`),
     '      </root>',
     '    </mxGraphModel>',
@@ -97,11 +114,11 @@ function vertex(
   id: string,
   label: string,
   style: string,
-  parent: string | undefined,
+  parent: string,
   { x, y, width, height }: Rect,
 ): string {
   return (
-    `<mxCell id="${xml(id)}" value="${xml(html(label))}" style="${xml(style)}" vertex="1" parent="${xml(parent ?? '1')}">` +
+    `<mxCell id="${xml(id)}" value="${xml(html(label))}" style="${xml(style)}" vertex="1" parent="${xml(parent)}">` +
     `<mxGeometry x="${x}" y="${y}" width="${width}" height="${height}" as="geometry" /></mxCell>`
   );
 }
@@ -122,7 +139,13 @@ function groupStyle(style: string): string {
   return style.includes('container=1') ? style : `${style}container=1;collapsible=0;`;
 }
 
-function edge(link: Link, belowIcon: Map<string, number>, bends: Point[], shift: Point): string {
+function edge(
+  link: Link,
+  layer: string,
+  belowIcon: Map<string, number>,
+  bends: Point[],
+  shift: Point,
+): string {
   const style = [
     'edgeStyle=orthogonalEdgeStyle',
     'rounded=0',
@@ -138,7 +161,7 @@ function edge(link: Link, belowIcon: Map<string, number>, bends: Point[], shift:
     ...port('entry', link.to, belowIcon, shift),
   ].join(';');
   return (
-    `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="1" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
+    `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="${layer}" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
     (bends.length > 0
       ? `<mxGeometry relative="1" as="geometry"><Array as="points">${bends.map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')}</Array></mxGeometry>`
       : '<mxGeometry relative="1" as="geometry" />') +

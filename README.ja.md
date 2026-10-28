@@ -94,6 +94,12 @@ links:
 
 ![上の YAML から生成した図](docs/images/quick-start.png)
 
+### 複数のクラウドにまたがる例
+
+![yaml2drawio で描いた Google Cloud・Azure・GKE クラスタの構成図](docs/images/multi-cloud.png)
+
+<sub>[examples/multi-cloud.yaml](examples/multi-cloud.yaml) から生成したものです。クラウドごとに draw.io のレイヤーを分けているので、draw.io でクラウドごとに表示・非表示を切り替えられます。</sub>
+
 ほかの例は [examples/](examples/) にあります。
 
 ### エディタでの補完

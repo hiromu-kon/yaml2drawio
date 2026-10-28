@@ -79,6 +79,36 @@ describe('toDrawio', () => {
     expect(render(NESTED)).not.toContain('.icon"');
   });
 
+  it('draws layers above Background in order, with nodes outside groups and lines on theirs', () => {
+    const xml = render(
+      [
+        'layers: [Cloud, Flows]',
+        'nodes:',
+        '  - { id: users, icon: general.users }',
+        '  - group: general.generic',
+        '    id: cloud',
+        '    layer: Cloud',
+        '    children: [{ id: app, icon: general.server }]',
+        'links:',
+        '  - [users.e, app.w]',
+        '  - { from: app.s, to: users.s, layer: Flows }',
+        '',
+      ].join('\n'),
+    );
+    expect(xml).toContain(
+      [
+        '<mxCell id="1" parent="0" />',
+        '<mxCell id="layer-1" value="Cloud" parent="0" />',
+        '<mxCell id="layer-2" value="Flows" parent="0" />',
+      ].join('\n        '),
+    );
+    expect(cellTag(xml, 'users')).toContain('parent="1"');
+    expect(cellTag(xml, 'cloud')).toContain('parent="layer-1"');
+    expect(cellTag(xml, 'app')).toContain('parent="cloud"');
+    expect(cellTag(xml, 'link-1')).toContain('parent="layer-1"');
+    expect(cellTag(xml, 'link-2')).toContain('parent="layer-2"');
+  });
+
   it('uses the draw.io style from the icon catalog', () => {
     expect(cellTag(render(NESTED), 'fn')).toContain('resIcon=mxgraph.aws4.lambda');
   });

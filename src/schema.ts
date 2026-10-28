@@ -32,6 +32,8 @@ const Direction = z.enum(['vertical', 'horizontal']);
 const Align = z.enum(['start', 'center', 'end', 'expand']);
 
 const describeDirection = 'How the children are laid out. Defaults to horizontal.';
+const describeLayer =
+  'Layer from layers to draw this node and everything in it on. Only outside groups, whose children share their layer.';
 const describeAlign =
   'How the children line up across the direction. expand gives them all the same size. Defaults to center.';
 
@@ -42,6 +44,7 @@ const LeafSchema = z
       .string()
       .describe('Icon from the catalog, such as aws.ecs. Search with `yaml2drawio icons <word>`.'),
     label: Label.optional().describe("Text under the icon. Defaults to the icon's title."),
+    layer: z.string().optional().describe(describeLayer),
   })
   .meta({ id: 'Leaf', description: 'An icon.' });
 
@@ -55,17 +58,20 @@ export interface GroupInput {
   align?: z.infer<typeof Align> | undefined;
   border?: Partial<Record<Position, LeafInput>> | undefined;
   clear_label?: boolean | undefined;
+  layer?: string | undefined;
   children?: NodeInput[] | undefined;
 }
 
 export interface RowInput {
   row: NodeInput[];
   align?: z.infer<typeof Align> | undefined;
+  layer?: string | undefined;
 }
 
 export interface ColumnInput {
   column: NodeInput[];
   align?: z.infer<typeof Align> | undefined;
+  layer?: string | undefined;
 }
 
 export type NodeInput = LeafInput | GroupInput | RowInput | ColumnInput;
@@ -86,6 +92,7 @@ const GroupObject = z.strictObject({
     .describe(
       'Widen the group so its content starts right of its top-left label, and a line can enter the first icon from the top.',
     ),
+  layer: z.string().optional().describe(describeLayer),
   get children() {
     return z
       .array(NodeSchema)
@@ -102,6 +109,7 @@ const GroupSchema: z.ZodType<GroupInput> = GroupObject.meta({
 
 const RowObject = z.strictObject({
   align: Align.optional().describe(describeAlign),
+  layer: z.string().optional().describe(describeLayer),
   get row() {
     return z.array(NodeSchema).min(1).describe('Nodes laid out left to right.');
   },
@@ -113,6 +121,7 @@ const RowSchema: z.ZodType<RowInput> = RowObject.meta({
 
 const ColumnObject = z.strictObject({
   align: Align.optional().describe(describeAlign),
+  layer: z.string().optional().describe(describeLayer),
   get column() {
     return z.array(NodeSchema).min(1).describe('Nodes laid out top to bottom.');
   },
@@ -161,6 +170,12 @@ const LinkObject = z.strictObject({
     .describe(
       'auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io. Defaults to auto.',
     ),
+  layer: z
+    .string()
+    .optional()
+    .describe(
+      'Layer from layers to draw the line on. Defaults to the upper layer of its two ends; it cannot be below either of them.',
+    ),
 });
 
 // The tuple comes first; load.ts relies on this order when reporting errors
@@ -172,6 +187,12 @@ export const DocumentSchema = z
   .strictObject({
     title: z.string().optional().describe('Name of the draw.io page.'),
     direction: Direction.optional().describe(describeDirection),
+    layers: z
+      .array(z.string().min(1))
+      .optional()
+      .describe(
+        'draw.io layers to split the diagram into, bottom first, above the Background layer that holds everything without a layer.',
+      ),
     nodes: z.array(NodeSchema).min(1).describe('What the diagram contains.'),
     links: z.array(LinkSchema).optional().describe('Lines between ids.'),
   })

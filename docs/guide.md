@@ -48,6 +48,7 @@ links:
 | `direction` | `horizontal` (default) or `vertical`: how top-level nodes line up |
 | `nodes`     | List of nodes (required)                                          |
 | `links`     | List of links                                                     |
+| `layers`    | draw.io layers, bottom first (see [Layers](#layers))              |
 
 ## Icon names
 
@@ -74,13 +75,13 @@ For a boundary without its own group, such as a Google Cloud folder or another p
 
 A node is one of four kinds, told apart by its key.
 
-**Icon** `{ id, icon, label }`
+**Icon** `{ id, icon, label, layer }`
 
 - `id`: unique, starts with a letter; letters, digits, `_` and `-`. Links refer to it.
 - `icon`: a name from `icons`, such as `aws.ecs`.
 - `label`: text under the icon; defaults to the icon's title. Use `\n` in a quoted string for a line break.
 
-**Group** `{ group, label, children, direction, align, border, clear_label, id }`
+**Group** `{ group, label, children, direction, align, border, clear_label, layer, id }`
 
 - `group`: a group style such as `aws.cloud`, `aws.region`, `aws.vpc`, `aws.az`, `aws.public_subnet`, `aws.private_subnet`, `aws.security_group`, `aws.generic`, `gcp.project`, `azure.vnet`, `k8s.namespace`.
 - `children`: nodes inside the box. Leave it out for an empty box, such as a subnet with nothing drawn in it.
@@ -90,9 +91,9 @@ A node is one of four kinds, told apart by its key.
 - `clear_label`: `true` widens the box on both sides until its first icon starts right of the label at the top left, so a line can come down into that icon. Only for groups whose label sits at the top left.
 - `id`: needed only to link to the group itself.
 
-**Row** `{ row, align }`: `row` is a list of nodes laid out left to right without a box.
+**Row** `{ row, align, layer }`: `row` is a list of nodes laid out left to right without a box.
 
-**Column** `{ column, align }`: `column` is a list of nodes laid out top to bottom without a box.
+**Column** `{ column, align, layer }`: `column` is a list of nodes laid out top to bottom without a box.
 
 ## Positions
 
@@ -119,6 +120,35 @@ links:
 - An endpoint is `<id>` or `<id>.<position>`.
 - `style`: `solid` (default) or `dashed`. `arrow`: `end` (default), `start`, `both` or `none`.
 - `route`: `auto` (default) bends the line in the gaps around groups; `drawio` leaves the whole route to draw.io.
+- `layer`: the layer to draw the line on (see below).
+
+## Layers
+
+Layers let readers show and hide parts of the diagram in draw.io, such as one flow of lines or one site. With every layer shown, the diagram looks the same as without layers.
+
+```yaml
+layers: [On-premises, CI/CD]
+nodes:
+  - { id: developers, icon: general.users, label: Developers }
+  - group: aws.cloud
+    children:
+      - { id: pipeline, icon: aws.codepipeline, label: CodePipeline }
+      - { id: api, icon: aws.ecs, label: API }
+  - group: general.data_center
+    layer: On-premises
+    children:
+      - { id: db, icon: general.database, label: Database }
+links:
+  - { from: developers.e, to: pipeline.w, layer: CI/CD }
+  - [pipeline.e, api.w]
+  - [api.e, db.w] # on On-premises, the upper layer of its ends
+```
+
+- `layers` names the layers, bottom first. Everything without a layer is on draw.io's Background layer, below them.
+- `layer` on an icon, group, row or column puts it and everything in it on that layer. It works only outside groups: in draw.io, the children of a group are always on the group's layer.
+- A line without `layer` is on the upper layer of its two ends. A line's `layer` cannot be below the layer of either end, or that layer's boxes would cover it.
+- draw.io also hides a line when either of its ends is hidden.
+- Layers change only what is shown. The layout and the warnings are the same with any layer hidden.
 
 ## Getting a clean layout
 
