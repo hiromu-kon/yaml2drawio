@@ -94,7 +94,7 @@ links:
 
 ![上の YAML から生成した図](docs/images/quick-start.png)
 
-### 複数のクラウドを 1 枚に
+### 複数のクラウドにまたがる例
 
 ![yaml2drawio で描いた Google Cloud・Azure・GKE クラスタの構成図](docs/images/multi-cloud.png)
 
