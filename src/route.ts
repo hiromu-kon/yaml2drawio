@@ -88,7 +88,7 @@ function sideEntry(link: Link, context: RouteContext): Point[][] {
   const exit = link.from.position && sideOf(link.from.position);
   const source = leafRect(context, link.from.id);
   const start = anchor(context, link.from);
-  const target = anchor(context, link.to);
+  const target = arrival(context, link);
   if ((side !== 'left' && side !== 'right') || !source || !start || !target) return [];
 
   return enteredGroups(context, link.to.id, center(source))
@@ -111,7 +111,7 @@ function leaveGroup(link: Link, context: RouteContext): Point[][] {
   const downward = exit === 'bottom' && entry === 'top';
   const upward = exit === 'top' && entry === 'bottom';
   const source = anchor(context, link.from);
-  const target = anchor(context, link.to);
+  const target = arrival(context, link);
   if ((!downward && !upward) || !source || !target) return [];
 
   return enteredGroups(context, link.from.id, target)
@@ -146,7 +146,7 @@ function enteredGroups(context: RouteContext, id: string, point: Point): GroupNo
 function fanOut(link: Link, context: RouteContext): Point[][] {
   const y = fanOutHeights(context).get(pointKey(link.from));
   const source = anchor(context, link.from);
-  const target = anchor(context, link.to);
+  const target = arrival(context, link);
   if (y === undefined || !source || !target || !link.to.position) return [];
   if (sideOf(link.to.position) !== 'top') return [];
   return [
@@ -176,7 +176,7 @@ function fanOutHeights(context: RouteContext): Map<string, number> {
     const source = first && anchor(context, first.from);
     const leaf = first && context.leaves.get(first.from.id);
     const ends = links.flatMap((link) => {
-      const end = anchor(context, link.to);
+      const end = arrival(context, link);
       return end ? [{ link, end }] : [];
     });
     if (links.length < 2 || !source || !leaf || ends.length === 0) return [];
@@ -228,7 +228,7 @@ function sameSideLoop(link: Link, context: RouteContext): Point[][] {
   const exit = link.from.position && sideOf(link.from.position);
   const entry = link.to.position && sideOf(link.to.position);
   const source = anchor(context, link.from);
-  const target = anchor(context, link.to);
+  const target = arrival(context, link);
   if (exit !== entry || (exit !== 'bottom' && exit !== 'top') || !source || !target) {
     return [];
   }
@@ -263,6 +263,41 @@ function ancestors(context: RouteContext, id: string): GroupNode[] {
     chain.push(group);
   }
   return chain;
+}
+
+/** Where a line ends: the point on the side of its target, moved along it by entryShift. */
+export function arrival(context: RouteContext, link: Link): Point | undefined {
+  const end = anchor(context, link.to);
+  if (!end) return undefined;
+  const shift = entryShift(link, context);
+  return { x: end.x + shift.x, y: end.y + shift.y };
+}
+
+/**
+ * How far a line enters its target off the middle of the side. Between two icons that face each
+ * other and are almost level, draw.io would put a small step halfway, which reads as a mistake;
+ * entering a little off the middle keeps the line straight. Only within the middle half of the side,
+ * so the line still clearly meets the icon.
+ */
+export function entryShift(link: Link, context: RouteContext): Point {
+  const none = { x: 0, y: 0 };
+  const exit = link.from.position && sideOf(link.from.position);
+  const entry = link.to.position && sideOf(link.to.position);
+  const target = leafRect(context, link.to.id);
+  const start = anchor(context, link.from);
+  const end = anchor(context, link.to);
+  if (!target || !start || !end) return none;
+  const facing =
+    (exit === 'right' && entry === 'left' && start.x < end.x) ||
+    (exit === 'left' && entry === 'right' && start.x > end.x) ||
+    (exit === 'bottom' && entry === 'top' && start.y < end.y) ||
+    (exit === 'top' && entry === 'bottom' && start.y > end.y);
+  if (!facing) return none;
+  const horizontal = entry === 'left' || entry === 'right';
+  const offset = horizontal ? start.y - end.y : start.x - end.x;
+  const reach = (horizontal ? target.height : target.width) / 4;
+  if (offset === 0 || Math.abs(offset) > reach) return none;
+  return horizontal ? { x: 0, y: offset } : { x: offset, y: 0 };
 }
 
 export function anchor(context: RouteContext, endpoint: Endpoint): Point | undefined {

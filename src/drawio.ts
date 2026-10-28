@@ -1,7 +1,7 @@
 import { labelBelow, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
-import { bendPoints, routeContext, type Point } from './route.ts';
+import { bendPoints, entryShift, routeContext, type Point } from './route.ts';
 
 // Each draw.io library styles its labels its own way (gray bold for Google Cloud, blue for network
 // equipment), which looks patchy in a diagram that mixes them, and text.ts estimates widths for
@@ -63,7 +63,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
 
   const context = routeContext(diagram.root, layout, diagram.links);
   for (const link of diagram.links) {
-    cells.push(edge(link, belowIcon, bendPoints(link, context)));
+    cells.push(edge(link, belowIcon, bendPoints(link, context), entryShift(link, context)));
   }
 
   return [
@@ -122,7 +122,7 @@ function groupStyle(style: string): string {
   return style.includes('container=1') ? style : `${style}container=1;collapsible=0;`;
 }
 
-function edge(link: Link, belowIcon: Map<string, number>, bends: Point[]): string {
+function edge(link: Link, belowIcon: Map<string, number>, bends: Point[], shift: Point): string {
   const style = [
     'edgeStyle=orthogonalEdgeStyle',
     'rounded=0',
@@ -135,7 +135,7 @@ function edge(link: Link, belowIcon: Map<string, number>, bends: Point[]): strin
     'startFill=0',
     ...(link.dashed ? ['dashed=1'] : []),
     ...port('exit', link.from, belowIcon),
-    ...port('entry', link.to, belowIcon),
+    ...port('entry', link.to, belowIcon, shift),
   ].join(';');
   return (
     `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="1" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
@@ -150,12 +150,18 @@ function port(
   prefix: 'exit' | 'entry',
   endpoint: Endpoint,
   belowIcon: Map<string, number>,
+  shift: Point = { x: 0, y: 0 },
 ): string[] {
   if (!endpoint.position) return [];
   const [x, y] = POSITION_POINTS[endpoint.position];
   // A label below the icon would be crossed, so a line leaving from the bottom starts under it
   const dy = y === 1 ? (belowIcon.get(endpoint.id) ?? 0) : 0;
-  const keys = [`${prefix}X=${x}`, `${prefix}Y=${y}`, `${prefix}Dx=0`, `${prefix}Dy=${dy}`];
+  const keys = [
+    `${prefix}X=${x}`,
+    `${prefix}Y=${y}`,
+    `${prefix}Dx=${shift.x}`,
+    `${prefix}Dy=${dy + shift.y}`,
+  ];
   if (dy === 0) return keys;
   // draw.io moves a port onto the outline of the shape, which would pull it back above the label.
   // Off the outline, it no longer knows which side the port is on and may start the line sideways,

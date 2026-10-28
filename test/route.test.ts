@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GROUP_PADDING, layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
 import type { Diagram, Link } from '../src/model.ts';
-import { bendPoints, routeContext } from '../src/route.ts';
+import { bendPoints, entryShift, routeContext } from '../src/route.ts';
 import { load } from './helpers.ts';
 
 function setUp(source: string): { diagram: Diagram; layout: Layout; rect: (id: string) => Rect } {
@@ -261,5 +261,52 @@ describe('bendPoints', () => {
     );
     const bottom = Math.max(...['az_a', 'az_c'].map((id) => rect(id).y + rect(id).height));
     expect(bendsOf(diagram, layout, 0).map((point) => point.y)).toEqual([bottom + 12, bottom + 12]);
+  });
+});
+
+// An app beside a group holding a bucket
+function storage(bucketColumn: string[]): string {
+  return [
+    'nodes:',
+    '  - { id: app, icon: aws.ecs }',
+    '  - group: aws.generic',
+    '    children:',
+    ...bucketColumn,
+    'links:',
+    '  - [app.e, bucket.w]',
+    '',
+  ].join('\n');
+}
+
+describe('entryShift', () => {
+  it('moves the end along the side of an icon that is almost level, so the line runs straight', () => {
+    // The group's header pushes the bucket a little below the app beside the group
+    const { diagram, layout, rect } = setUp(storage(['      - { id: bucket, icon: aws.s3 }']));
+    const offset = rect('app').y - rect('bucket').y;
+    expect(offset).not.toBe(0);
+    const [link] = diagram.links;
+    if (!link) throw new Error('no link');
+    expect(entryShift(link, routeContext(diagram.root, layout, diagram.links))).toEqual({
+      x: 0,
+      y: offset,
+    });
+    const middle = rect('app').y + rect('app').height / 2;
+    expect(bendsOf(diagram, layout, 0).map((point) => point.y)).toEqual([middle]);
+  });
+
+  it('keeps the end in the middle when the icons are clearly apart', () => {
+    const { diagram, layout } = setUp(
+      storage([
+        '      - column:',
+        '          - { id: bucket, icon: aws.s3 }',
+        '          - { id: logs, icon: aws.s3 }',
+      ]),
+    );
+    const [link] = diagram.links;
+    if (!link) throw new Error('no link');
+    expect(entryShift(link, routeContext(diagram.root, layout, diagram.links))).toEqual({
+      x: 0,
+      y: 0,
+    });
   });
 });

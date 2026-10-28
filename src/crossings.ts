@@ -2,7 +2,14 @@ import { LABEL_GAP, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Problem } from './load.ts';
 import type { Diagram, DiagramNode, Direction, Endpoint, Link } from './model.ts';
 import { sideOf, type Side } from './position.ts';
-import { anchor, bendPoints, routeContext, type Point, type RouteContext } from './route.ts';
+import {
+  anchor,
+  arrival,
+  bendPoints,
+  routeContext,
+  type Point,
+  type RouteContext,
+} from './route.ts';
 import { labelSize } from './text.ts';
 
 // draw.io draws a group's icon in a 25px square at its top left, with the label beside it
@@ -146,7 +153,7 @@ function styleValue(style: string, key: string): string | undefined {
 
 function predictPath(link: Link, context: RouteContext): Point[] | undefined {
   const start = anchor(context, link.from);
-  const end = anchor(context, link.to);
+  const end = arrival(context, link);
   if (!start || !end || !link.from.position || !link.to.position) return undefined;
 
   const path = [start];

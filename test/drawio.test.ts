@@ -41,6 +41,22 @@ describe('toDrawio', () => {
     expect(tag).toContain(`<mxGeometry x="${fn.x - vpc.x}" y="${fn.y - vpc.y}" `);
   });
 
+  it('moves the end of a line along the side the way the route does', () => {
+    const xml = render(
+      [
+        'nodes:',
+        '  - { id: app, icon: aws.ecs }',
+        '  - group: aws.generic',
+        '    children:',
+        '      - { id: bucket, icon: aws.s3 }',
+        'links:',
+        '  - [app.e, bucket.w]',
+        '',
+      ].join('\n'),
+    );
+    expect(cellTag(xml, 'link-1')).toMatch(/entryX=0;entryY=0\.5;entryDx=0;entryDy=-8;/);
+  });
+
   it("draws a group's icon as a cell at its top left that does not move on its own", () => {
     const xml = render(
       [
