@@ -157,6 +157,51 @@ describe('layoutDiagram', () => {
     expect(cellOf(layout, 'igw').x).toBeGreaterThan(labelEnd);
   });
 
+  it('moves the content of a group with clear_label right of its label and keeps it centered', () => {
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - group: aws.private_subnet',
+          '    id: data',
+          '    label: Data 10.1.20.0/24',
+          '    clear_label: true',
+          '    children:',
+          '      - { id: db, icon: aws.aurora, label: DB }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const data = cellOf(layout, 'data');
+    const db = cellOf(layout, 'db');
+    expect(db.x).toBeGreaterThan(data.x + 32 + textWidth('Data 10.1.20.0/24'));
+    expect(db.x - data.x).toBe(data.x + data.width - (db.x + db.width));
+  });
+
+  it('clears the label of a group with clear_label for an icon inside a nested group', () => {
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - group: aws.vpc',
+          '    id: vpc',
+          '    label: A rather long VPC label',
+          '    clear_label: true',
+          '    children:',
+          '      - group: aws.security_group',
+          '        label: SG',
+          '        children:',
+          '          - { id: api, icon: aws.ecs, label: API }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const vpc = cellOf(layout, 'vpc');
+    expect(cellOf(layout, 'api').x).toBeGreaterThan(
+      vpc.x + 32 + textWidth('A rather long VPC label'),
+    );
+  });
+
   it('lines up leaves in rows stacked in the same column', () => {
     const layout = layoutDiagram(
       load(

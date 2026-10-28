@@ -2252,6 +2252,10 @@
             "$ref": "#/definitions/Leaf"
           }
         },
+        "clear_label": {
+          "description": "Widen the group so its content starts right of its top-left label, and a line can enter the first icon from the top.",
+          "type": "boolean"
+        },
         "children": {
           "description": "What the group contains. Leave it out for an empty box, such as an unused subnet.",
           "type": "array",

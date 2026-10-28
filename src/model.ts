@@ -24,6 +24,7 @@ export interface GroupNode {
   direction: Direction;
   align: Align;
   border: BorderChild[];
+  clearLabel: boolean;
   children: DiagramNode[];
 }
 

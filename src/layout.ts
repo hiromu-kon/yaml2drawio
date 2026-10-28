@@ -80,11 +80,32 @@ export function layoutDiagram(root: StackNode): Layout {
       padding: {
         top: Math.max(GROUP_HEADER, max(intrude.top) + BORDER_GAP),
         bottom: Math.max(GROUP_PADDING, max(intrude.bottom) + BORDER_GAP),
-        x: Math.max(GROUP_PADDING, max(intrude.x) + BORDER_GAP),
+        x: Math.max(
+          GROUP_PADDING,
+          max(intrude.x) + BORDER_GAP,
+          group.clearLabel ? labelEndOf(group) + BORDER_GAP - contentInset(group) : 0,
+        ),
       },
     };
     frames.set(group, frame);
     return frame;
+  };
+
+  // How far right of a node's left edge its leftmost icon can start. Children of a vertical stack
+  // are taken as flush left, which can only overestimate the padding clear_label needs.
+  const iconInset = (node: DiagramNode): number => {
+    if (node.kind === 'leaf') return (measure(node).width - ICON_SIZE) / 2;
+    const inner = contentInset(node);
+    if (node.kind === 'stack') return inner;
+    const { outside, padding } = frameOf(node);
+    return outside.x + padding.x + inner;
+  };
+  const contentInset = (node: GroupNode | StackNode): number => {
+    const [first] = node.children;
+    if (!first) return 0;
+    return node.direction === 'horizontal'
+      ? iconInset(first)
+      : Math.min(...node.children.map(iconInset));
   };
 
   const measure = (node: DiagramNode): Size => {
@@ -105,7 +126,7 @@ export function layoutDiagram(root: StackNode): Layout {
           ? measureChildren(node.direction, node.children.map(measure))
           : { width: 0, height: ICON_SIZE + LABEL_GAP + LINE_HEIGHT + LEAF_PADDING_BOTTOM };
       const { outside, padding } = frameOf(node);
-      const labelEnd = GROUP_ICON_AREA + textWidth(node.label);
+      const labelEnd = labelEndOf(node);
       const width = Math.max(
         content.width + padding.x * 2,
         labelEnd + GROUP_PADDING,
@@ -242,6 +263,10 @@ function widthToClearLabel(group: GroupNode, labelEnd: number): number {
     .filter((px) => px > 0)
     .map((px) => Math.ceil((labelEnd + BORDER_GAP + ICON_SIZE / 2) / px));
   return Math.max(0, ...widths);
+}
+
+function labelEndOf(group: GroupNode): number {
+  return GROUP_ICON_AREA + textWidth(group.label);
 }
 
 function leafWidth(leaf: LeafNode): number {
