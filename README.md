@@ -100,7 +100,7 @@ links:
 
 <sub>Generated from [examples/multi-cloud.yaml](examples/multi-cloud.yaml). Each cloud is on its own draw.io layer, so it can be shown or hidden on its own.</sub>
 
-More examples are in [examples/](examples/).
+More examples, with their diagrams, are in [examples/](examples/README.md).
 
 ### Editor support
 
