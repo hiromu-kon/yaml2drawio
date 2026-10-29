@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GROUP_PADDING, layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
 import type { Diagram, Link } from '../src/model.ts';
-import { bendPoints, entryShift, predictPath, routeContext } from '../src/route.ts';
+import { bendPoints, levelShift, predictPath, routeContext } from '../src/route.ts';
 import { load } from './helpers.ts';
 
 function setUp(source: string): { diagram: Diagram; layout: Layout; rect: (id: string) => Rect } {
@@ -323,58 +323,66 @@ describe('predictPath', () => {
   });
 });
 
-describe('entryShift', () => {
+// An app 16px below a bucket beside it: more than a quarter of the bucket's side
+function nested(links: string[]): string {
+  return [
+    'nodes:',
+    '  - group: aws.generic',
+    '    children:',
+    '      - group: aws.generic',
+    '        children: [{ id: app, icon: aws.ecs }]',
+    '  - { id: bucket, icon: aws.s3 }',
+    '  - { id: logs, icon: aws.sqs }',
+    'links:',
+    ...links.map((link) => `  - ${link}`),
+    '',
+  ].join('\n');
+}
+
+function shiftOf(source: string): ReturnType<typeof levelShift> {
+  const { diagram, layout } = setUp(source);
+  const [link] = diagram.links;
+  if (!link) throw new Error('no link');
+  return levelShift(link, routeContext(diagram.root, layout, diagram.links));
+}
+
+describe('levelShift', () => {
   it('moves the end along the side of an icon that is almost level, so the line runs straight', () => {
     // The group's header pushes the bucket a little below the app beside the group
     const { diagram, layout, rect } = setUp(storage(['      - { id: bucket, icon: aws.s3 }']));
     const offset = rect('app').y - rect('bucket').y;
     expect(offset).not.toBe(0);
-    const [link] = diagram.links;
-    if (!link) throw new Error('no link');
-    expect(entryShift(link, routeContext(diagram.root, layout, diagram.links))).toEqual({
-      x: 0,
-      y: offset,
+    expect(shiftOf(storage(['      - { id: bucket, icon: aws.s3 }']))).toEqual({
+      exit: { x: 0, y: 0 },
+      entry: { x: 0, y: offset },
     });
     const middle = rect('app').y + rect('app').height / 2;
     expect(bendsOf(diagram, layout, 0).map((point) => point.y)).toEqual([middle]);
   });
 
-  it('keeps a shifted end in the middle half of the side, clear of the label below', () => {
-    // The app sits 4px below the lower quarter of the bucket's left side, where its end would be
-    const { diagram, layout } = setUp(
-      [
-        'nodes:',
-        '  - group: aws.generic',
-        '    children:',
-        '      - group: aws.generic',
-        '        children: [{ id: app, icon: aws.ecs }]',
-        '  - { id: bucket, icon: aws.s3 }',
-        'links:',
-        '  - [app.e, bucket.wsw]',
-        '',
-      ].join('\n'),
-    );
-    const [link] = diagram.links;
-    if (!link) throw new Error('no link');
-    expect(entryShift(link, routeContext(diagram.root, layout, diagram.links))).toEqual({
-      x: 0,
-      y: 0,
+  it('moves both ends when the target end alone cannot reach the level of the source', () => {
+    const { exit, entry } = shiftOf(nested(['[app.e, bucket.w]']));
+    expect(exit.y).toBeLessThan(0);
+    expect(entry.y).toBeGreaterThan(0);
+    expect(entry.y - exit.y).toBe(16);
+  });
+
+  it('leaves a start that other lines share where it is, so they still split from one point', () => {
+    expect(shiftOf(nested(['[app.e, bucket.w]', '[app.e, logs.w]']))).toEqual({
+      exit: { x: 0, y: 0 },
+      entry: { x: 0, y: 0 },
     });
   });
 
-  it('keeps the end in the middle when the icons are clearly apart', () => {
-    const { diagram, layout } = setUp(
-      storage([
-        '      - column:',
-        '          - { id: bucket, icon: aws.s3 }',
-        '          - { id: logs, icon: aws.s3 }',
-      ]),
-    );
-    const [link] = diagram.links;
-    if (!link) throw new Error('no link');
-    expect(entryShift(link, routeContext(diagram.root, layout, diagram.links))).toEqual({
-      x: 0,
-      y: 0,
-    });
+  it('keeps the ends in the middle when the icons are clearly apart', () => {
+    expect(
+      shiftOf(
+        storage([
+          '      - column:',
+          '          - { id: bucket, icon: aws.s3 }',
+          '          - { id: logs, icon: aws.s3 }',
+        ]),
+      ),
+    ).toEqual({ exit: { x: 0, y: 0 }, entry: { x: 0, y: 0 } });
   });
 });

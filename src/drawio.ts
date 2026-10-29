@@ -2,7 +2,7 @@ import { labelBelow, labelDrop, type Layout, type Rect } from './layout.ts';
 import type { Diagram, DiagramNode, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
 import { placeLinkLabels } from './crossings.ts';
-import { bendPoints, entryShift, routeContext, type Point } from './route.ts';
+import { bendPoints, levelShift, routeContext, type Point } from './route.ts';
 
 // Each draw.io library styles its labels its own way (gray bold for Google Cloud, blue for network
 // equipment), which looks patchy in a diagram that mixes them, and text.ts estimates widths for
@@ -32,6 +32,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     parent: GroupNode | undefined,
     labelSide?: 'left' | 'right',
   ): void => {
+    if (node.kind === 'empty') return;
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child, parent);
       return;
@@ -76,7 +77,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
         layerId(link.layer),
         belowIcon,
         bendPoints(link, context),
-        entryShift(link, context),
+        levelShift(link, context),
         labels.get(link)?.position ?? 0,
       ),
     );
@@ -147,7 +148,7 @@ function edge(
   layer: string,
   belowIcon: Map<string, number>,
   bends: Point[],
-  shift: Point,
+  shift: { exit: Point; entry: Point },
   labelPosition: number,
 ): string {
   const style = [
@@ -161,8 +162,8 @@ function edge(
     `startArrow=${link.arrow === 'start' || link.arrow === 'both' ? 'open' : 'none'}`,
     'startFill=0',
     ...(link.dashed ? ['dashed=1'] : []),
-    ...port('exit', link.from, belowIcon),
-    ...port('entry', link.to, belowIcon, shift),
+    ...port('exit', link.from, belowIcon, shift.exit),
+    ...port('entry', link.to, belowIcon, shift.entry),
   ].join(';');
   // The label's place along the line, from -1 at the start to 1 at the end
   const geometry = `<mxGeometry${labelPosition === 0 ? '' : ` x="${labelPosition}"`} relative="1" as="geometry"`;

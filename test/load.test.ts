@@ -124,7 +124,7 @@ describe('loadDiagram errors', () => {
 
   it('says which keys make a node when it has none of them', () => {
     expect(problemsOf(lines('nodes:', '  - { id: fn, icn: aws.lambda }'))).toEqual([
-      '2:5: a node needs one of "icon", "image", "group", "row", "column"',
+      '2:5: a node needs one of "icon", "image", "empty", "group", "row", "column"',
       '2:15: unknown key "icn" (did you mean "icon"?)',
     ]);
   });

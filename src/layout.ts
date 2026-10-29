@@ -1,7 +1,7 @@
 import type { Shape } from './catalog.ts';
-import type { DiagramNode, Direction, GroupNode, LeafNode, StackNode } from './model.ts';
+import type { DiagramNode, Direction, EmptyNode, GroupNode, LeafNode, StackNode } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
-import { LINE_HEIGHT, labelSize, textWidth } from './text.ts';
+import { LINE_HEIGHT, labelSize } from './text.ts';
 
 export const ICON_SIZE = 48;
 export const LABEL_GAP = 4;
@@ -28,11 +28,12 @@ interface Size {
 
 /**
  * How far a group's border children reach outside its box, and the padding that keeps them clear
- * of its content. Left and right share one value so the content stays centered under a child on
- * the top edge even when only one side has border children.
+ * of its content. The padding is the same on the left and right so the content stays centered under
+ * a child on the top edge even when only one side has border children; what reaches outside does
+ * not move the content, so each side keeps only the room its own children need.
  */
 interface Frame {
-  outside: { top: number; bottom: number; x: number };
+  outside: { top: number; bottom: number; left: number; right: number };
   padding: { top: number; bottom: number; x: number };
 }
 
@@ -51,7 +52,7 @@ export function layoutDiagram(root: StackNode): Layout {
   const frameOf = (group: GroupNode): Frame => {
     const cached = frames.get(group);
     if (cached) return cached;
-    const reach = { top: [0], bottom: [0], x: [0] };
+    const reach = { top: [0], bottom: [0], left: [0], right: [0] };
     const intrude = { top: [0], bottom: [0], x: [0] };
     for (const { position, node } of group.border) {
       const size = measure(node);
@@ -69,16 +70,23 @@ export function layoutDiagram(root: StackNode): Layout {
         case 'right': {
           // The label sits outside the group, beside the icon, so only half the icon intrudes
           const label = labelSize(node.label).width;
-          reach.x.push(ICON_SIZE / 2 + (label > 0 ? SIDE_LABEL_GAP + label : 0));
+          reach[sideOf(position) === 'left' ? 'left' : 'right'].push(
+            ICON_SIZE / 2 + (label > 0 ? SIDE_LABEL_GAP + label : 0),
+          );
           intrude.x.push(ICON_SIZE / 2);
           break;
         }
       }
     }
     const frame: Frame = {
-      outside: { top: max(reach.top), bottom: max(reach.bottom), x: max(reach.x) },
+      outside: {
+        top: max(reach.top),
+        bottom: max(reach.bottom),
+        left: max(reach.left),
+        right: max(reach.right),
+      },
       padding: {
-        top: Math.max(GROUP_HEADER, max(intrude.top) + BORDER_GAP),
+        top: Math.max(headerOf(group), max(intrude.top) + BORDER_GAP),
         bottom: Math.max(GROUP_PADDING, max(intrude.bottom) + BORDER_GAP),
         x: Math.max(
           GROUP_PADDING,
@@ -94,11 +102,11 @@ export function layoutDiagram(root: StackNode): Layout {
   // How far right of a node's left edge its leftmost icon can start. Children of a vertical stack
   // are taken as flush left, which can only overestimate the padding clear_label needs.
   const iconInset = (node: DiagramNode): number => {
-    if (node.kind === 'leaf') return (measure(node).width - ICON_SIZE) / 2;
+    if (node.kind === 'leaf' || node.kind === 'empty') return (measure(node).width - ICON_SIZE) / 2;
     const inner = contentInset(node);
     if (node.kind === 'stack') return inner;
     const { outside, padding } = frameOf(node);
-    return outside.x + padding.x + inner;
+    return outside.left + padding.x + inner;
   };
   const contentInset = (node: GroupNode | StackNode): number => {
     const [first] = node.children;
@@ -118,6 +126,11 @@ export function layoutDiagram(root: StackNode): Layout {
         width: columnWidths.get(node) ?? leafWidth(node),
         height: ICON_SIZE + (label.height > 0 ? LABEL_GAP + label.height : 0) + LEAF_PADDING_BOTTOM,
       };
+    } else if (node.kind === 'empty') {
+      size = {
+        width: columnWidths.get(node) ?? slotWidth(node),
+        height: ICON_SIZE + LEAF_PADDING_BOTTOM,
+      };
     } else if (node.kind === 'group') {
       // An empty box (an unused subnet) is as tall as one holding an icon, so it lines up with its
       // neighbors in the other AZs
@@ -133,7 +146,10 @@ export function layoutDiagram(root: StackNode): Layout {
         widthToClearLabel(node, labelEnd),
       );
       const height = content.height + padding.top + padding.bottom;
-      size = { width: width + outside.x * 2, height: height + outside.top + outside.bottom };
+      size = {
+        width: width + outside.left + outside.right,
+        height: height + outside.top + outside.bottom,
+      };
     } else {
       size = measureChildren(node.direction, node.children.map(measure));
     }
@@ -142,6 +158,7 @@ export function layoutDiagram(root: StackNode): Layout {
   };
 
   const place = (node: DiagramNode, box: Rect): void => {
+    if (node.kind === 'empty') return;
     if (node.kind === 'leaf') {
       cells.set(node, iconAt(node.shape, box.x + box.width / 2, box.y + ICON_SIZE / 2));
       return;
@@ -152,9 +169,9 @@ export function layoutDiagram(root: StackNode): Layout {
     }
     const { outside, padding } = frameOf(node);
     const visible = {
-      x: box.x + outside.x,
+      x: box.x + outside.left,
       y: box.y + outside.top,
-      width: box.width - outside.x * 2,
+      width: box.width - outside.left - outside.right,
       height: box.height - outside.top - outside.bottom,
     };
     const drawn = roundRect(visible);
@@ -265,8 +282,13 @@ function widthToClearLabel(group: GroupNode, labelEnd: number): number {
   return Math.max(0, ...widths);
 }
 
+// The header fits one line of label; each further line pushes the content down
+function headerOf(group: GroupNode): number {
+  return GROUP_HEADER + Math.max(0, labelSize(group.label).height - LINE_HEIGHT);
+}
+
 function labelEndOf(group: GroupNode): number {
-  return GROUP_ICON_AREA + textWidth(group.label);
+  return GROUP_ICON_AREA + labelSize(group.label).width;
 }
 
 function leafWidth(leaf: LeafNode): number {
@@ -278,10 +300,10 @@ function leafWidth(leaf: LeafNode): number {
  * width per column. Otherwise labels of different lengths shift the icons by a few pixels and a
  * line from one row to the next needs a small jog.
  */
-function alignColumns(root: DiagramNode): Map<LeafNode, number> {
-  const widths = new Map<LeafNode, number>();
+function alignColumns(root: DiagramNode): Map<LeafNode | EmptyNode, number> {
+  const widths = new Map<LeafNode | EmptyNode, number>();
   const visit = (node: DiagramNode): void => {
-    if (node.kind === 'leaf') return;
+    if (node.kind === 'leaf' || node.kind === 'empty') return;
     if (node.direction === 'vertical') {
       const rows = node.children.flatMap((child) => {
         const row = leafRow(child);
@@ -292,7 +314,7 @@ function alignColumns(root: DiagramNode): Map<LeafNode, number> {
         if (sameCount.length < 2) continue;
         for (let column = 0; column < count; column++) {
           const leaves = sameCount.flatMap((row) => row[column] ?? []);
-          const width = Math.max(...leaves.map(leafWidth));
+          const width = Math.max(...leaves.map(slotWidth));
           for (const leaf of leaves) widths.set(leaf, width);
         }
       }
@@ -303,10 +325,17 @@ function alignColumns(root: DiagramNode): Map<LeafNode, number> {
   return widths;
 }
 
-function leafRow(node: DiagramNode): LeafNode[] | undefined {
-  if (node.kind === 'leaf' || node.direction !== 'horizontal') return undefined;
-  const leaves = node.children.filter((child) => child.kind === 'leaf');
-  return leaves.length === node.children.length ? leaves : undefined;
+// An empty slot counts as an icon, which is how it lines up a short row with a longer one
+function leafRow(node: DiagramNode): (LeafNode | EmptyNode)[] | undefined {
+  if (node.kind === 'leaf' || node.kind === 'empty' || node.direction !== 'horizontal') {
+    return undefined;
+  }
+  const slots = node.children.filter((child) => child.kind === 'leaf' || child.kind === 'empty');
+  return slots.length === node.children.length ? slots : undefined;
+}
+
+function slotWidth(slot: LeafNode | EmptyNode): number {
+  return slot.kind === 'leaf' ? leafWidth(slot) : ICON_SIZE + LEAF_PADDING_X * 2;
 }
 
 function max(values: number[]): number {

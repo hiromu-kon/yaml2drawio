@@ -11,6 +11,7 @@ function cellOf(layout: Layout, id: string): Rect {
 
 function findNode(nodes: DiagramNode[], id: string): LeafNode | GroupNode | undefined {
   for (const node of nodes) {
+    if (node.kind === 'empty') continue;
     if (node.kind !== 'stack' && node.id === id) return node;
     if (node.kind !== 'leaf') {
       const found = findNode(node.children, id);
@@ -43,6 +44,28 @@ function vpcWithBorder(border: string): string {
     '      - { id: alb, icon: aws.alb }',
     '',
   ].join('\n');
+}
+
+// A subnet with one icon under the given label, quoted so that \\n breaks the line
+function subnet(label: string): string {
+  return [
+    'nodes:',
+    '  - group: aws.private_subnet',
+    '    id: app',
+    `    label: "${label}"`,
+    '    children: [{ id: api, icon: aws.ecs }]',
+    '',
+  ].join('\n');
+}
+
+// How far below the top of the subnet its icon starts
+function contentTop(label: string): number {
+  const layout = layoutDiagram(load(subnet(label)).root);
+  return cellOf(layout, 'api').y - cellOf(layout, 'app').y;
+}
+
+function subnetWidth(label: string): number {
+  return cellOf(layoutDiagram(load(subnet(label)).root), 'app').width;
 }
 
 describe('layoutDiagram', () => {
@@ -202,6 +225,43 @@ describe('layoutDiagram', () => {
     );
   });
 
+  it('lines up an icon with the column of a longer row, after an empty slot', () => {
+    // The NAT gateway sits over the second task, not halfway between the two
+    const layout = layoutDiagram(
+      load(
+        [
+          'direction: vertical',
+          'nodes:',
+          '  - group: aws.public_subnet',
+          '    children:',
+          '      - { empty: true }',
+          '      - { id: nat, icon: aws.nat_gateway }',
+          '  - group: aws.private_subnet',
+          '    children:',
+          '      - { id: worker, icon: aws.ecs }',
+          '      - { id: api, icon: aws.ecs }',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const nat = cellOf(layout, 'nat');
+    const api = cellOf(layout, 'api');
+    expect(nat.x + nat.width / 2).toBe(api.x + api.width / 2);
+  });
+
+  it('pushes the content down a line for each further line of a group label', () => {
+    expect(contentTop('App\\n10.0.10.0/24') - contentTop('App 10.0.10.0/24')).toBe(15);
+    expect(
+      contentTop('App\\n10.0.10.0/24\\nap-northeast-1a') - contentTop('App 10.0.10.0/24'),
+    ).toBe(30);
+  });
+
+  it('measures a group label of two lines by its longer line', () => {
+    expect(subnetWidth('Data 10.0.20.0/24 with a long name')).toBeGreaterThan(
+      subnetWidth('Data\\n10.0.20.0/24 with a long name'),
+    );
+  });
+
   it('lines up leaves in rows stacked in the same column', () => {
     const layout = layoutDiagram(
       load(
@@ -225,6 +285,28 @@ describe('layoutDiagram', () => {
     );
     expect(cellOf(layout, 'worker').x).toBe(cellOf(layout, 'redis').x);
     expect(cellOf(layout, 'api').x).toBe(cellOf(layout, 'aurora').x);
+  });
+
+  it('leaves room for border labels only on the side that has them', () => {
+    // The endpoint's label sits beyond the right edge, so the neighbor on the left stays close
+    const layout = layoutDiagram(
+      load(
+        [
+          'nodes:',
+          '  - { id: neighbor, icon: aws.sqs }',
+          '  - group: aws.vpc',
+          '    id: vpc',
+          '    border:',
+          '      e: { id: endpoint, icon: aws.vpc_endpoint, label: Interface endpoints }',
+          '    children: [{ id: fn, icon: aws.lambda }]',
+          '',
+        ].join('\n'),
+      ).root,
+    );
+    const neighbor = cellOf(layout, 'neighbor');
+    expect(cellOf(layout, 'vpc').x - (neighbor.x + neighbor.width)).toBeLessThan(
+      textWidth('Interface endpoints'),
+    );
   });
 
   it('leaves room beside a group for the label of a border child on its right edge', () => {
