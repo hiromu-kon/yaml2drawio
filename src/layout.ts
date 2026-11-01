@@ -227,7 +227,7 @@ export function layoutDiagram(root: StackNode): Layout {
  */
 export function iconSize({ width, height }: Pick<Shape, 'width' | 'height'>): Size {
   const scale = ICON_SIZE / Math.max(width, height);
-  return { width: even(width * scale), height: even(height * scale) };
+  return { width: Math.max(2, even(width * scale)), height: Math.max(2, even(height * scale)) };
 }
 
 // Boxes are placed with fractions so that rounding at each level cannot shift one of two stacked
