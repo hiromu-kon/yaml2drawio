@@ -118,6 +118,11 @@ describe('catalog', () => {
     },
   );
 
+  it('lists a name with the word as a whole part before names with it inside a part', () => {
+    const names = catalog.search('sql').map((result) => result.name);
+    expect(names.indexOf('gcp.cloud_sql')).toBeLessThan(names.indexOf('aws.mysql_instance'));
+  });
+
   it('narrows to a namespace given as a word', () => {
     const names = catalog.search('gcp storage').map((result) => result.name);
     expect(names.length).toBeGreaterThan(0);

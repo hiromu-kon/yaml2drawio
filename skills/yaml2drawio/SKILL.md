@@ -46,6 +46,7 @@ Read the reference for the source you have:
 ## Several clouds in one diagram
 
 - Give each cloud, and each on-premises site, its own top-level group, and connect them with lines (VPN, interconnect, API calls). A line may end on a group's side (`office.e`) as well as on an icon.
+- An outside service the system calls (a card processor, a SaaS API) goes outside every group, next to what calls it. Never put it on a group's `border`, which reads as part of the group.
 - Order the top-level groups so that the ones with lines between them sit next to each other; a line between two groups apart runs through the ones between.
 - Icon names start with a namespace (`aws.ecs`). `npx yaml2drawio --help` lists the namespaces; the guide explains them.
 - AWS, Google Cloud, Azure and Kubernetes have icons (`aws.*`, `gcp.*`, `azure.*`, `k8s.*`). Each has groups for its boundaries (`aws.vpc`, `gcp.project`, `azure.vnet`, `k8s.namespace`), nested as the provider reference says.

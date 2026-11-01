@@ -186,17 +186,21 @@ export function loadCatalog(): Catalog {
       // A word like "internet" is also part of a category ("Internet of Things"), so the names that
       // match best come first
       const phrase = compactWords.join('');
+      // A word that is a whole part of the name (cloud_sql) means more than one inside a part (mysql)
       const rank = ({ name, shape }: SearchResult) => {
         const short = compact(name.slice(name.indexOf('.') + 1));
+        const parts = name.split(/[._]/);
         if (short === phrase) return 0;
         if (short.startsWith(phrase)) return 1;
-        if (contains(name)) return 2;
-        if (contains(shape.title)) return 3;
-        return 4;
+        if (compactWords.every((word) => parts.includes(word))) return 2;
+        if (contains(name)) return 3;
+        if (contains(shape.title)) return 4;
+        return 5;
       };
+      // Among names that match as well, the shorter one is nearer to what was asked for
       return [...namesWithShapes(groups, aliases.group), ...namesWithShapes(icons, aliases.icon)]
         .filter(matches)
-        .toSorted((a, b) => rank(a) - rank(b));
+        .toSorted((a, b) => rank(a) - rank(b) || a.name.length - b.name.length);
     },
   };
 }
