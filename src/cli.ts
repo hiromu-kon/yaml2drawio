@@ -1,16 +1,15 @@
 #!/usr/bin/env node
-import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { parseArgs } from 'node:util';
 import { loadCatalog, NAMESPACES } from './catalog.ts';
-import { findCrossings, linkText } from './crossings.ts';
+import { diagnose, type Diagnostic } from './diagnostics.ts';
+import { protectInputs } from './output.ts';
+import type { DiagramNode } from './model.ts';
 import { toDrawio } from './drawio.ts';
 import { layoutDiagram } from './layout.ts';
 import { DiagramError, formatProblem, loadDiagram } from './load.ts';
 import { exportPng } from './png.ts';
-import { protectInputs } from './output.ts';
-import type { DiagramNode } from './model.ts';
 
 const USAGE = `yaml2drawio: describe infrastructure diagrams in YAML and get a laid-out draw.io file
 
@@ -18,13 +17,18 @@ Usage:
   yaml2drawio guide                    how to write the YAML; start here
   yaml2drawio icons <word...>          search icon and group names; add a namespace to narrow (icons gcp storage)
   yaml2drawio build <input.yaml> [options]
+  yaml2drawio validate <input.yaml> [options]  check without writing files
 
 Icon namespaces: ${NAMESPACES.join(', ')}
 
 Options for build:
   -o, --output <file>  where to write the .drawio file (default: next to the input)
   --png                also render a PNG with draw.io Desktop
-  --strict             exit with 1 when there are warnings (lines crossing icons, labels or other lines)
+
+Options for build and validate:
+  --strict             exit with 1 when there are warnings
+  --fail-unchecked     exit with 1 if either end of a link has no side
+  --json               write one JSON report instead of text
 
   -h, --help           show this help
   -v, --version        show the version`;
@@ -39,6 +43,8 @@ try {
       output: { type: 'string', short: 'o' },
       png: { type: 'boolean' },
       strict: { type: 'boolean' },
+      'fail-unchecked': { type: 'boolean' },
+      json: { type: 'boolean' },
       help: { type: 'boolean', short: 'h' },
       version: { type: 'boolean', short: 'v' },
     },
@@ -51,46 +57,88 @@ const { positionals, values } = parsed;
 const [command, ...args] = positionals;
 
 function fail(message: string): never {
-  console.error(`error: ${message}\n\n${USAGE}`);
+  if (process.argv.includes('--json')) {
+    console.log(
+      JSON.stringify({
+        ok: false,
+        diagnostics: [{ code: 'invalid-arguments', severity: 'error', message }],
+        outputs: [],
+      }),
+    );
+  } else {
+    console.error(`error: ${message}\n\n${USAGE}`);
+  }
   process.exit(1);
 }
 
-async function build(input: string): Promise<void> {
-  const output = values.output ?? input.replace(/\.ya?ml$/, '') + '.drawio';
-  const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog(), dirname(input));
-  const layout = layoutDiagram(diagram.root);
-  const images: string[] = [];
-  const visit = (node: DiagramNode): void => {
-    if (node.kind === 'empty') return;
-    if (node.kind === 'leaf') {
-      if (node.shape.sourcePath) images.push(node.shape.sourcePath);
-      return;
+async function check(input: string, write: boolean): Promise<void> {
+  const diagnostics: Diagnostic[] = [];
+  const outputs: string[] = [];
+  try {
+    const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog(), dirname(input));
+    const layout = layoutDiagram(diagram.root);
+    diagnostics.push(...diagnose(diagram, layout, values['fail-unchecked'] ?? false));
+    if (write) {
+      const output = values.output ?? input.replace(/\.ya?ml$/, '') + '.drawio';
+      const png = output.replace(/\.drawio$/, '') + '.png';
+      const images: string[] = [];
+      const visit = (node: DiagramNode): void => {
+        if (node.kind === 'empty') return;
+        if (node.kind === 'leaf') {
+          if (node.shape.sourcePath) images.push(node.shape.sourcePath);
+          return;
+        }
+        for (const child of node.children) visit(child);
+        if (node.kind === 'group') for (const child of node.border) visit(child.node);
+      };
+      visit(diagram.root);
+      await protectInputs([input, ...images], values.png ? [output, png] : [output]);
+      await mkdir(dirname(output), { recursive: true });
+      await writeFile(output, toDrawio(diagram, layout));
+      outputs.push(output);
+      // Keep the artifacts available for inspection even when checks fail.
+      if (values.png) {
+        await protectInputs([output], [png]);
+        await exportPng(output, png);
+        outputs.push(png);
+      }
     }
-    for (const child of node.children) visit(child);
-    if (node.kind === 'group') for (const child of node.border) visit(child.node);
-  };
-  visit(diagram.root);
-  const pngOutput = output.replace(/\.drawio$/, '') + '.png';
-  await protectInputs([input, ...images], values.png ? [output, pngOutput] : [output]);
-  await mkdir(dirname(output), { recursive: true });
-  await writeFile(output, toDrawio(diagram, layout));
-  console.log(`wrote ${output}`);
-  // The file is still written, so the diagram can be looked at while fixing the warnings
-  const { crossings, unchecked } = findCrossings(diagram, layout);
-  for (const crossing of crossings) {
-    console.error(formatProblem({ ...crossing, message: `warning: ${crossing.message}` }, input));
+  } catch (error) {
+    if (error instanceof DiagramError) {
+      diagnostics.push(
+        ...error.problems.map((problem): Diagnostic => ({
+          ...problem,
+          code: problem.code ?? 'invalid-input',
+          severity: 'error',
+        })),
+      );
+    } else {
+      diagnostics.push({
+        code: 'io-error',
+        severity: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
   }
-  // Dropping the sides would otherwise be a silent way to get rid of warnings
-  for (const link of unchecked) {
-    const message = `note: link ${linkText(link)} is not checked for crossings; give both ends a side, such as alb.s`;
-    console.error(formatProblem({ message, ...link.location }, input));
-  }
-  if (values.strict && crossings.length > 0) process.exitCode = 1;
-  if (values.png) {
-    const png = output.replace(/\.drawio$/, '') + '.png';
-    await protectInputs([output], [png]);
-    await exportPng(output, png);
-    console.log(`wrote ${png}`);
+  const ok = !diagnostics.some(
+    (diagnostic) =>
+      diagnostic.severity === 'error' ||
+      (values.strict && diagnostic.severity === 'warning') ||
+      (values['fail-unchecked'] && diagnostic.code === 'unchecked-link'),
+  );
+  if (!ok) process.exitCode = 1;
+  if (values.json) {
+    console.log(JSON.stringify({ file: input, ok, diagnostics, outputs }));
+  } else {
+    for (const output of outputs) console.log(`wrote ${output}`);
+    for (const diagnostic of diagnostics)
+      console.error(
+        formatProblem(
+          { ...diagnostic, message: `${diagnostic.severity}: ${diagnostic.message}` },
+          input,
+        ),
+      );
+    if (!write && ok) console.log(`checked ${input}`);
   }
 }
 
@@ -103,6 +151,16 @@ if (values.help) {
 }
 
 async function run(): Promise<void> {
+  if (
+    command !== 'build' &&
+    command !== 'validate' &&
+    (values.json ||
+      values.strict ||
+      values['fail-unchecked'] ||
+      values.png ||
+      values.output !== undefined)
+  )
+    fail('build and validate options need a build or validate command');
   switch (command) {
     case undefined:
       console.log(USAGE);
@@ -130,17 +188,13 @@ async function run(): Promise<void> {
       }
       break;
     }
-    case 'build': {
+    case 'build':
+    case 'validate': {
       const [input] = args;
-      if (!input) fail('build needs an input file');
-      if (!existsSync(input)) fail(`${input} does not exist`);
-      try {
-        await build(input);
-      } catch (error) {
-        if (!(error instanceof DiagramError)) throw error;
-        for (const problem of error.problems) console.error(formatProblem(problem, input));
-        process.exitCode = 1;
-      }
+      if (!input || args.length !== 1) fail(`${command} needs exactly one input file`);
+      if (command === 'validate' && (values.output !== undefined || values.png))
+        fail('validate does not accept --output or --png');
+      await check(input, command === 'build');
       break;
     }
     default:

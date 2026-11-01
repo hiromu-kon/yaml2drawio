@@ -64,8 +64,8 @@ class Source {
     this.#lines = lines;
   }
 
-  problem(path: Path, message: string): Problem {
-    return { message, ...this.locate(path) };
+  problem(path: Path, message: string, code = 'invalid-input'): Problem {
+    return { message, code, ...this.locate(path) };
   }
 
   /** Points at a key rather than its value, for problems about the key itself. */
@@ -74,7 +74,7 @@ class Source {
     if (isMap(parent)) {
       const pair = parent.items.find((item) => isScalar(item.key) && item.key.value === key);
       if (pair && isNode(pair.key) && pair.key.range)
-        return { message, ...this.#at(pair.key.range[0]) };
+        return { message, code: 'unknown-key', ...this.#at(pair.key.range[0]) };
     }
     return this.problem([...path, key], message);
   }
@@ -100,7 +100,7 @@ export function loadDiagram(text: string, catalog: Catalog, baseDir = '.'): Diag
     throw new DiagramError(
       document.errors.map((error) => {
         const { line, col } = lines.linePos(error.pos[0]);
-        return { message: error.message, line, column: col };
+        return { message: error.message, code: 'invalid-yaml', line, column: col };
       }),
     );
   }
@@ -255,13 +255,13 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     }
     const where =
       first.line === undefined ? '' : ` (first defined at ${first.line}:${first.column})`;
-    problems.push(source.problem(path, `duplicate id "${id}"${where}`));
+    problems.push(source.problem(path, `duplicate id "${id}"${where}`, 'duplicate-id'));
   };
 
   const unknown = (kind: 'icon' | 'group', key: string, path: Path): undefined => {
     const suggestions = catalog.suggest(key, kind);
     const hint = suggestions.length > 0 ? ` (did you mean ${suggestions.join(', ')}?)` : '';
-    problems.push(source.problem(path, `unknown ${kind} "${key}"${hint}`));
+    problems.push(source.problem(path, `unknown ${kind} "${key}"${hint}`, `unknown-${kind}`));
     return undefined;
   };
 
@@ -269,7 +269,13 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     try {
       return readImage(image, baseDir);
     } catch (error) {
-      problems.push(source.problem(path, error instanceof Error ? error.message : String(error)));
+      problems.push(
+        source.problem(
+          path,
+          error instanceof Error ? error.message : String(error),
+          'invalid-image',
+        ),
+      );
       return undefined;
     }
   };
@@ -368,7 +374,12 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
 
   const toEndpoint = (text: string, path: Path): Endpoint => {
     const [id = '', position] = text.split('.');
-    if (!ids.has(id)) problems.push(source.problem(path, `unknown id "${id}" in link "${text}"`));
+    if (!ids.has(id))
+      problems.push({
+        ...source.problem(path, `unknown id "${id}" in link "${text}"`, 'unknown-id'),
+        linkId: `link-${Number(path[1]) + 1}`,
+        relatedId: id,
+      });
     return { id, position: POSITIONS.find((p): p is Position => p === position) };
   };
 
