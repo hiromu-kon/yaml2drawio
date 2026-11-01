@@ -1,8 +1,6 @@
-import { styleValue } from './catalog.ts';
-import { LABEL_GAP, labelDrop, type Layout, type Rect } from './layout.ts';
+import type { Layout, Rect } from './layout.ts';
 import type { Problem } from './load.ts';
-import type { Diagram, DiagramNode, Endpoint, Link } from './model.ts';
-import { sideOf, type Side } from './position.ts';
+import type { Diagram, Endpoint, Link } from './model.ts';
 import type { Position } from './schema.ts';
 import {
   alongside,
@@ -12,22 +10,9 @@ import {
   segmentsOf,
   type Placed,
   type Point,
-  type Segment,
 } from './route.ts';
 import { labelSize } from './text.ts';
-
-// draw.io draws a group's icon in a 25px square at its top left, with the label beside it
-const GROUP_ICON = 25;
-// Label widths are estimates (see text.ts), so a line this close to either end of a label passes
-const LABEL_SLACK = 4;
-
-interface Obstacle {
-  /** The leaf whose icon or label this is. */
-  owner: string | undefined;
-  part: 'icon' | 'label';
-  name: string;
-  rect: Rect;
-}
+import { obstaclesOf, borderOf, crosses, overlapsRect, isOwnIcon } from './obstacles.ts';
 
 export interface CrossingReport {
   crossings: Problem[];
@@ -48,11 +33,19 @@ export function findCrossings(diagram: Diagram, layout: Layout): CrossingReport 
       report.unchecked.push(link);
       continue;
     }
-    const warn = (message: string) => report.crossings.push({ message, ...link.location });
+    const warn = (code: string, message: string, relatedId?: string) =>
+      report.crossings.push({
+        code,
+        message,
+        linkId: link.id,
+        ...(relatedId && { relatedId }),
+        ...link.location,
+      });
     const corner = cornerOf(link);
     if (corner) {
       const { end, advice } = corner;
       warn(
+        'corner-end',
         `link ${linkText(link)} has an end at the corner of "${end.id}", where draw.io may start the line along either edge; use ${advice}`,
       );
       continue;
@@ -61,20 +54,35 @@ export function findCrossings(diagram: Diagram, layout: Layout): CrossingReport 
     for (const obstacle of obstacles) {
       if (isOwnIcon(obstacle, link)) continue;
       if (!segments.some(([a, b]) => crosses(a, b, obstacle.rect))) continue;
-      warn(`link ${linkText(link)} crosses ${obstacle.name}`);
+      warn(
+        `crossing-${obstacle.part}`,
+        `link ${linkText(link)} crosses ${obstacle.name}`,
+        obstacle.owner,
+      );
     }
     for (const group of groups) {
       if (
         borderOf(group.rect).some((edge) => segments.some((segment) => alongside(edge, segment)))
       ) {
-        warn(`link ${linkText(link)} runs along the border of ${group.name}`);
+        warn(
+          'along-border',
+          `link ${linkText(link)} runs along the border of ${group.name}`,
+          group.id,
+        );
       }
     }
     for (const covered of labels.get(link)?.covers ?? []) {
-      warn(`the label of link ${linkText(link)} covers ${covered}`);
+      warn(
+        'label-overlap',
+        `the label of link ${linkText(link)} covers ${covered.name}`,
+        covered.id,
+      );
     }
     for (const other of linesAlong(link, segments, drawn)) {
       report.crossings.push({
+        code: 'overlapping-links',
+        linkId: link.id,
+        relatedId: other.id,
         message: `link ${linkText(link)} runs along link ${linkText(other)}`,
         ...link.location,
       });
@@ -82,11 +90,6 @@ export function findCrossings(diagram: Diagram, layout: Layout): CrossingReport 
     drawn.push({ link, segments });
   }
   return report;
-}
-
-// A line touches the icon at its end on purpose, but must not run through that icon's label
-function isOwnIcon({ owner, part }: Obstacle, link: Link): boolean {
-  return part === 'icon' && (owner === link.from.id || owner === link.to.id);
 }
 
 // draw.io starts a line from a corner along either edge, so its route cannot be predicted
@@ -109,7 +112,7 @@ const CORNER_ADVICE: Partial<Record<Position, string>> = {
 export interface LabelPlace {
   position: number;
   /** The icons and labels it covers even there, when no place along the line is clear of them. */
-  covers: string[];
+  covers: { name: string; id: string | undefined }[];
 }
 
 // Halfway first, then step by step further out, but not so near the ends that the label sits on an
@@ -123,14 +126,15 @@ export function placeLinkLabels(diagram: Diagram, layout: Layout): Map<Link, Lab
   const { obstacles, groups } = obstaclesOf(diagram.root, layout);
   const context = routeContext(diagram.root, layout, diagram.links);
   const places = new Map<Link, LabelPlace>();
+  const placed: { owner: string; name: string; rect: Rect }[] = [];
   for (const link of diagram.links) {
     const path = link.label === '' ? undefined : predictPath(link, context);
     if (!path) continue;
     const coveredAt = (fraction: number) => {
       const rect = linkLabelRect(path, link.label, fraction);
-      return obstacles
+      return [...obstacles, ...placed]
         .filter((obstacle) => overlapsRect(rect, obstacle.rect))
-        .map(({ name }) => name);
+        .map(({ name, owner }) => ({ name, id: owner }));
     };
     const onBorderAt = (fraction: number) => {
       const rect = linkLabelRect(path, link.label, fraction);
@@ -146,6 +150,12 @@ export function placeLinkLabels(diagram: Diagram, layout: Layout): Map<Link, Lab
         ? { position: 0, covers: coveredAt(0.5) }
         : { position: Math.round((best * 2 - 1) * 100) / 100, covers: [] },
     );
+    const rect = linkLabelRect(path, link.label, best ?? 0.5);
+    placed.push({
+      owner: link.id,
+      name: `the label of link ${linkText(link)}`,
+      rect: { x: rect.x - 8, y: rect.y - 4, width: rect.width + 16, height: rect.height + 8 },
+    });
   }
   return places;
 }
@@ -165,125 +175,11 @@ function linkLabelRect(path: Point[], label: string, fraction: number): Rect {
     rest -= length;
   }
   const { width, height } = labelSize(label);
-  return trimEnds({ x: middle.x - width / 2, y: middle.y - height / 2, width, height });
-}
-
-function borderOf({ x, y, width, height }: Rect): Segment[] {
-  const corners = [
-    { x, y },
-    { x: x + width, y },
-    { x: x + width, y: y + height },
-    { x, y: y + height },
-  ];
-  return corners.map((corner, index) => [corner, corners[(index + 1) % 4] ?? corner]);
+  return { x: middle.x - width / 2, y: middle.y - height / 2, width, height };
 }
 
 export function linkText(link: Link): string {
   return `${endpointText(link.from)} -> ${endpointText(link.to)}`;
-}
-
-function obstaclesOf(
-  root: DiagramNode,
-  layout: Layout,
-): { obstacles: Obstacle[]; groups: { name: string; rect: Rect }[] } {
-  const obstacles: Obstacle[] = [];
-  const groups: { name: string; rect: Rect }[] = [];
-  const visit = (node: DiagramNode, labelSide?: Side): void => {
-    if (node.kind === 'empty') return;
-    if (node.kind === 'stack') {
-      for (const child of node.children) visit(child);
-      return;
-    }
-    const rect = layout.cells.get(node);
-    if (!rect) return;
-    const label = labelSize(node.label);
-    if (node.kind === 'leaf') {
-      obstacles.push({ owner: node.id, part: 'icon', name: `the icon of "${node.id}"`, rect });
-      if (label.width > 0) {
-        obstacles.push({
-          owner: node.id,
-          part: 'label',
-          name: `the label of "${node.id}"`,
-          rect: trimEnds(leafLabelRect(rect, label, labelSide, labelDrop(node.shape))),
-        });
-      }
-      return;
-    }
-    const groupName = `"${(node.label || node.id).replaceAll('\n', ' ')}"`;
-    groups.push({ name: groupName, rect });
-    if (label.width > 0) {
-      obstacles.push({
-        owner: undefined,
-        part: 'label',
-        name: `the label of ${groupName}`,
-        rect: trimEnds(groupLabelRect(rect, label, node.shape.style)),
-      });
-    }
-    for (const child of node.children) visit(child);
-    for (const { node: child, position } of node.border) visit(child, sideOf(position));
-  };
-  visit(root);
-  return { obstacles, groups };
-}
-
-// Matches where drawio.ts puts labels: beside and above the icon on a group's left or right edge,
-// below it everywhere else
-function leafLabelRect(
-  icon: Rect,
-  label: { width: number; height: number },
-  side: Side | undefined,
-  drop: number,
-): Rect {
-  const above = { y: icon.y - label.height, width: label.width, height: label.height };
-  if (side === 'left') return { x: icon.x - LABEL_GAP - label.width, ...above };
-  if (side === 'right') return { x: icon.x + icon.width + LABEL_GAP, ...above };
-  return {
-    x: icon.x + (icon.width - label.width) / 2,
-    y: icon.y + icon.height + drop,
-    width: label.width,
-    height: LABEL_GAP + label.height,
-  };
-}
-
-// AWS groups with an icon put the label beside it at the top left; the others center it at the top,
-// below the icon if they have one there
-function groupLabelRect(
-  group: Rect,
-  label: { width: number; height: number },
-  style: string,
-): Rect {
-  if (styleValue(style, 'align') === 'left') {
-    return {
-      x: group.x,
-      y: group.y,
-      width: Number(styleValue(style, 'spacingLeft') ?? 0) + label.width,
-      height: Math.max(GROUP_ICON, label.height + LABEL_GAP),
-    };
-  }
-  return {
-    x: group.x + (group.width - label.width) / 2,
-    y: group.y + Number(styleValue(style, 'spacingTop') ?? 0),
-    width: label.width,
-    height: label.height + LABEL_GAP,
-  };
-}
-
-function trimEnds(rect: Rect): Rect {
-  return { ...rect, x: rect.x + LABEL_SLACK, width: rect.width - LABEL_SLACK * 2 };
-}
-
-function overlapsRect(a: Rect, b: Rect): boolean {
-  return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
-}
-
-// Touching an edge is not a crossing, so a line along the side of an icon passes
-function crosses(a: Point, b: Point, rect: Rect): boolean {
-  return (
-    Math.max(a.x, b.x) > rect.x &&
-    Math.min(a.x, b.x) < rect.x + rect.width &&
-    Math.max(a.y, b.y) > rect.y &&
-    Math.min(a.y, b.y) < rect.y + rect.height
-  );
 }
 
 function endpointText({ id, position }: Endpoint): string {

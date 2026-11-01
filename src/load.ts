@@ -27,6 +27,9 @@ import { closestMatch } from './suggest.ts';
 
 export interface Problem extends Partial<SourceLocation> {
   message: string;
+  code?: string;
+  linkId?: string;
+  relatedId?: string;
 }
 
 export class DiagramError extends Error {

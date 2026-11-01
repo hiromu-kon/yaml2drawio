@@ -516,7 +516,12 @@ export function linesAlong(link: Link, segments: Segment[], lines: Placed[]): Li
 }
 
 function branches(a: Link, b: Link): boolean {
-  return a.from.id === b.from.id && a.from.position === b.from.position && a.dashed === b.dashed;
+  return (
+    a.from.id === b.from.id &&
+    a.from.position === b.from.position &&
+    a.dashed === b.dashed &&
+    a.arrow === b.arrow
+  );
 }
 
 // Lines this close side by side read as one
