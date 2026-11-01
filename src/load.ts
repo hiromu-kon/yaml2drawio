@@ -305,7 +305,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     if ('icon' in node || 'image' in node) return toLeaf(node, path, place);
     if ('empty' in node) return { kind: 'empty' };
     if ('group' in node) {
-      const id = node.id ?? `group-${++groupCount}`;
+      const id = node.id ?? `.group-${++groupCount}`;
       if (node.id !== undefined) claimId(id, [...path, 'id']);
       const layer = layerOf(node, path, place);
       nodeLayers.set(id, layer);

@@ -25,7 +25,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
 
   // Background, the layer draw.io makes for every diagram, is cell 1; layers above it follow
   const layerId = (layer: string | undefined) =>
-    layer === undefined ? '1' : `layer-${diagram.layers.indexOf(layer) + 1}`;
+    layer === undefined ? '1' : `.layer-${diagram.layers.indexOf(layer) + 1}`;
 
   const visit = (
     node: DiagramNode,
@@ -55,7 +55,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     }
     cells.push(vertex(node.id, node.label, groupStyle(node.shape.style), container, geometry));
     // The AWS group shape draws only draw.io's one-color stencils at its corner, not the image
-    // icons of Google Cloud and Azure, so the icon is a cell of its own. Ids never contain ".".
+    // icons of Google Cloud and Azure, so the icon is a cell of its own. User ids cannot contain ".".
     if (node.shape.badge) {
       cells.push(vertex(`${node.id}.icon`, '', badgeStyle(node.shape.badge), node.id, BADGE));
     }
@@ -92,7 +92,7 @@ export function toDrawio(diagram: Diagram, layout: Layout): string {
     '        <mxCell id="1" parent="0" />',
     ...diagram.layers.map(
       (layer, index) =>
-        `        <mxCell id="layer-${index + 1}" value="${xml(layer)}" parent="0" />`,
+        `        <mxCell id=".layer-${index + 1}" value="${xml(layer)}" parent="0" />`,
     ),
     ...cells.map((cell) => `        ${cell}`),
     '      </root>',
@@ -168,7 +168,7 @@ function edge(
   // The label's place along the line, from -1 at the start to 1 at the end
   const geometry = `<mxGeometry${labelPosition === 0 ? '' : ` x="${labelPosition}"`} relative="1" as="geometry"`;
   return (
-    `<mxCell id="${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="${layer}" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
+    `<mxCell id=".${link.id}" value="${xml(html(link.label))}" style="${xml(style)};" edge="1" parent="${layer}" source="${xml(link.from.id)}" target="${xml(link.to.id)}">` +
     (bends.length > 0
       ? `${geometry}><Array as="points">${bends.map(({ x, y }) => `<mxPoint x="${x}" y="${y}" />`).join('')}</Array></mxGeometry>`
       : `${geometry} />`) +
