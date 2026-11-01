@@ -1,6 +1,7 @@
 import { GROUP_PADDING, labelBelow, type Layout, type Rect } from './layout.ts';
 import type { DiagramNode, Direction, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf, type Side } from './position.ts';
+import { crosses, isOwnIcon, obstaclesOf, type Obstacle } from './obstacles.ts';
 
 export interface Point {
   x: number;
@@ -26,6 +27,7 @@ export interface RouteContext {
   /** Leaves on a group's left or right edge, whose labels sit beside them instead of below. */
   besideLabels: Set<string>;
   links: readonly Link[];
+  obstacles: Obstacle[];
 }
 
 const GAP = GROUP_PADDING / 2;
@@ -45,6 +47,7 @@ export function routeContext(
     parents: new Map(),
     besideLabels: new Set(),
     links,
+    obstacles: obstaclesOf(root, layout).obstacles,
   };
   const visit = (node: DiagramNode, parent: GroupNode | undefined, onBorder = false): void => {
     if (node.kind === 'empty') return;
@@ -97,20 +100,86 @@ function placedBends(context: RouteContext): Map<Link, Point[]> {
   return bends;
 }
 
-// The first rule that applies decides; of the places it may bend, the first that keeps the line off
-// the lines already placed, or else its first
+// Keep the existing rule order for ties, but prefer routes clear of icons, labels and earlier lines.
 function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[] {
   if (link.route === 'drawio') return [];
-  for (const rule of [sideEntry, leaveGroup, fanOut, sameSideLoop]) {
-    const options = rule(link, context).filter((option) => leavesForward(link, option, context));
-    const clear = options.find((option) => {
-      const path = predictPath(link, context, option);
-      return !path || linesAlong(link, segmentsOf(path), lines).length === 0;
-    });
-    const chosen = clear ?? options[0];
-    if (chosen) return chosen;
-  }
-  return [];
+  const options = [sideEntry, leaveGroup, fanOut, sameSideLoop]
+    .flatMap((rule) => rule(link, context))
+    .filter((option) => leavesForward(link, option, context));
+  options.push([]);
+  const score = (bends: Point[]): number[] => {
+    const path = predictPath(link, context, bends);
+    if (!path) return [0, 0, 0];
+    const segments = segmentsOf(path);
+    const hits = context.obstacles.filter(
+      (obstacle) =>
+        !isOwnIcon(obstacle, link) && segments.some(([a, b]) => crosses(a, b, obstacle.rect)),
+    );
+    return [
+      hits.filter((hit) => hit.part === 'icon').length,
+      hits.filter((hit) => hit.part === 'label').length,
+      linesAlong(link, segments, lines).length,
+    ];
+  };
+  const initial = options[0] ?? [];
+  const path = predictPath(link, context, initial);
+  const hits =
+    path &&
+    context.obstacles.filter(
+      (obstacle) =>
+        !isOwnIcon(obstacle, link) &&
+        segmentsOf(path).some(([a, b]) => crosses(a, b, obstacle.rect)),
+    );
+  if (hits?.length) options.push(...detours(link, context, hits));
+  return (
+    options
+      .map((bends) => ({ bends, score: score(bends) }))
+      .toSorted((a, b) => {
+        for (let i = 0; i < a.score.length; i++) {
+          const difference = (a.score[i] ?? 0) - (b.score[i] ?? 0);
+          if (difference !== 0) return difference;
+        }
+        return 0;
+      })[0]?.bends ?? []
+  );
+}
+
+// Facing sides can take a lane around an obstruction while keeping both chosen ports.
+function detours(link: Link, context: RouteContext, obstacles: Obstacle[]): Point[][] {
+  const start = departure(context, link);
+  const end = arrival(context, link);
+  const exit = link.from.position && sideOf(link.from.position);
+  const entry = link.to.position && sideOf(link.to.position);
+  if (!start || !end) return [];
+  const horizontal =
+    (exit === 'right' && entry === 'left' && start.x < end.x) ||
+    (exit === 'left' && entry === 'right' && start.x > end.x);
+  const vertical =
+    (exit === 'bottom' && entry === 'top' && start.y < end.y) ||
+    (exit === 'top' && entry === 'bottom' && start.y > end.y);
+  if (!horizontal && !vertical) return [];
+  const distance = horizontal ? end.x - start.x : end.y - start.y;
+  const step = Math.sign(distance) * Math.min(JETTY, Math.abs(distance) / 3);
+  const lanes = obstacles.flatMap(({ rect }) =>
+    horizontal
+      ? [rect.y - GAP, rect.y + rect.height + GAP]
+      : [rect.x - GAP, rect.x + rect.width + GAP],
+  );
+  return lanes.map((lane) =>
+    horizontal
+      ? [
+          { x: start.x + step, y: start.y },
+          { x: start.x + step, y: lane },
+          { x: end.x - step, y: lane },
+          { x: end.x - step, y: end.y },
+        ]
+      : [
+          { x: start.x, y: start.y + step },
+          { x: lane, y: start.y + step },
+          { x: lane, y: end.y - step },
+          { x: end.x, y: end.y - step },
+        ],
+  );
 }
 
 // A first bend behind the side a line leaves from would make it turn back on itself (leave the
