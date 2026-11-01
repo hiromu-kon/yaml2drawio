@@ -39,7 +39,12 @@ export interface StackNode {
   children: DiagramNode[];
 }
 
-export type DiagramNode = LeafNode | GroupNode | StackNode;
+/** An empty slot the size of an icon, so that icons in rows of different lengths line up. */
+export interface EmptyNode {
+  kind: 'empty';
+}
+
+export type DiagramNode = LeafNode | GroupNode | StackNode | EmptyNode;
 
 export interface Endpoint {
   id: string;

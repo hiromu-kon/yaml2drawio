@@ -189,6 +189,7 @@ function obstaclesOf(
   const obstacles: Obstacle[] = [];
   const groups: { name: string; rect: Rect }[] = [];
   const visit = (node: DiagramNode, labelSide?: Side): void => {
+    if (node.kind === 'empty') return;
     if (node.kind === 'stack') {
       for (const child of node.children) visit(child);
       return;

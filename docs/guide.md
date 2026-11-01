@@ -73,7 +73,7 @@ For a boundary without its own group, such as a Google Cloud folder or another p
 
 ## Nodes
 
-A node is one of five kinds, told apart by its key.
+A node is one of six kinds, told apart by its key.
 
 **Icon** `{ id, icon, label, layer }`
 
@@ -96,6 +96,8 @@ A node is one of five kinds, told apart by its key.
 - `border`: icons on the edge of the box, keyed by position (see below). Typical: an internet gateway at `n`, VPC endpoints at `e`. Only for what sits on the boundary itself, such as gateways and endpoints: an icon on the border reads as part of the group.
 - `clear_label`: `true` widens the box on both sides until its first icon starts right of the label at the top left, so a line can come down into that icon, or go up out of it. Only for groups whose label sits at the top left.
 - `id`: needed only to link to the group itself.
+
+**Empty** `{ empty: true }`: an empty slot the size of an icon. Rows stacked in a column line their icons up only when they have as many; an empty slot makes a short row as long as the others, so `[nat, { empty: true }]` puts a NAT gateway over the first of two tasks below and lets the line between them run straight.
 
 **Row** `{ row, align, layer }`: `row` is a list of nodes laid out left to right without a box.
 
@@ -166,6 +168,7 @@ links:
 - A service that runs in several subnets, such as an ECS service or an Aurora cluster, gets one icon per subnet (`api_a`, `api_c`).
 - Put the AZs in a row with `align: expand`, and give each AZ `direction: vertical` and `align: expand`, so the AZs and their subnets line up.
 - Draw unused subnets as empty groups rather than leaving them out.
+- When a subnet holds fewer icons than the one above or below it, fill it up with `empty` slots, so that their columns line up and the lines between them run straight.
 - Put services that sit in a region but outside the VPC (S3, SQS, Lambda) in a `column` beside the VPC, inside the region, on the side their lines come from. Above or below the VPC, they sit in the way of the lines into it.
 - Stack several icons in one subnet with `direction: vertical` when lines go between subnets: side by side, a line out of one icon's side runs over its neighbor.
 
