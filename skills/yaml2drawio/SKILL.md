@@ -18,7 +18,8 @@ Copy this checklist and work through it:
 - [ ] Decide what to draw (see below)
 - [ ] Look up every icon and group name with npx yaml2drawio icons <word>
 - [ ] Write diagram.yaml
-- [ ] Run npx yaml2drawio build diagram.yaml --strict until it exits with 0 and prints no note: lines (see below)
+- [ ] Run npx yaml2drawio validate diagram.yaml --strict --fail-unchecked until it exits with 0 (add --json for structured diagnostics)
+- [ ] Build the diagram with npx yaml2drawio build diagram.yaml --strict --fail-unchecked
 - [ ] If draw.io Desktop is installed, add --png and look at the image
 - [ ] Report what you left out and what you inferred (see below)
 ```
@@ -60,6 +61,7 @@ Read the reference for the source you have:
 - Errors stop the build and point at `file:line:column`, often with a suggestion. Fix the YAML there.
 - Warnings name a link and the icon, label, other line or group border it crosses or runs along, or a corner it ends at. Follow "Getting a clean layout" in the guide: other sides, entering nested icons from the side or `clear_label: true` on their group, reordering children, moving an icon to a group's `border`.
 - A `note:` means a link has an end without a side, so it is not checked. Give both ends a side. Never remove sides to get rid of a warning.
+- To align icons in separate groups, put `align_with: target_id` on an interior icon or image. It aligns x centers under a common vertical container, or y centers under a horizontal one. Use `{ id: target_id, axis: x }` or `{ id: target_id, axis: y }` to choose explicitly. The axis must be perpendicular to the branch ordering; groups, border children and circular references are not supported. See the guide for a complete example.
 
 ## Report
 

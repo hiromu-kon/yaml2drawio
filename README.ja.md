@@ -52,12 +52,16 @@ npx yaml2drawio build diagram.yaml          # diagram.drawio を出力する
 npx yaml2drawio build diagram.yaml --png    # draw.io Desktop で diagram.png も出力する
 npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
 npx yaml2drawio build diagram.yaml --strict # 警告があれば終了コード 1 で終わる
+npx yaml2drawio validate diagram.yaml --strict --fail-unchecked # ファイルを出力せずに検査する
+npx yaml2drawio validate diagram.yaml --json # 自動処理向けの診断結果を出力する
 npx yaml2drawio icons redis                 # アイコン名を検索する
 ```
 
 エラーは直す場所の行と列を示します（例: `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`）。
 線がアイコンやラベルの上を通りそうなときは、その線の行に警告を出します（例: `diagram.yaml:21:5: warning: link api.s -> db.n crosses the label of "Data 10.0.20.0/24"`）。ファイルはそのまま出力します。`--strict` を付けると終了コードが 1 になるので、CI や AI エージェントは警告が消えるまで直せます。折れ点の間の経路は draw.io が決めるため、その経路を予測して調べており、見逃すこともあります。
 draw.io Desktop が見つからない場合は、環境変数 `DRAWIO_CLI` に実行ファイルのパスを設定してください。
+
+`validate` は出力ファイルを変更せず、生成時と同じ配置を検査します。接続位置を省略した未検査の線もエラー扱いにするには `--fail-unchecked`、診断コード・位置・関連 ID を含む JSON を得るには `--json` を付けます。異なるグループのアイコンは `align_with: other_id` で縦または横にそろえられます。`axis: x` / `axis: y` で揃える軸を明示することもできます。詳しくは[ガイド](docs/guide.md#alignment-across-groups)を参照してください。
 
 ### AI エージェントに描かせる
 

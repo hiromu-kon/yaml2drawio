@@ -23,7 +23,7 @@ A region with two availability zones, each with public, app and data subnets, an
 
 ## E-commerce platform
 
-A primary region in Tokyo and a disaster recovery region in Osaka, with services outside the VPC, empty slots that line up rows of different lengths, and labels on lines.
+A primary region in Tokyo and a disaster recovery region in Osaka, with services outside the VPC, empty slots that line up rows of different lengths, `align_with` to put upload buckets at the same height across regions, and labels on lines.
 
 <a href="../docs/images/ecommerce.png"><img src="../docs/images/ecommerce.png" alt="An e-commerce platform across two AWS regions"></a>
 
@@ -44,3 +44,11 @@ The groups for Google Cloud, Azure and Kubernetes, such as projects, subscriptio
 <a href="../docs/images/provider-groups.png"><img src="../docs/images/provider-groups.png" alt="Groups for Google Cloud, Azure and Kubernetes"></a>
 
 [provider-groups.yaml](provider-groups.yaml) · [provider-groups.drawio](../docs/images/provider-groups.drawio)
+
+## Alignment across groups
+
+`align_with` puts a recovery database directly below its primary, even though the two sites hold different numbers of icons.
+
+<a href="../docs/images/alignment.png"><img src="../docs/images/alignment.png" alt="A recovery database aligned below its primary in a different group" width="360"></a>
+
+[alignment.yaml](alignment.yaml) · [alignment.drawio](../docs/images/alignment.drawio)

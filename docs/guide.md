@@ -6,6 +6,7 @@ yaml2drawio turns a YAML file into a laid-out draw.io diagram. You describe what
 
 ```sh
 npx yaml2drawio icons <word>                  # find icon and group names
+npx yaml2drawio validate diagram.yaml --strict --fail-unchecked # check without writing files
 npx yaml2drawio build diagram.yaml --strict   # writes diagram.drawio, exits with 1 on errors or warnings
 npx yaml2drawio build diagram.yaml --png      # also renders diagram.png (needs draw.io Desktop)
 ```
@@ -15,6 +16,20 @@ npx yaml2drawio build diagram.yaml --png      # also renders diagram.png (needs 
 3. Run `build --strict` and fix what it reports, until it exits with 0.
    - Errors (unknown key, unknown icon, unknown id) stop the build and point at `file:line:column`, often with a suggestion.
    - Warnings say which link crosses which icon or label, or runs along which line or group border. The file, and the PNG with `--png`, is still written.
+
+### Validation and automation
+
+`validate` loads the YAML and images, computes the layout and checks the lines without writing a `.drawio` or PNG. It rejects `--output` and `--png`. Use it to check changes without overwriting a diagram edited in draw.io.
+
+- `--strict` makes warnings fail with exit code 1. Errors always fail.
+- Links without a side at either end cannot be checked. They produce notes by default, even with `--strict`; add `--fail-unchecked` to fail on them too. This option works with both `validate` and `build`.
+- `--json` writes one JSON object to stdout instead of progress and diagnostic text. It works with both commands, including invalid input and file errors. The report has `file`, `ok`, `diagnostics` and `outputs`; argument errors have no `file`. `ok` follows the requested strictness, and `outputs` lists files actually written, even if a later PNG export fails.
+- Each diagnostic has `code`, `severity` (`error`, `warning` or `note`) and `message`, plus `line`, `column`, `linkId` and `relatedId` when available. Link ids are `link-1`, `link-2`, etc., in YAML order. `relatedId` names the other node or link involved.
+- `build` refuses to overwrite its YAML or any referenced image with either output, including through symbolic and hard links. Existing generated outputs can still be replaced.
+
+```sh
+npx yaml2drawio validate diagram.yaml --strict --fail-unchecked --json
+```
 
 ## Example
 
@@ -75,17 +90,19 @@ For a boundary without its own group, such as a Google Cloud folder or another p
 
 A node is one of six kinds, told apart by its key.
 
-**Icon** `{ id, icon, label, layer }`
+**Icon** `{ id, icon, label, layer, align_with }`
 
 - `id`: unique, starts with a letter; letters, digits, `_` and `-`. Links refer to it.
 - `icon`: a name from `icons`, such as `aws.ecs`.
 - `label`: text under the icon; defaults to the icon's title. Use `\n` in a quoted string for a line break.
+- `align_with`: the id of another icon or image to align centers with. Use `{ id: target, axis: x }` or `{ id: target, axis: y }` to choose the axis explicitly. See [Alignment across groups](#alignment-across-groups).
 
-**Image** `{ id, image, label, layer }`: an icon drawn from your own file, for a service no catalog has, such as `{ id: cdn, image: logos/cloudflare.svg, label: Cloudflare }`.
+**Image** `{ id, image, label, layer, align_with }`: an icon drawn from your own file, for a service no catalog has, such as `{ id: cdn, image: logos/cloudflare.svg, label: Cloudflare }`.
 
 - `image`: an `.svg` or `.png` file, relative to the YAML file. It is embedded in the `.drawio` file, which stays one file that opens anywhere.
 - It fits the same square as an icon, keeping its proportions, and works anywhere an icon does, including `border`.
 - `label` defaults to the file name. A node takes `icon` or `image`, not both.
+- Image dimensions must be positive and finite. Very thin images keep a minimum of 2px on their short side.
 
 **Group** `{ group, label, children, direction, align, border, clear_label, layer, id }`
 
@@ -102,6 +119,28 @@ A node is one of six kinds, told apart by its key.
 **Row** `{ row, align, layer }`: `row` is a list of nodes laid out left to right without a box.
 
 **Column** `{ column, align, layer }`: `column` is a list of nodes laid out top to bottom without a box.
+
+### Alignment across groups
+
+Use `align_with` for two icons in different groups when empty slots do not place them on one vertical or horizontal line. It adds room inside the icons' slots and their enclosing groups as needed, so icons stay inside their groups and clear of their neighbors.
+
+```yaml
+direction: vertical
+nodes:
+  - group: general.generic
+    label: Primary site
+    children:
+      - { id: api, icon: general.application, label: API }
+      - { id: uploads, icon: general.database, label: User uploads }
+  - group: general.generic
+    label: Recovery site
+    children:
+      - { id: replica, icon: general.database, label: Upload replica, align_with: uploads }
+links:
+  - { from: uploads.s, to: replica.n, label: Replication }
+```
+
+The target may appear later in the YAML, and alignments may form a chain. Both ends must be interior icons or images, not groups or border children. With an id alone, the nearest common container chooses the cross axis: a vertical container aligns horizontal centers (`x`), and a horizontal container aligns heights (`y`). To choose explicitly, use `align_with: { id: uploads, axis: y }`, as the e-commerce example does for its upload replica across regions. `axis` accepts `x` or `y`. The chosen axis must be perpendicular to the ordering of the two branches: items ordered left to right cannot share an x center, and items ordered top to bottom cannot share a y center. Self references, circular references and incompatible constraints are errors at `align_with`. The referenced icon may also move as its enclosing groups grow.
 
 ## Positions
 
@@ -127,7 +166,7 @@ links:
 - A link is `[from, to]`, or an object with `from` and `to` when it needs more keys.
 - An endpoint is `<id>` or `<id>.<position>`.
 - `style`: `solid` (default) or `dashed`. `arrow`: `end` (default), `start`, `both` or `none`.
-- `route`: `auto` (default) bends the line in the gaps around groups; `drawio` leaves the whole route to draw.io.
+- `route`: `auto` (default) compares candidate bends in the gaps around groups and detours around obstructions between facing ports. It prefers fewer icon crossings, then fewer label crossings, then fewer overlaps with earlier lines. It keeps the chosen endpoint sides. `drawio` leaves the whole route to draw.io.
 - `layer`: the layer to draw the line on (see below).
 
 ## Layers
@@ -182,9 +221,9 @@ links:
 - When a line should come straight down instead, such as from an icon right above (`api.s -> db.n` with the database alone in its subnet), give the groups under it `clear_label: true`. Give it to the groups stacked with it as well, so they keep the same width.
 - With several icons in one subnet, give each of their lines its own side, using the points between the corners (`ene`, `ese`, `wsw`) when the four sides run out.
 - Do not end a line at a corner (`ne`, `se`, `sw`, `nw`): draw.io may start it along either edge. Use the point beside it, such as `sse` or `ese`. Corners are fine for border icons.
-- A line's label goes halfway along it, or as near as it can without covering an icon or a label, and off group borders when there is room.
+- A line's label goes halfway along it, or as near as it can without covering an icon, node label or earlier line label, and off group borders when there is room. Labels are placed in YAML link order; unavoidable overlaps produce warnings.
 - Use a different side to leave an icon than the side you entered it from (`alb.w -> api_a.w`, then `api_a.e -> db_a.e`), or the two lines overlap and read as one. The side you leave from must face open space: with a neighbor on that side, the line crosses it.
-- Lines that run along each other read as one, and a dashed line along a solid one looks solid. Lines may share a start point and split later, like branches, when they are drawn alike. Give lines from different icons their own end points (`deploy.e -> app.wnw`, `registry.e -> app.w`), and give a dashed line its own start point (`cdn.s -> igw.n`, `cdn.sse -> igw_dr.n`).
+- Lines that run along each other read as one, and a dashed line along a solid one looks solid. Lines may share a start point and split later, like branches, when their line styles and arrow settings match. Give lines from different icons their own end points (`deploy.e -> app.wnw`, `registry.e -> app.w`), and give a dashed line its own start point (`cdn.s -> igw.n`, `cdn.sse -> igw_dr.n`).
 - When a link still crosses something, try other sides, reorder the children, move the icon to a group's `border`, or set `route: drawio`.
 
 ### Example: a VPC across two AZs
