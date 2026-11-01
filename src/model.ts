@@ -9,6 +9,9 @@ export interface LeafNode {
   id: string;
   shape: Shape;
   label: string;
+  alignWith?: string | undefined;
+  alignAxis?: 'x' | 'y' | undefined;
+  alignLocation?: SourceLocation | undefined;
   /** Set only outside groups; the children of a group share its layer. */
   layer?: string | undefined;
 }

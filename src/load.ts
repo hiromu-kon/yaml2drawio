@@ -150,6 +150,9 @@ function describeUnion(
   source: Source,
 ): Problem[] {
   const value = valueAt(data, path);
+  if (path.at(-1) === 'align_with') {
+    return describeIssues(branches[isRecord(value) ? 1 : 0] ?? [], path, data, source);
+  }
   if (path[0] === 'links' && path.length === 2) {
     return describeIssues(branches[Array.isArray(value) ? 0 : 1] ?? [], path, data, source);
   }
@@ -203,12 +206,16 @@ function valueAt(data: unknown, path: Path): unknown {
 interface Place {
   inGroup: boolean;
   layer: string | undefined;
+  onBorder?: boolean;
 }
 
 function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir: string): Diagram {
   const problems: Problem[] = [];
   const ids = new Map<string, Problem>();
   let groupCount = 0;
+  const leaves = new Set<string>();
+  const borderIds = new Set<string>();
+  const alignments = new Map<string, { target: string; path: Path }>();
 
   const layers = input.layers ?? [];
   for (const [index, name] of layers.entries()) {
@@ -286,6 +293,16 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     place: Place,
   ): LeafNode | undefined => {
     claimId(node.id, [...path, 'id']);
+    leaves.add(node.id);
+    if (place.onBorder) borderIds.add(node.id);
+    const alignWith = typeof node.align_with === 'string' ? node.align_with : node.align_with?.id;
+    if (alignWith !== undefined)
+      alignments.set(node.id, { target: alignWith, path: [...path, 'align_with'] });
+    const alignment = {
+      alignWith,
+      alignAxis: typeof node.align_with === 'string' ? undefined : node.align_with?.axis,
+      alignLocation: source.locate([...path, 'align_with']),
+    };
     const layer = layerOf(node, path, place);
     nodeLayers.set(node.id, layer);
     if ('image' in node) {
@@ -293,6 +310,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
       if (!shape) return undefined;
       return {
         kind: 'leaf',
+        ...alignment,
         id: node.id,
         shape,
         label: node.label ?? shape.title,
@@ -303,6 +321,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     if (!shape) return unknown('icon', node.icon, [...path, 'icon']);
     return {
       kind: 'leaf',
+      ...alignment,
       id: node.id,
       shape,
       label: node.label ?? shape.title,
@@ -321,7 +340,8 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
       const inside: Place = { inGroup: true, layer };
       const border = POSITIONS.flatMap((position): BorderChild[] => {
         const leaf = node.border?.[position];
-        const resolved = leaf && toLeaf(leaf, [...path, 'border', position], inside);
+        const resolved =
+          leaf && toLeaf(leaf, [...path, 'border', position], { ...inside, onBorder: true });
         return resolved ? [{ position, node: resolved }] : [];
       });
       const shape = catalog.group(node.group);
@@ -435,6 +455,45 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     };
   });
 
+  for (const [id, { target, path }] of alignments) {
+    if (!leaves.has(target))
+      problems.push(
+        source.problem(
+          path,
+          `align_with needs an icon or image id, but "${target}" is not one`,
+          'invalid-alignment',
+        ),
+      );
+    if (borderIds.has(id) || borderIds.has(target))
+      problems.push(
+        source.problem(
+          path,
+          'align_with works only on interior icons and images, not border children',
+          'invalid-alignment',
+        ),
+      );
+  }
+  const visited = new Set<string>();
+  const active = new Set<string>();
+  const visitAlignment = (id: string): void => {
+    const alignment = alignments.get(id);
+    if (!alignment || visited.has(id)) return;
+    if (active.has(id)) {
+      problems.push(
+        source.problem(
+          alignment.path,
+          `align_with has a circular reference involving "${id}"`,
+          'invalid-alignment',
+        ),
+      );
+      return;
+    }
+    active.add(id);
+    visitAlignment(alignment.target);
+    active.delete(id);
+    visited.add(id);
+  };
+  for (const id of alignments.keys()) visitAlignment(id);
   if (problems.length > 0) throw new DiagramError(problems);
   return { title: input.title ?? 'Diagram', layers, root, links };
 }

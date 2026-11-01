@@ -2142,6 +2142,36 @@
             "number"
           ]
         },
+        "align_with": {
+          "description": "Align centers with another interior icon or image. An id chooses the cross axis of the common container; {id, axis: x|y} chooses it explicitly.",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "y"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "axis"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
         "layer": {
           "description": "Layer from layers to draw this node and everything in it on. Only outside groups, whose children share their layer.",
           "type": "string"
@@ -2171,6 +2201,36 @@
           "type": [
             "string",
             "number"
+          ]
+        },
+        "align_with": {
+          "description": "Align centers with another interior icon or image. An id chooses the cross axis of the common container; {id, axis: x|y} chooses it explicitly.",
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9_-]*$"
+                },
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "x",
+                    "y"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "axis"
+              ],
+              "additionalProperties": false
+            }
           ]
         },
         "layer": {

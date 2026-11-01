@@ -2,6 +2,7 @@ import type { Shape } from './catalog.ts';
 import type { DiagramNode, Direction, EmptyNode, GroupNode, LeafNode, StackNode } from './model.ts';
 import { POSITION_POINTS, sideOf } from './position.ts';
 import { LINE_HEIGHT, labelSize } from './text.ts';
+import { alignDiagram, type AlignmentPadding } from './alignment.ts';
 
 export const ICON_SIZE = 48;
 export const LABEL_GAP = 4;
@@ -45,6 +46,10 @@ export interface Layout {
 }
 
 export function layoutDiagram(root: StackNode): Layout {
+  return alignDiagram(root, (padding) => layoutBase(root, padding));
+}
+
+function layoutBase(root: StackNode, alignment: Map<LeafNode, AlignmentPadding>): Layout {
   const sizes = new Map<DiagramNode, Size>();
   const frames = new Map<GroupNode, Frame>();
   const cells = new Map<LeafNode | GroupNode, Rect>();
@@ -102,7 +107,10 @@ export function layoutDiagram(root: StackNode): Layout {
   // How far right of a node's left edge its leftmost icon can start. Children of a vertical stack
   // are taken as flush left, which can only overestimate the padding clear_label needs.
   const iconInset = (node: DiagramNode): number => {
-    if (node.kind === 'leaf' || node.kind === 'empty') return (measure(node).width - ICON_SIZE) / 2;
+    if (node.kind === 'leaf' || node.kind === 'empty') {
+      const padding = node.kind === 'leaf' ? alignment.get(node) : undefined;
+      return (measure(node).width - ICON_SIZE + (padding?.left ?? 0) - (padding?.right ?? 0)) / 2;
+    }
     const inner = contentInset(node);
     if (node.kind === 'stack') return inner;
     const { outside, padding } = frameOf(node);
@@ -122,9 +130,18 @@ export function layoutDiagram(root: StackNode): Layout {
     let size: Size;
     if (node.kind === 'leaf') {
       const label = labelSize(node.label);
+      const padding = alignment.get(node);
       size = {
-        width: columnWidths.get(node) ?? leafWidth(node),
-        height: ICON_SIZE + (label.height > 0 ? LABEL_GAP + label.height : 0) + LEAF_PADDING_BOTTOM,
+        width:
+          (columnWidths.get(node) ?? leafWidth(node)) +
+          (padding?.left ?? 0) +
+          (padding?.right ?? 0),
+        height:
+          ICON_SIZE +
+          (label.height > 0 ? LABEL_GAP + label.height : 0) +
+          LEAF_PADDING_BOTTOM +
+          (padding?.top ?? 0) +
+          (padding?.bottom ?? 0),
       };
     } else if (node.kind === 'empty') {
       size = {
@@ -160,7 +177,16 @@ export function layoutDiagram(root: StackNode): Layout {
   const place = (node: DiagramNode, box: Rect): void => {
     if (node.kind === 'empty') return;
     if (node.kind === 'leaf') {
-      cells.set(node, iconAt(node.shape, box.x + box.width / 2, box.y + ICON_SIZE / 2));
+      const padding = alignment.get(node);
+      const offset = ((padding?.left ?? 0) - (padding?.right ?? 0)) / 2;
+      cells.set(
+        node,
+        iconAt(
+          node.shape,
+          box.x + box.width / 2 + offset,
+          box.y + ICON_SIZE / 2 + (padding?.top ?? 0),
+        ),
+      );
       return;
     }
     if (node.kind === 'stack') {
