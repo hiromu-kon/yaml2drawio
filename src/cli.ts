@@ -9,6 +9,8 @@ import { toDrawio } from './drawio.ts';
 import { layoutDiagram } from './layout.ts';
 import { DiagramError, formatProblem, loadDiagram } from './load.ts';
 import { exportPng } from './png.ts';
+import { protectInputs } from './output.ts';
+import type { DiagramNode } from './model.ts';
 
 const USAGE = `yaml2drawio: describe infrastructure diagrams in YAML and get a laid-out draw.io file
 
@@ -57,6 +59,19 @@ async function build(input: string): Promise<void> {
   const output = values.output ?? input.replace(/\.ya?ml$/, '') + '.drawio';
   const diagram = loadDiagram(await readFile(input, 'utf8'), loadCatalog(), dirname(input));
   const layout = layoutDiagram(diagram.root);
+  const images: string[] = [];
+  const visit = (node: DiagramNode): void => {
+    if (node.kind === 'empty') return;
+    if (node.kind === 'leaf') {
+      if (node.shape.sourcePath) images.push(node.shape.sourcePath);
+      return;
+    }
+    for (const child of node.children) visit(child);
+    if (node.kind === 'group') for (const child of node.border) visit(child.node);
+  };
+  visit(diagram.root);
+  const pngOutput = output.replace(/\.drawio$/, '') + '.png';
+  await protectInputs([input, ...images], values.png ? [output, pngOutput] : [output]);
   await mkdir(dirname(output), { recursive: true });
   await writeFile(output, toDrawio(diagram, layout));
   console.log(`wrote ${output}`);
@@ -73,6 +88,7 @@ async function build(input: string): Promise<void> {
   if (values.strict && crossings.length > 0) process.exitCode = 1;
   if (values.png) {
     const png = output.replace(/\.drawio$/, '') + '.png';
+    await protectInputs([output], [png]);
     await exportPng(output, png);
     console.log(`wrote ${png}`);
   }
