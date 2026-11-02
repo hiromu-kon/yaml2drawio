@@ -52,12 +52,16 @@ npx yaml2drawio build diagram.yaml          # writes diagram.drawio
 npx yaml2drawio build diagram.yaml --png    # also renders diagram.png with draw.io Desktop
 npx yaml2drawio build diagram.yaml -o docs/architecture.drawio
 npx yaml2drawio build diagram.yaml --strict # exits with 1 if there are warnings
+npx yaml2drawio validate diagram.yaml --strict --fail-unchecked # checks without writing files
+npx yaml2drawio validate diagram.yaml --json # structured diagnostics for automation
 npx yaml2drawio icons redis                 # search icon names
 ```
 
 Errors point at the line and column to fix, for example `diagram.yaml:4:15: unknown key "icn" (did you mean "icon"?)`.
 Lines that would run over an icon or a label are reported as warnings at the link, for example `diagram.yaml:21:5: warning: link api.s -> db.n crosses the label of "Data 10.0.20.0/24"`. The file is still written; `--strict` makes the exit code 1 so CI and AI agents can loop until it is clean. draw.io routes the parts of a line between its bends, so the check predicts them and may miss some.
 If draw.io Desktop is not found, set `DRAWIO_CLI` to its executable.
+
+`validate` checks the same layout without changing output files. Add `--fail-unchecked` to fail on links without explicit endpoint sides, and `--json` for one report with diagnostic codes, locations and related ids. For icons in different groups, `align_with: other_id` aligns their centers across the layout direction (or choose `axis: x` / `axis: y`); see the [guide](docs/guide.md#alignment-across-groups).
 
 ### With an AI agent
 

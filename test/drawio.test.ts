@@ -31,6 +31,22 @@ const NESTED = [
 ].join('\n');
 
 describe('toDrawio', () => {
+  it('keeps internal ids separate from every valid user id', () => {
+    const xml = render(`layers: [Flow]
+nodes:
+  - group: aws.vpc
+    layer: Flow
+    children:
+      - {id: group-1, icon: aws.ecs}
+      - {id: link-1, icon: aws.ecs}
+      - {id: layer-1, icon: aws.ecs}
+links: [[group-1.e, link-1.w]]
+`);
+    const ids = [...xml.matchAll(/<mxCell id="([^"]+)"/g)].map((match) => match[1]);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(cellTag(xml, 'group-1')).toContain('parent=".group-1"');
+    expect(cellTag(xml, '.link-1')).toContain('source="group-1" target="link-1"');
+  });
   it('nests a cell under its group with coordinates relative to the group', () => {
     const diagram = load(NESTED);
     const layout = layoutDiagram(diagram.root);
@@ -57,7 +73,7 @@ describe('toDrawio', () => {
         '',
       ].join('\n'),
     );
-    expect(cellTag(xml, 'link-1')).toMatch(/entryX=0;entryY=0\.5;entryDx=0;entryDy=-8;/);
+    expect(cellTag(xml, '.link-1')).toMatch(/entryX=0;entryY=0\.5;entryDx=0;entryDy=-8;/);
   });
 
   it("draws a group's icon as a cell at its top left that does not move on its own", () => {
@@ -101,15 +117,15 @@ describe('toDrawio', () => {
     expect(xml).toContain(
       [
         '<mxCell id="1" parent="0" />',
-        '<mxCell id="layer-1" value="Cloud" parent="0" />',
-        '<mxCell id="layer-2" value="Flows" parent="0" />',
+        '<mxCell id=".layer-1" value="Cloud" parent="0" />',
+        '<mxCell id=".layer-2" value="Flows" parent="0" />',
       ].join('\n        '),
     );
     expect(cellTag(xml, 'users')).toContain('parent="1"');
-    expect(cellTag(xml, 'cloud')).toContain('parent="layer-1"');
+    expect(cellTag(xml, 'cloud')).toContain('parent=".layer-1"');
     expect(cellTag(xml, 'app')).toContain('parent="cloud"');
-    expect(cellTag(xml, 'link-1')).toContain('parent="layer-1"');
-    expect(cellTag(xml, 'link-2')).toContain('parent="layer-2"');
+    expect(cellTag(xml, '.link-1')).toContain('parent=".layer-1"');
+    expect(cellTag(xml, '.link-2')).toContain('parent=".layer-2"');
   });
 
   it('draws an image file next to the YAML file, keeping its proportions', () => {
@@ -133,11 +149,11 @@ describe('toDrawio', () => {
         '  - { id: b, icon: aws.sqs }',
         '  - { id: c, icon: aws.s3 }',
         'links:',
-        '  - { from: a.e, to: c.w, label: jobs }',
+        '  - { from: a.e, to: c.w, label: jobs, route: drawio }',
         '',
       ].join('\n'),
     );
-    expect(cellTag(xml, 'link-1')).toMatch(/<mxGeometry x="-?0\.\d+" relative="1"/);
+    expect(cellTag(xml, '.link-1')).toMatch(/<mxGeometry x="-?0\.\d+" relative="1"/);
   });
 
   it('uses the draw.io style from the icon catalog', () => {
@@ -145,14 +161,14 @@ describe('toDrawio', () => {
   });
 
   it('sets exit and entry points from link positions', () => {
-    const tag = cellTag(render(NESTED), 'link-2');
+    const tag = cellTag(render(NESTED), '.link-2');
     expect(tag).toContain('exitX=1;exitY=0.5;');
     expect(tag).toContain('entryX=0;entryY=0.5;');
     expect(tag).toContain('dashed=1');
   });
 
   it('starts a line leaving the bottom of an icon below its label', () => {
-    expect(cellTag(render(NESTED), 'link-1')).toContain('exitX=0.5;exitY=1;exitDx=0;exitDy=19;');
+    expect(cellTag(render(NESTED), '.link-1')).toContain('exitX=0.5;exitY=1;exitDx=0;exitDy=19;');
   });
 
   it('escapes labels', () => {
@@ -198,11 +214,11 @@ describe('toDrawio', () => {
     const subnet = [...layout.cells].find(([node]) => node.id === 'subnet')?.[1];
     if (!subnet) throw new Error('missing subnet');
     const xml = toDrawio(diagram, layout);
-    expect(cellTag(xml, 'link-1')).toMatch(new RegExp(`<mxPoint x="${subnet.x - 12}" `));
+    expect(cellTag(xml, '.link-1')).toMatch(new RegExp(`<mxPoint x="${subnet.x - 12}" `));
   });
 
   it('does not bend a line between leaves in the same group', () => {
-    expect(cellTag(render(ACROSS_GROUPS), 'link-2')).not.toContain('mxPoint');
+    expect(cellTag(render(ACROSS_GROUPS), '.link-2')).not.toContain('mxPoint');
   });
 
   it('puts the label of a border child on a left or right edge outside the group', () => {
@@ -220,7 +236,7 @@ describe('toDrawio', () => {
     );
     expect(cellTag(xml, 'endpoint')).toContain('labelPosition=right;');
     // the label is beside the icon, so a line from the bottom starts right at the icon
-    expect(cellTag(xml, 'link-1')).toContain('exitY=1;exitDx=0;exitDy=0;');
+    expect(cellTag(xml, '.link-1')).toContain('exitY=1;exitDx=0;exitDy=0;');
   });
 
   it('produces the same file for the same input', () => {
@@ -242,9 +258,9 @@ describe('toDrawio', () => {
     // A 48x14 router sits 17px above the bottom of its 48px square; the label drops by as much
     expect(cellTag(xml, 'router')).toContain('spacingTop=17;');
     // draw.io would move the port back onto the outline of the icon without exitPerimeter=0
-    expect(cellTag(xml, 'link-1')).toContain(`exitDy=${17 + 15 + 4};exitPerimeter=0;`);
+    expect(cellTag(xml, '.link-1')).toContain(`exitDy=${17 + 15 + 4};exitPerimeter=0;`);
     // Off the outline, draw.io needs to be told the line leaves downward
-    expect(cellTag(xml, 'link-1')).toContain('sourcePortConstraint=south;');
+    expect(cellTag(xml, '.link-1')).toContain('sourcePortConstraint=south;');
   });
 
   it('keeps icons of different widths stacked in a column on one center line', () => {

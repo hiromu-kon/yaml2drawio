@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findCrossings, linkText } from '../src/crossings.ts';
+import { findCrossings, linkText, placeLinkLabels } from '../src/crossings.ts';
 import { layoutDiagram } from '../src/layout.ts';
 import { formatProblem } from '../src/load.ts';
 import { load } from './helpers.ts';
@@ -12,6 +12,52 @@ function crossingsOf(...lines: string[]): string[] {
 }
 
 describe('findCrossings', () => {
+  it('moves branch labels away from earlier link labels', () => {
+    const diagram = load(`direction: vertical
+nodes:
+  - {id: gateway, icon: aws.alb}
+  - row:
+      - {id: api, icon: aws.ecs}
+      - {id: worker, icon: aws.ecs}
+links:
+  - {from: gateway.s, to: api.n, label: Requests to API}
+  - {from: gateway.s, to: worker.n, label: Requests to background worker}
+`);
+    const layout = layoutDiagram(diagram.root);
+    const places = [...placeLinkLabels(diagram, layout).values()];
+    expect(places[0]?.position).toBe(0);
+    expect(places[1]?.position).not.toBe(0);
+    expect(findCrossings(diagram, layout).crossings).toEqual([]);
+  });
+
+  it('reports the other link when two labels cannot fit apart', () => {
+    const diagram = load(`nodes:
+  - {id: a, icon: aws.ecs}
+  - {id: b, icon: aws.ecs}
+links:
+  - {from: a.e, to: b.w, label: First very long label that cannot fit anywhere along the line}
+  - {from: a.e, to: b.w, label: Second very long label that cannot fit anywhere along the line}
+`);
+    expect(findCrossings(diagram, layoutDiagram(diagram.root)).crossings).toContainEqual(
+      expect.objectContaining({ code: 'label-overlap', linkId: 'link-2', relatedId: 'link-1' }),
+    );
+  });
+
+  it('does not treat opposite arrow directions as one branch', () => {
+    expect(
+      crossingsOf(
+        'direction: vertical',
+        'nodes:',
+        '  - {id: a, icon: aws.ecs}',
+        '  - row:',
+        '      - {id: b, icon: aws.ecs}',
+        '      - {id: c, icon: aws.ecs}',
+        'links:',
+        '  - {from: a.s, to: b.n, arrow: end}',
+        '  - {from: a.s, to: c.n, arrow: start}',
+      ).join('\n'),
+    ).toContain('runs along link');
+  });
   it('passes a line from above into the side of an icon, which turns before the labels', () => {
     expect(
       crossingsOf(
@@ -91,7 +137,7 @@ describe('findCrossings', () => {
         '  - { id: b, icon: aws.sqs }',
         '  - { id: c, icon: aws.s3 }',
         'links:',
-        '  - [a.e, c.w]',
+        '  - { from: a.e, to: c.w, route: drawio }',
       ),
     ).toEqual(['6:5: link a.e -> c.w crosses the icon of "b"']);
   });
@@ -155,7 +201,7 @@ describe('findCrossings', () => {
         '    id: vpc',
         '    children: [{ id: api, icon: aws.ecs }]',
         'links:',
-        '  - [office.e, vpc.w]',
+        '  - { from: office.e, to: vpc.w, route: drawio }',
       ),
     ).toEqual(['8:5: link office.e -> vpc.w crosses the icon of "router"']);
   });

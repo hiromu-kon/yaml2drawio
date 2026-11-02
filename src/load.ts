@@ -27,6 +27,9 @@ import { closestMatch } from './suggest.ts';
 
 export interface Problem extends Partial<SourceLocation> {
   message: string;
+  code?: string;
+  linkId?: string;
+  relatedId?: string;
 }
 
 export class DiagramError extends Error {
@@ -61,8 +64,8 @@ class Source {
     this.#lines = lines;
   }
 
-  problem(path: Path, message: string): Problem {
-    return { message, ...this.locate(path) };
+  problem(path: Path, message: string, code = 'invalid-input'): Problem {
+    return { message, code, ...this.locate(path) };
   }
 
   /** Points at a key rather than its value, for problems about the key itself. */
@@ -71,7 +74,7 @@ class Source {
     if (isMap(parent)) {
       const pair = parent.items.find((item) => isScalar(item.key) && item.key.value === key);
       if (pair && isNode(pair.key) && pair.key.range)
-        return { message, ...this.#at(pair.key.range[0]) };
+        return { message, code: 'unknown-key', ...this.#at(pair.key.range[0]) };
     }
     return this.problem([...path, key], message);
   }
@@ -97,7 +100,7 @@ export function loadDiagram(text: string, catalog: Catalog, baseDir = '.'): Diag
     throw new DiagramError(
       document.errors.map((error) => {
         const { line, col } = lines.linePos(error.pos[0]);
-        return { message: error.message, line, column: col };
+        return { message: error.message, code: 'invalid-yaml', line, column: col };
       }),
     );
   }
@@ -147,6 +150,9 @@ function describeUnion(
   source: Source,
 ): Problem[] {
   const value = valueAt(data, path);
+  if (path.at(-1) === 'align_with') {
+    return describeIssues(branches[isRecord(value) ? 1 : 0] ?? [], path, data, source);
+  }
   if (path[0] === 'links' && path.length === 2) {
     return describeIssues(branches[Array.isArray(value) ? 0 : 1] ?? [], path, data, source);
   }
@@ -200,12 +206,16 @@ function valueAt(data: unknown, path: Path): unknown {
 interface Place {
   inGroup: boolean;
   layer: string | undefined;
+  onBorder?: boolean;
 }
 
 function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir: string): Diagram {
   const problems: Problem[] = [];
   const ids = new Map<string, Problem>();
   let groupCount = 0;
+  const leaves = new Set<string>();
+  const borderIds = new Set<string>();
+  const alignments = new Map<string, { target: string; path: Path }>();
 
   const layers = input.layers ?? [];
   for (const [index, name] of layers.entries()) {
@@ -252,13 +262,13 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     }
     const where =
       first.line === undefined ? '' : ` (first defined at ${first.line}:${first.column})`;
-    problems.push(source.problem(path, `duplicate id "${id}"${where}`));
+    problems.push(source.problem(path, `duplicate id "${id}"${where}`, 'duplicate-id'));
   };
 
   const unknown = (kind: 'icon' | 'group', key: string, path: Path): undefined => {
     const suggestions = catalog.suggest(key, kind);
     const hint = suggestions.length > 0 ? ` (did you mean ${suggestions.join(', ')}?)` : '';
-    problems.push(source.problem(path, `unknown ${kind} "${key}"${hint}`));
+    problems.push(source.problem(path, `unknown ${kind} "${key}"${hint}`, `unknown-${kind}`));
     return undefined;
   };
 
@@ -266,7 +276,13 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     try {
       return readImage(image, baseDir);
     } catch (error) {
-      problems.push(source.problem(path, error instanceof Error ? error.message : String(error)));
+      problems.push(
+        source.problem(
+          path,
+          error instanceof Error ? error.message : String(error),
+          'invalid-image',
+        ),
+      );
       return undefined;
     }
   };
@@ -277,6 +293,16 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     place: Place,
   ): LeafNode | undefined => {
     claimId(node.id, [...path, 'id']);
+    leaves.add(node.id);
+    if (place.onBorder) borderIds.add(node.id);
+    const alignWith = typeof node.align_with === 'string' ? node.align_with : node.align_with?.id;
+    if (alignWith !== undefined)
+      alignments.set(node.id, { target: alignWith, path: [...path, 'align_with'] });
+    const alignment = {
+      alignWith,
+      alignAxis: typeof node.align_with === 'string' ? undefined : node.align_with?.axis,
+      alignLocation: source.locate([...path, 'align_with']),
+    };
     const layer = layerOf(node, path, place);
     nodeLayers.set(node.id, layer);
     if ('image' in node) {
@@ -284,6 +310,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
       if (!shape) return undefined;
       return {
         kind: 'leaf',
+        ...alignment,
         id: node.id,
         shape,
         label: node.label ?? shape.title,
@@ -294,6 +321,7 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     if (!shape) return unknown('icon', node.icon, [...path, 'icon']);
     return {
       kind: 'leaf',
+      ...alignment,
       id: node.id,
       shape,
       label: node.label ?? shape.title,
@@ -305,14 +333,15 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     if ('icon' in node || 'image' in node) return toLeaf(node, path, place);
     if ('empty' in node) return { kind: 'empty' };
     if ('group' in node) {
-      const id = node.id ?? `group-${++groupCount}`;
+      const id = node.id ?? `.group-${++groupCount}`;
       if (node.id !== undefined) claimId(id, [...path, 'id']);
       const layer = layerOf(node, path, place);
       nodeLayers.set(id, layer);
       const inside: Place = { inGroup: true, layer };
       const border = POSITIONS.flatMap((position): BorderChild[] => {
         const leaf = node.border?.[position];
-        const resolved = leaf && toLeaf(leaf, [...path, 'border', position], inside);
+        const resolved =
+          leaf && toLeaf(leaf, [...path, 'border', position], { ...inside, onBorder: true });
         return resolved ? [{ position, node: resolved }] : [];
       });
       const shape = catalog.group(node.group);
@@ -365,7 +394,12 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
 
   const toEndpoint = (text: string, path: Path): Endpoint => {
     const [id = '', position] = text.split('.');
-    if (!ids.has(id)) problems.push(source.problem(path, `unknown id "${id}" in link "${text}"`));
+    if (!ids.has(id))
+      problems.push({
+        ...source.problem(path, `unknown id "${id}" in link "${text}"`, 'unknown-id'),
+        linkId: `link-${Number(path[1]) + 1}`,
+        relatedId: id,
+      });
     return { id, position: POSITIONS.find((p): p is Position => p === position) };
   };
 
@@ -421,6 +455,45 @@ function resolve(input: DocumentInput, catalog: Catalog, source: Source, baseDir
     };
   });
 
+  for (const [id, { target, path }] of alignments) {
+    if (!leaves.has(target))
+      problems.push(
+        source.problem(
+          path,
+          `align_with needs an icon or image id, but "${target}" is not one`,
+          'invalid-alignment',
+        ),
+      );
+    if (borderIds.has(id) || borderIds.has(target))
+      problems.push(
+        source.problem(
+          path,
+          'align_with works only on interior icons and images, not border children',
+          'invalid-alignment',
+        ),
+      );
+  }
+  const visited = new Set<string>();
+  const active = new Set<string>();
+  const visitAlignment = (id: string): void => {
+    const alignment = alignments.get(id);
+    if (!alignment || visited.has(id)) return;
+    if (active.has(id)) {
+      problems.push(
+        source.problem(
+          alignment.path,
+          `align_with has a circular reference involving "${id}"`,
+          'invalid-alignment',
+        ),
+      );
+      return;
+    }
+    active.add(id);
+    visitAlignment(alignment.target);
+    active.delete(id);
+    visited.add(id);
+  };
+  for (const id of alignments.keys()) visitAlignment(id);
   if (problems.length > 0) throw new DiagramError(problems);
   return { title: input.title ?? 'Diagram', layers, root, links };
 }

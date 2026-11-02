@@ -26,6 +26,7 @@ const Id = z
     /^[A-Za-z][A-Za-z0-9_-]*$/,
     'id must start with a letter and contain only letters, digits, "_" or "-"',
   );
+const Alignment = z.union([Id, z.strictObject({ id: Id, axis: z.enum(['x', 'y']) })]);
 // YAML reads a bare 8080 or 1.0 as a number, which is still meant as text on the diagram
 const Label = z.union([z.string(), z.number().transform(String)]);
 const Direction = z.enum(['vertical', 'horizontal']);
@@ -44,6 +45,9 @@ const LeafSchema = z
       .string()
       .describe('Icon from the catalog, such as aws.ecs. Search with `yaml2drawio icons <word>`.'),
     label: Label.optional().describe("Text under the icon. Defaults to the icon's title."),
+    align_with: Alignment.optional().describe(
+      'Align centers with another interior icon or image. An id chooses the cross axis of the common container; {id, axis: x|y} chooses it explicitly.',
+    ),
     layer: z.string().optional().describe(describeLayer),
   })
   .meta({ id: 'Leaf', description: 'An icon.' });
@@ -59,6 +63,9 @@ const ImageLeafSchema = z
         'SVG or PNG file to draw instead of a catalog icon, relative to the YAML file. It is embedded in the draw.io file.',
       ),
     label: Label.optional().describe('Text under the image. Defaults to the file name.'),
+    align_with: Alignment.optional().describe(
+      'Align centers with another interior icon or image. An id chooses the cross axis of the common container; {id, axis: x|y} chooses it explicitly.',
+    ),
     layer: z.string().optional().describe(describeLayer),
   })
   .meta({ id: 'ImageLeaf', description: 'An icon drawn from an image file.' });
@@ -240,6 +247,7 @@ export type DocumentInput = z.infer<typeof DocumentSchema>;
 
 /** Every key the schema accepts anywhere, used to suggest a fix for a misspelled key. */
 export const KNOWN_KEYS: ReadonlySet<string> = new Set([
+  'axis',
   ...NODE_BRANCHES.flatMap((branch) => branch.keys),
   ...Object.keys(LinkObject.shape),
   ...Object.keys(DocumentSchema.shape),

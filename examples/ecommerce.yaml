@@ -136,7 +136,12 @@ nodes:
               - group: aws.region
                 label: ap-northeast-3 (Osaka) - DR
                 children:
-                  - { id: replica, icon: aws.s3, label: Upload replica }
+                  - {
+                      id: replica,
+                      icon: aws.s3,
+                      label: Upload replica,
+                      align_with: { id: uploads, axis: y },
+                    }
                   - group: aws.vpc
                     label: DR VPC
                     direction: vertical

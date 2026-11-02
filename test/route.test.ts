@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { findCrossings } from '../src/crossings.ts';
 import { GROUP_PADDING, layoutDiagram, type Layout, type Rect } from '../src/layout.ts';
 import type { Diagram, Link } from '../src/model.ts';
 import { bendPoints, levelShift, predictPath, routeContext } from '../src/route.ts';
@@ -21,6 +22,20 @@ function bendsOf(diagram: Diagram, layout: Layout, index: number) {
 }
 
 describe('bendPoints', () => {
+  it('keeps a vertical detour clear of both a middle icon and its wide label', () => {
+    const { diagram, layout } = setUp(
+      'direction: vertical\nnodes:\n  - {id: a, icon: aws.ecs}\n  - {id: b, icon: aws.sqs, label: An unusually long queue label}\n  - {id: c, icon: aws.ecs}\nlinks: [[a.s, c.n]]\n',
+    );
+    expect(bendsOf(diagram, layout, 0).length).toBeGreaterThan(0);
+    expect(findCrossings(diagram, layout).crossings).toEqual([]);
+  });
+  it('routes around an icon between two facing ports without changing the ports', () => {
+    const { diagram, layout } = setUp(
+      'nodes:\n  - {id: a, icon: aws.ecs}\n  - {id: b, icon: aws.ecs}\n  - {id: c, icon: aws.ecs}\nlinks: [[a.e, c.w]]\n',
+    );
+    expect(bendsOf(diagram, layout, 0).length).toBeGreaterThan(0);
+    expect(findCrossings(diagram, layout).crossings).toEqual([]);
+  });
   it('turns a downward line in the gap just below the group it leaves', () => {
     const { diagram, layout, rect } = setUp(
       [
@@ -182,8 +197,10 @@ describe('bendPoints', () => {
         '  - { id: users, icon: general.users }',
         '  - row:',
         '      - group: general.generic',
+        '        label: ""',
         '        children: [{ id: router, icon: network.router }]',
         '      - group: general.generic',
+        '        label: ""',
         '        children: [{ id: db, icon: general.database }]',
         'links:',
         '  - [users.s, router.n]',
@@ -206,6 +223,7 @@ describe('bendPoints', () => {
         '      - { id: web, icon: general.users }',
         '      - { id: mobile, icon: general.mobile }',
         '  - group: general.generic',
+        '    label: ""',
         '    children:',
         '      - { id: a, icon: aws.route_53 }',
         '      - { id: b, icon: aws.cognito }',

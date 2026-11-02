@@ -23,7 +23,7 @@
 
 ## EC サイト
 
-東京のメインリージョンと大阪の DR リージョンの構成です。VPC の外のサービス、長さの違う行をそろえる空きスロット、線のラベルも使っています。
+東京のメインリージョンと大阪の DR リージョンの構成です。VPC の外のサービス、長さの違う行をそろえる空きスロット、リージョンをまたいでバケットの高さをそろえる `align_with`、線のラベルも使っています。
 
 <a href="../docs/images/ecommerce.png"><img src="../docs/images/ecommerce.png" alt="AWS の 2 つのリージョンにまたがる EC サイト"></a>
 
@@ -44,3 +44,11 @@ Google Cloud・Azure・Kubernetes のグループ（プロジェクト、サブ�
 <a href="../docs/images/provider-groups.png"><img src="../docs/images/provider-groups.png" alt="Google Cloud・Azure・Kubernetes のグループ"></a>
 
 [provider-groups.yaml](provider-groups.yaml) · [provider-groups.drawio](../docs/images/provider-groups.drawio)
+
+## グループをまたぐ位置合わせ
+
+拠点ごとにアイコンの数が違っても、`align_with` で復旧先のデータベースを元のデータベースの真下にそろえられます。
+
+<a href="../docs/images/alignment.png"><img src="../docs/images/alignment.png" alt="異なるグループにある元のデータベースと復旧先のデータベースを縦にそろえた図" width="360"></a>
+
+[alignment.yaml](alignment.yaml) · [alignment.drawio](../docs/images/alignment.drawio)

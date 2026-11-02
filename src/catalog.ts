@@ -14,6 +14,8 @@ export interface Shape {
   height: number;
   /** Style of the icon at the top left of a group, drawn as a cell of its own. */
   badge?: string;
+  /** Original local file for an embedded image, protected from output overwrites. */
+  sourcePath?: string;
 }
 
 const ShapeEntrySchema = z.object({

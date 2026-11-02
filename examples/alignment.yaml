@@ -1,0 +1,14 @@
+title: Alignment across groups
+direction: vertical
+nodes:
+  - group: general.generic
+    label: Primary site
+    children:
+      - { id: api, icon: general.application, label: API }
+      - { id: uploads, icon: general.database, label: User uploads }
+  - group: general.generic
+    label: Recovery site
+    children:
+      - { id: replica, icon: general.database, label: Upload replica, align_with: uploads }
+links:
+  - { from: uploads.s, to: replica.n, label: Replication }
