@@ -28,7 +28,12 @@ const Id = z
   );
 const Alignment = z.union([Id, z.strictObject({ id: Id, axis: z.enum(['x', 'y']) })]);
 // YAML reads a bare 8080 or 1.0 as a number, which is still meant as text on the diagram
-const Label = z.union([z.string(), z.number().transform(String)]);
+const Text = z.string().regex(
+  // oxlint-disable-next-line no-control-regex -- XML text must reject forbidden control characters.
+  /^[\u0009\u000A\u000D\u0020-\uD7FF\uE000-\uFFFD\u{10000}-\u{10FFFF}]*$/u,
+  'text must contain only valid XML characters',
+);
+const Label = z.union([Text, z.number().transform(String)]);
 const Direction = z.enum(['vertical', 'horizontal']);
 const Align = z.enum(['start', 'center', 'end', 'expand']);
 
@@ -57,11 +62,9 @@ export type LeafInput = z.infer<typeof LeafSchema>;
 const ImageLeafSchema = z
   .strictObject({
     id: Id.describe('Unique id, used by links.'),
-    image: z
-      .string()
-      .describe(
-        'SVG or PNG file to draw instead of a catalog icon, relative to the YAML file. It is embedded in the draw.io file.',
-      ),
+    image: Text.describe(
+      'SVG or PNG file to draw instead of a catalog icon, relative to the YAML file. It is embedded in the draw.io file.',
+    ),
     label: Label.optional().describe('Text under the image. Defaults to the file name.'),
     align_with: Alignment.optional().describe(
       'Align centers with another interior icon or image. An id chooses the cross axis of the common container; {id, axis: x|y} chooses it explicitly.',
@@ -213,7 +216,7 @@ const LinkObject = z.strictObject({
     .enum(['auto', 'drawio'])
     .optional()
     .describe(
-      'auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io. Defaults to auto.',
+      'auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io and is unchecked. Defaults to auto.',
     ),
   layer: z
     .string()
@@ -230,10 +233,10 @@ const LinkSchema = z
 
 export const DocumentSchema = z
   .strictObject({
-    title: z.string().optional().describe('Name of the draw.io page.'),
+    title: Text.optional().describe('Name of the draw.io page.'),
     direction: Direction.optional().describe(describeDirection),
     layers: z
-      .array(z.string().min(1))
+      .array(Text.min(1))
       .optional()
       .describe(
         'draw.io layers to split the diagram into, bottom first, above the Background layer that holds everything without a layer.',
