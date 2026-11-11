@@ -18,6 +18,7 @@ Copy this checklist and work through it:
 - [ ] Decide what to draw (see below)
 - [ ] Look up every icon and group name with npx yaml2drawio icons <word>
 - [ ] Write diagram.yaml
+- [ ] Use explicit endpoint sides and `route: auto` (the default) for checked paths; `route: drawio` is unchecked
 - [ ] Run npx yaml2drawio validate diagram.yaml --strict --fail-unchecked until it exits with 0 (add --json for structured diagnostics)
 - [ ] Build the diagram with npx yaml2drawio build diagram.yaml --strict --fail-unchecked
 - [ ] If draw.io Desktop is installed, add --png and look at the image
