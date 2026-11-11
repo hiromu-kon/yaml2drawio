@@ -259,7 +259,9 @@ describe('bendPoints', () => {
     // api sits left of the ALB, so bending outside the subnet would turn the line back
     const { diagram, layout, rect } = setUp(UNDER_THE_SOURCE);
     expect(rect('api').x).toBeLessThan(rect('alb').x);
-    expect(bendsOf(diagram, layout, 0)).toEqual([]);
+    expect(bendsOf(diagram, layout, 0)[0]?.x).toBeGreaterThanOrEqual(
+      rect('alb').x + rect('alb').width,
+    );
   });
 
   it('leaves the whole route to draw.io with route: drawio', () => {

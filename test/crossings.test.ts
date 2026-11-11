@@ -129,7 +129,7 @@ links:
     ).toEqual([]);
   });
 
-  it('reports a line over an icon between its ends', () => {
+  it('routes around an icon between its ends', () => {
     expect(
       crossingsOf(
         'nodes:',
@@ -137,9 +137,9 @@ links:
         '  - { id: b, icon: aws.sqs }',
         '  - { id: c, icon: aws.s3 }',
         'links:',
-        '  - { from: a.e, to: c.w, route: drawio }',
+        '  - { from: a.e, to: c.w }',
       ),
-    ).toEqual(['6:5: link a.e -> c.w crosses the icon of "b"']);
+    ).toEqual([]);
   });
 
   const LABELED_PAIR = [
@@ -154,11 +154,9 @@ links:
     expect(crossingsOf(...LABELED_PAIR, '  - [a.s, b.n]')).toEqual([]);
   });
 
-  it('reports a line that runs through the label of an icon at its own end', () => {
-    // The label is wider than the icon, so a line coming back to its side runs through it
-    expect(crossingsOf(...LABELED_PAIR, '  - [b.e, a.e]')).toEqual([
-      '6:5: link b.e -> a.e crosses the label of "a"',
-    ]);
+  it('routes clear of the label at its own endpoint', () => {
+    // Returning to a side used to send the native implicit bend through the wide label.
+    expect(crossingsOf(...LABELED_PAIR, '  - [b.e, a.e]')).toEqual([]);
   });
 
   it('reports an end at a corner, where draw.io may start the line along either edge', () => {
@@ -201,9 +199,9 @@ links:
         '    id: vpc',
         '    children: [{ id: api, icon: aws.ecs }]',
         'links:',
-        '  - { from: office.e, to: vpc.w, route: drawio }',
+        '  - { from: office.e, to: vpc.w }',
       ),
-    ).toEqual(['8:5: link office.e -> vpc.w crosses the icon of "router"']);
+    ).toEqual([]);
   });
 
   it('reports lines from different icons that join into one point, at the later link', () => {
@@ -298,8 +296,8 @@ links:
 
   it.each([
     ['auto', []],
-    ['drawio', ['11:5: link a.s -> c.s crosses the label of "b"']],
-  ])('follows the route draw.io takes with route: %s', (route, expected) => {
+    ['drawio', []],
+  ])('does not invent crossings for route: %s', (route, expected) => {
     expect(
       crossingsOf(
         'nodes:',

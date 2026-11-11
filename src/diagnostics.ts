@@ -18,7 +18,10 @@ export function diagnose(diagram: Diagram, layout: Layout, failUnchecked: boolea
       code: 'unchecked-link',
       severity: failUnchecked ? 'warning' : 'note',
       linkId: link.id,
-      message: `link ${linkText(link)} is not checked for crossings; give both ends a side, such as alb.s`,
+      message:
+        link.route === 'drawio'
+          ? `link ${linkText(link)} uses native draw.io routing and is not checked for crossings; use route: auto to check it`
+          : `link ${linkText(link)} is not checked for crossings; give both ends a side, such as alb.s`,
       ...link.location,
     });
   return diagnostics;

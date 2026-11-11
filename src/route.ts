@@ -1,7 +1,7 @@
 import { GROUP_PADDING, labelBelow, type Layout, type Rect } from './layout.ts';
 import type { DiagramNode, Direction, Endpoint, GroupNode, LeafNode, Link } from './model.ts';
 import { POSITION_POINTS, sideOf, type Side } from './position.ts';
-import { crosses, isOwnIcon, obstaclesOf, type Obstacle } from './obstacles.ts';
+import { crosses, obstaclesOf, type Obstacle } from './obstacles.ts';
 
 export interface Point {
   x: number;
@@ -103,7 +103,7 @@ function placedBends(context: RouteContext): Map<Link, Point[]> {
 // Keep the existing rule order for ties, but prefer routes clear of icons, labels and earlier lines.
 function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[] {
   if (link.route === 'drawio') return [];
-  const options = [sideEntry, leaveGroup, fanOut, sameSideLoop]
+  const options = [selfLoop, sideEntry, leaveGroup, fanOut, sameSideLoop]
     .flatMap((rule) => rule(link, context))
     .filter((option) => leavesForward(link, option, context));
   options.push([]);
@@ -111,9 +111,8 @@ function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[
     const path = predictPath(link, context, bends);
     if (!path) return [0, 0, 0];
     const segments = segmentsOf(path);
-    const hits = context.obstacles.filter(
-      (obstacle) =>
-        !isOwnIcon(obstacle, link) && segments.some(([a, b]) => crosses(a, b, obstacle.rect)),
+    const hits = context.obstacles.filter((obstacle) =>
+      segments.some(([a, b]) => crosses(a, b, obstacle.rect)),
     );
     return [
       hits.filter((hit) => hit.part === 'icon').length,
@@ -125,10 +124,8 @@ function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[
   const path = predictPath(link, context, initial);
   const hits =
     path &&
-    context.obstacles.filter(
-      (obstacle) =>
-        !isOwnIcon(obstacle, link) &&
-        segmentsOf(path).some(([a, b]) => crosses(a, b, obstacle.rect)),
+    context.obstacles.filter((obstacle) =>
+      segmentsOf(path).some(([a, b]) => crosses(a, b, obstacle.rect)),
     );
   if (hits?.length) options.push(...detours(link, context, hits));
   return (
@@ -144,42 +141,86 @@ function chooseBends(link: Link, context: RouteContext, lines: Placed[]): Point[
   );
 }
 
-// Facing sides can take a lane around an obstruction while keeping both chosen ports.
+// Candidate lanes surround obstacles for every pair of endpoint directions, including
+// opposite sides on vertically/horizontally stacked icons. End gates keep each port's direction.
 function detours(link: Link, context: RouteContext, obstacles: Obstacle[]): Point[][] {
-  const start = departure(context, link);
-  const end = arrival(context, link);
-  const exit = link.from.position && sideOf(link.from.position);
-  const entry = link.to.position && sideOf(link.to.position);
-  if (!start || !end) return [];
-  const horizontal =
-    (exit === 'right' && entry === 'left' && start.x < end.x) ||
-    (exit === 'left' && entry === 'right' && start.x > end.x);
-  const vertical =
-    (exit === 'bottom' && entry === 'top' && start.y < end.y) ||
-    (exit === 'top' && entry === 'bottom' && start.y > end.y);
-  if (!horizontal && !vertical) return [];
-  const distance = horizontal ? end.x - start.x : end.y - start.y;
-  const step = Math.sign(distance) * Math.min(JETTY, Math.abs(distance) / 3);
-  const lanes = obstacles.flatMap(({ rect }) =>
-    horizontal
-      ? [rect.y - GAP, rect.y + rect.height + GAP]
-      : [rect.x - GAP, rect.x + rect.width + GAP],
-  );
-  return lanes.map((lane) =>
-    horizontal
-      ? [
-          { x: start.x + step, y: start.y },
-          { x: start.x + step, y: lane },
-          { x: end.x - step, y: lane },
-          { x: end.x - step, y: end.y },
-        ]
-      : [
-          { x: start.x, y: start.y + step },
-          { x: lane, y: start.y + step },
-          { x: lane, y: end.y - step },
-          { x: end.x, y: end.y - step },
-        ],
-  );
+  const start = departure(context, link),
+    end = arrival(context, link);
+  if (!start || !end || !link.from.position || !link.to.position) return [];
+  const gate = (point: Point, side: Side, owner: string): Point => {
+    const result = outward(point, side, JETTY);
+    for (const obstacle of context.obstacles.filter((item) => item.owner === owner)) {
+      const r = obstacle.rect;
+      if (side === 'left') result.x = Math.min(result.x, r.x - GAP);
+      if (side === 'right') result.x = Math.max(result.x, r.x + r.width + GAP);
+      if (side === 'top') result.y = Math.min(result.y, r.y - GAP);
+      if (side === 'bottom') result.y = Math.max(result.y, r.y + r.height + GAP);
+    }
+    return result;
+  };
+  const source = gate(start, sideOf(link.from.position), link.from.id);
+  const target = gate(end, sideOf(link.to.position), link.to.id);
+  return obstacles.flatMap(({ rect }) => [
+    ...[rect.y - GAP, rect.y + rect.height + GAP].map((y) => [
+      source,
+      { x: source.x, y },
+      { x: target.x, y },
+      target,
+    ]),
+    ...[rect.x - GAP, rect.x + rect.width + GAP].map((x) => [
+      source,
+      { x, y: source.y },
+      { x, y: target.y },
+      target,
+    ]),
+  ]);
+}
+
+// A self-link needs a nonzero loop even when both ports are identical. Route round the icon
+// and its label in either direction; scoring chooses the side clear of other objects.
+function selfLoop(link: Link, context: RouteContext): Point[][] {
+  if (link.from.id !== link.to.id || !link.from.position || !link.to.position) return [];
+  const start = departure(context, link),
+    end = arrival(context, link);
+  const box = context.leaves.get(link.from.id) ?? context.groups.get(link.from.id);
+  if (!start || !end || !box) return [];
+  const own = [
+    rectOf(context, box),
+    ...context.obstacles.filter((ob) => ob.owner === link.from.id).map((ob) => ob.rect),
+  ];
+  const left = Math.min(...own.map((r) => r.x)) - JETTY;
+  const right = Math.max(...own.map((r) => r.x + r.width)) + JETTY;
+  const top = Math.min(...own.map((r) => r.y)) - JETTY;
+  const bottom = Math.max(...own.map((r) => r.y + r.height)) + JETTY;
+  const sides: Side[] = ['top', 'right', 'bottom', 'left'];
+  const exit = sideOf(link.from.position),
+    entry = sideOf(link.to.position);
+  const gate = (point: Point, side: Side): Point =>
+    side === 'top'
+      ? { x: point.x, y: top }
+      : side === 'bottom'
+        ? { x: point.x, y: bottom }
+        : side === 'left'
+          ? { x: left, y: point.y }
+          : { x: right, y: point.y };
+  const corners = [
+    { x: right, y: top },
+    { x: right, y: bottom },
+    { x: left, y: bottom },
+    { x: left, y: top },
+  ];
+  return [1, -1].map((step) => {
+    let side = sides.indexOf(exit);
+    const target = sides.indexOf(entry);
+    const points = [gate(start, exit)];
+    do {
+      const corner = corners[(side + (step > 0 ? 0 : 3)) % 4];
+      if (corner) points.push(corner);
+      side = (side + step + 4) % 4;
+    } while (side !== target);
+    points.push(gate(end, entry));
+    return points;
+  });
 }
 
 // A first bend behind the side a line leaves from would make it turn back on itself (leave the
@@ -450,8 +491,8 @@ export function anchor(context: RouteContext, endpoint: Endpoint): Point | undef
   if (!rect || !endpoint.position) return undefined;
   const [px, py] = POSITION_POINTS[endpoint.position];
   return {
-    x: Math.round(rect.x + px * rect.width),
-    y: Math.round(rect.y + py * rect.height) + labelShift(context, endpoint),
+    x: rect.x + px * rect.width,
+    y: rect.y + py * rect.height + labelShift(context, endpoint),
   };
 }
 
@@ -491,73 +532,90 @@ export function predictPath(
   context: RouteContext,
   bends: Point[] = bendPoints(link, context),
 ): Point[] | undefined {
-  const start = departure(context, link);
-  const end = arrival(context, link);
+  // Native draw.io routing is intentionally unchecked: its implicit bends depend on its
+  // renderer/version. Automatic routes are written with these exact orthogonal segments.
+  if (link.route === 'drawio') return undefined;
+  const start = departure(context, link),
+    end = arrival(context, link);
   if (!start || !end || !link.from.position || !link.to.position) return undefined;
-
-  const path = [start];
-  let heading = directionOf(sideOf(link.from.position));
-  for (const bend of bends) {
-    heading = turnTowards(path, heading, bend);
-  }
-  const endShift = labelShift(context, link.to);
-  // Off the outline, below a label, draw.io turns right at the end instead of running out first
-  const jetty = endShift > 0 ? 0 : JETTY;
-  // Halfway between two icons, draw.io measures from their outlines, above any label shift
-  const startShift = bends.length === 0 ? labelShift(context, link.from) : 0;
-  arrive(path, heading, end, sideOf(link.to.position), { jetty, startShift, endShift });
-  return path;
+  const exit = sideOf(link.from.position),
+    entry = sideOf(link.to.position);
+  const facing =
+    (exit === 'right' && entry === 'left' && start.x < end.x) ||
+    (exit === 'left' && entry === 'right' && start.x > end.x) ||
+    (exit === 'bottom' && entry === 'top' && start.y < end.y) ||
+    (exit === 'top' && entry === 'bottom' && start.y > end.y);
+  if (
+    bends.length === 0 &&
+    facing &&
+    (exit === 'left' || exit === 'right' ? start.y === end.y : start.x === end.x)
+  )
+    return [start, end];
+  const distance = facing
+    ? Math.abs(exit === 'left' || exit === 'right' ? end.x - start.x : end.y - start.y) / 2
+    : JETTY;
+  const gate = (point: Point, side: Side, hint: Point | undefined): Point => {
+    let length = Math.min(JETTY, distance);
+    if (hint) {
+      const forward =
+        side === 'right'
+          ? hint.x - point.x
+          : side === 'left'
+            ? point.x - hint.x
+            : side === 'bottom'
+              ? hint.y - point.y
+              : point.y - hint.y;
+      const level = side === 'left' || side === 'right' ? hint.y === point.y : hint.x === point.x;
+      if (level && forward >= 0) length = Math.min(length, forward);
+    }
+    return outward(point, side, length);
+  };
+  const source = gate(start, exit, bends[0]);
+  const target = gate(end, entry, bends.at(-1));
+  const path = [start, source];
+  let heading = directionOf(exit);
+  for (const point of [...bends, target]) heading = turnTowards(path, heading, point);
+  path.push(end);
+  return simplify(path);
 }
 
-// Keeps going the way the line heads until it is level with the point, then turns to it
+function outward(point: Point, side: Side, distance: number): Point {
+  return {
+    x: point.x + (side === 'right' ? distance : side === 'left' ? -distance : 0),
+    y: point.y + (side === 'bottom' ? distance : side === 'top' ? -distance : 0),
+  };
+}
+
 function turnTowards(path: Point[], heading: Direction, to: Point): Direction {
   const from = path.at(-1) ?? to;
-  if (from.x !== to.x && from.y !== to.y) {
+  if (from.x === to.x && from.y === to.y) return heading;
+  if (from.x !== to.x && from.y !== to.y)
     path.push(heading === 'horizontal' ? { x: to.x, y: from.y } : { x: from.x, y: to.y });
-  }
   path.push(to);
   const last = path.at(-2) ?? from;
   return last.y === to.y ? 'horizontal' : 'vertical';
 }
 
-// The last part has to come straight into the side of the target. A line heading across that side
-// turns once; one already heading into it turns twice, halfway if the side faces it or just beyond
-// the side if it faces away.
-function arrive(
-  path: Point[],
-  heading: Direction,
-  end: Point,
-  side: Side,
-  { jetty, startShift, endShift }: { jetty: number; startShift: number; endShift: number },
-): void {
-  const from = path.at(-1) ?? end;
-  const entry = directionOf(side);
-  if (heading !== entry) {
-    turnTowards(path, heading, end);
-    return;
+function simplify(points: Point[]): Point[] {
+  const path: Point[] = [];
+  for (const point of points) {
+    const previous = path.at(-1);
+    if (previous?.x === point.x && previous.y === point.y) continue;
+    const before = path.at(-2);
+    if (
+      before &&
+      previous &&
+      ((before.x === previous.x &&
+        previous.x === point.x &&
+        (previous.y - before.y) * (point.y - previous.y) > 0) ||
+        (before.y === previous.y &&
+          previous.y === point.y &&
+          (previous.x - before.x) * (point.x - previous.x) > 0))
+    )
+      path.pop();
+    path.push(point);
   }
-  const facing =
-    (side === 'top' && from.y < end.y) ||
-    (side === 'bottom' && from.y > end.y) ||
-    (side === 'left' && from.x < end.x) ||
-    (side === 'right' && from.x > end.x);
-  if (facing && (entry === 'vertical' ? from.x === end.x : from.y === end.y)) {
-    path.push(end);
-  } else if (entry === 'vertical') {
-    const y = facing
-      ? (from.y - startShift + end.y - endShift) / 2
-      : side === 'top'
-        ? Math.min(from.y, end.y) - jetty
-        : Math.max(from.y, end.y) + jetty;
-    path.push({ x: from.x, y }, { x: end.x, y }, end);
-  } else {
-    const x = facing
-      ? (from.x + end.x) / 2
-      : side === 'left'
-        ? Math.min(from.x, end.x) - jetty
-        : Math.max(from.x, end.x) + jetty;
-    path.push({ x, y: from.y }, { x, y: end.y }, end);
-  }
+  return path;
 }
 
 function directionOf(side: Side): Direction {

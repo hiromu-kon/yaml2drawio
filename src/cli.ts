@@ -27,7 +27,7 @@ Options for build:
 
 Options for build and validate:
   --strict             exit with 1 when there are warnings
-  --fail-unchecked     exit with 1 if either end of a link has no side
+  --fail-unchecked     exit with 1 if any link cannot be checked
   --json               write one JSON report instead of text
 
   -h, --help           show this help

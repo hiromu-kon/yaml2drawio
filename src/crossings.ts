@@ -12,11 +12,11 @@ import {
   type Point,
 } from './route.ts';
 import { labelSize } from './text.ts';
-import { obstaclesOf, borderOf, crosses, overlapsRect, isOwnIcon } from './obstacles.ts';
+import { obstaclesOf, borderOf, crosses, overlapsRect } from './obstacles.ts';
 
 export interface CrossingReport {
   crossings: Problem[];
-  /** Links with an end that has no side; draw.io picks the side, so their lines are not predicted. */
+  /** Links with missing endpoint sides or native draw.io routing; their paths are unknown. */
   unchecked: Link[];
 }
 
@@ -52,7 +52,6 @@ export function findCrossings(diagram: Diagram, layout: Layout): CrossingReport 
     }
     const segments = segmentsOf(path);
     for (const obstacle of obstacles) {
-      if (isOwnIcon(obstacle, link)) continue;
       if (!segments.some(([a, b]) => crosses(a, b, obstacle.rect))) continue;
       warn(
         `crossing-${obstacle.part}`,

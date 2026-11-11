@@ -140,20 +140,18 @@ links: [[group-1.e, link-1.w]]
     expect(tag).toMatch(/width="48" height="24"/);
   });
 
-  it('moves the label of a line along it, off an icon its middle would cover', () => {
-    // The line runs over b, which sits right in its middle
-    const xml = render(
-      [
-        'nodes:',
-        '  - { id: a, icon: aws.lambda }',
-        '  - { id: b, icon: aws.sqs }',
-        '  - { id: c, icon: aws.s3 }',
-        'links:',
-        '  - { from: a.e, to: c.w, label: jobs, route: drawio }',
-        '',
-      ].join('\n'),
-    );
-    expect(cellTag(xml, '.link-1')).toMatch(/<mxGeometry x="-?0\.\d+" relative="1"/);
+  it('writes the label position that keeps it clear of another link label', () => {
+    const xml = render(`direction: vertical
+nodes:
+  - {id: gateway, icon: aws.alb}
+  - row:
+      - {id: api, icon: aws.ecs}
+      - {id: worker, icon: aws.ecs}
+links:
+  - {from: gateway.s, to: api.n, label: Requests to API}
+  - {from: gateway.s, to: worker.n, label: Requests to background worker}
+`);
+    expect(cellTag(xml, '.link-2')).toMatch(/<mxGeometry x="-?0\.\d+" relative="1"/);
   });
 
   it('uses the draw.io style from the icon catalog', () => {
