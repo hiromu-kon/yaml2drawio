@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { promisify } from 'node:util';
+import { resolve } from 'node:path';
 
 const MACOS_APP = '/Applications/draw.io.app/Contents/MacOS/draw.io';
 
@@ -18,7 +19,7 @@ export async function exportPng(input: string, output: string): Promise<void> {
     '--border',
     '20',
     '--output',
-    output,
-    input,
+    resolve(output),
+    resolve(input),
   ]);
 }
