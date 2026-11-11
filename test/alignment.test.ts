@@ -164,6 +164,6 @@ nodes:
       - {id: c, icon: aws.ecs, align_with: b}
       - {id: d, icon: aws.ecs, align_with: a}
 `);
-    expect(() => layoutDiagram(diagram.root)).toThrow('cannot be satisfied');
+    expect(() => layoutDiagram(diagram.root)).toThrow('could not be resolved');
   });
 });
