@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import {
+  chmodSync,
   mkdtempSync,
   readFileSync,
   writeFileSync,
@@ -28,6 +29,45 @@ function run(...args: string[]) {
 }
 
 describe('CLI checks and output safety', () => {
+  it('exports a relative leading-dash filename without passing it as an option', () => {
+    const renderer = join(dir, 'renderer.mjs');
+    writeFileSync(
+      renderer,
+      `#!/usr/bin/env node
+import {writeFileSync} from 'node:fs';
+const args = process.argv.slice(2);
+if (args.at(-1).startsWith('-')) process.exit(2);
+writeFileSync(args[args.indexOf('--output') + 1], Buffer.from([137,80,78,71,13,10,26,10]));
+`,
+    );
+    chmodSync(renderer, 0o755);
+    writeFileSync(join(dir, '-diagram.yaml'), VALID);
+    const result = spawnSync(
+      process.execPath,
+      [CLI, 'build', '--png', '--json', '--', '-diagram.yaml'],
+      { cwd: dir, env: { ...process.env, DRAWIO_CLI: renderer }, encoding: 'utf8' },
+    );
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).ok).toBe(true);
+    expect(existsSync(join(dir, '-diagram.png'))).toBe(true);
+  });
+
+  it('fails unchecked native routes only when required and explains how to enable checks', () => {
+    writeFileSync(
+      input,
+      'nodes: [{id: a, icon: aws.ecs}, {id: b, icon: aws.ecs}]\nlinks: [{from: a.e, to: b.w, route: drawio}]\n',
+    );
+    expect(run('validate', input, '--strict', '--json').status).toBe(0);
+    const result = run('validate', input, '--strict', '--fail-unchecked', '--json');
+    expect(result.status).toBe(1);
+    expect(JSON.parse(result.stdout).diagnostics).toContainEqual(
+      expect.objectContaining({
+        code: 'unchecked-link',
+        message: expect.stringContaining('native draw.io routing'),
+      }),
+    );
+  });
+
   it('protects an image input from PNG export before writing any output', () => {
     const image = join(dir, 'diagram.png');
     const data = readFileSync(new URL('fixtures/images/small.png', import.meta.url));
@@ -110,16 +150,16 @@ describe('CLI checks and output safety', () => {
   it('reports warnings with codes, link ids, related ids and source locations', () => {
     writeFileSync(
       input,
-      'nodes:\n  - {id: a, icon: aws.ecs}\n  - {id: b, icon: aws.ecs}\n  - {id: c, icon: aws.ecs}\nlinks:\n  - {from: a.e, to: c.w, route: drawio}\n',
+      'nodes:\n  - {id: a, icon: aws.ecs}\n  - {id: b, icon: aws.ecs}\n  - {id: c, icon: aws.ecs}\nlinks:\n  - {from: a.e, to: b.w, label: A label far longer than the space available between the icons}\n',
     );
     const result = run('validate', input, '--strict', '--json');
     expect(result.status).toBe(1);
     expect(JSON.parse(result.stdout).diagnostics).toContainEqual(
       expect.objectContaining({
-        code: 'crossing-icon',
+        code: 'label-overlap',
         severity: 'warning',
         linkId: 'link-1',
-        relatedId: 'b',
+        relatedId: 'a',
         line: 6,
       }),
     );
