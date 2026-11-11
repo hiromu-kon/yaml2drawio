@@ -1,6 +1,6 @@
 import { styleValue } from './catalog.ts';
 import { LABEL_GAP, labelDrop, type Layout, type Rect } from './layout.ts';
-import type { DiagramNode, Link } from './model.ts';
+import type { DiagramNode } from './model.ts';
 import { sideOf, type Side } from './position.ts';
 import type { Point, Segment } from './route.ts';
 import { labelSize } from './text.ts';
@@ -129,8 +129,4 @@ export function crosses(a: Point, b: Point, rect: Rect): boolean {
     Math.max(a.y, b.y) > rect.y &&
     Math.min(a.y, b.y) < rect.y + rect.height
   );
-}
-
-export function isOwnIcon({ owner, part }: Obstacle, link: Link): boolean {
-  return part === 'icon' && (owner === link.from.id || owner === link.to.id);
 }

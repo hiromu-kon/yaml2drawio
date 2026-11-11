@@ -5,7 +5,8 @@
   "properties": {
     "title": {
       "description": "Name of the draw.io page.",
-      "type": "string"
+      "type": "string",
+      "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$"
     },
     "direction": {
       "description": "How the children are laid out. Defaults to horizontal.",
@@ -20,7 +21,8 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$"
       }
     },
     "nodes": {
@@ -2137,9 +2139,14 @@
         },
         "label": {
           "description": "Text under the icon. Defaults to the icon's title.",
-          "type": [
-            "string",
-            "number"
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$"
+            },
+            {
+              "type": "number"
+            }
           ]
         },
         "align_with": {
@@ -2194,13 +2201,19 @@
         },
         "image": {
           "type": "string",
+          "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$",
           "description": "SVG or PNG file to draw instead of a catalog icon, relative to the YAML file. It is embedded in the draw.io file."
         },
         "label": {
           "description": "Text under the image. Defaults to the file name.",
-          "type": [
-            "string",
-            "number"
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$"
+            },
+            {
+              "type": "number"
+            }
           ]
         },
         "align_with": {
@@ -2325,9 +2338,14 @@
         },
         "label": {
           "description": "Title of the group. Defaults to the style's title.",
-          "type": [
-            "string",
-            "number"
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$"
+            },
+            {
+              "type": "number"
+            }
           ]
         },
         "direction": {
@@ -2496,9 +2514,14 @@
             },
             "label": {
               "description": "Text on the line.",
-              "type": [
-                "string",
-                "number"
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\\u{10000}-\\u{10FFFF}]*$"
+                },
+                {
+                  "type": "number"
+                }
               ]
             },
             "style": {
@@ -2520,7 +2543,7 @@
               ]
             },
             "route": {
-              "description": "auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io. Defaults to auto.",
+              "description": "auto bends the line in the gaps around groups; drawio leaves the whole route to draw.io and is unchecked. Defaults to auto.",
               "type": "string",
               "enum": [
                 "auto",

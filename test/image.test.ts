@@ -39,24 +39,43 @@ describe('readImage', () => {
     }
   });
 
-  it.each(['signature', 'truncated', 'zero width', 'zero height', 'chunk length'])(
-    'rejects a PNG with a bad %s',
-    (kind) => {
-      const dir = mkdtempSync(join(tmpdir(), 'yaml2drawio-image-'));
-      try {
-        let data = Buffer.from(readFileSync(`${FIXTURES}/small.png`));
-        if (kind === 'signature') data[0] = 0;
-        if (kind === 'truncated') data = data.subarray(0, 24);
-        if (kind === 'zero width') data.writeUInt32BE(0, 16);
-        if (kind === 'zero height') data.writeUInt32BE(0, 20);
-        if (kind === 'chunk length') data.writeUInt32BE(0, 8);
-        writeFileSync(join(dir, 'bad.png'), data);
-        expect(() => readImage('bad.png', dir)).toThrow('not a readable png');
-      } finally {
-        rmSync(dir, { recursive: true, force: true });
-      }
-    },
-  );
+  it.each([
+    'signature',
+    'truncated',
+    'zero width',
+    'zero height',
+    'chunk length',
+    'CRC',
+    'missing IEND',
+  ])('rejects a PNG with a bad %s', (kind) => {
+    const dir = mkdtempSync(join(tmpdir(), 'yaml2drawio-image-'));
+    try {
+      let data = Buffer.from(readFileSync(`${FIXTURES}/small.png`));
+      if (kind === 'signature') data[0] = 0;
+      if (kind === 'truncated') data = data.subarray(0, 24);
+      if (kind === 'zero width') data.writeUInt32BE(0, 16);
+      if (kind === 'zero height') data.writeUInt32BE(0, 20);
+      if (kind === 'chunk length') data.writeUInt32BE(0, 8);
+      if (kind === 'CRC') data[29] = (data[29] ?? 0) ^ 1;
+      if (kind === 'missing IEND') data = data.subarray(0, data.length - 12);
+      writeFileSync(join(dir, 'bad.png'), data);
+      expect(() => readImage('bad.png', dir)).toThrow('not a readable png');
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+  it('accepts an SVG namespace and a comment before the root', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'yaml2drawio-image-'));
+    try {
+      writeFileSync(
+        join(dir, 'valid.svg'),
+        '<!-- logo --><s:svg xmlns:s="http://www.w3.org/2000/svg" width="30" height="10"/>',
+      );
+      expect(readImage('valid.svg', dir)).toMatchObject({ width: 30, height: 10 });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
   it('embeds the file in the style as a data URI that draw.io reads', () => {
     const shape = readImage('wide.svg', FIXTURES);
     const data = readFileSync(`${FIXTURES}/wide.svg`).toString('base64');
@@ -68,7 +87,10 @@ describe('readImage', () => {
     ['the viewBox of an SVG', 'wide.svg', { width: 120, height: 60 }],
     ['the width and height of an SVG without a viewBox', 'sized.svg', { width: 30, height: 10 }],
     ['a square for an SVG without a size', 'unsized.svg', { width: 1, height: 1 }],
-    ['the header of a PNG', 'small.png', { width: 3, height: 2 }],
+    ['a PNG', 'small.png', { width: 3, height: 2 }],
+    ['a 1-bit grayscale PNG', 'gray1.png', { width: 3, height: 2 }],
+    ['a 4-bit palette PNG', 'palette4.png', { width: 3, height: 2 }],
+    ['an Adam7 16-bit RGBA PNG', 'adam7-rgba16.png', { width: 9, height: 9 }],
   ])('keeps the proportions from %s', (_, file, size) => {
     expect(readImage(file, FIXTURES)).toMatchObject(size);
   });

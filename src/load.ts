@@ -1,4 +1,13 @@
-import { LineCounter, isMap, isNode, isScalar, parseDocument, type Document } from 'yaml';
+import {
+  LineCounter,
+  isAlias,
+  isMap,
+  isSeq,
+  isNode,
+  isScalar,
+  parseDocument,
+  type Document,
+} from 'yaml';
 import type { z } from 'zod';
 import { styleValue, type Catalog, type Shape } from './catalog.ts';
 import { readImage } from './image.ts';
@@ -106,7 +115,53 @@ export function loadDiagram(text: string, catalog: Catalog, baseDir = '.'): Diag
   }
 
   const source = new Source(document, lines);
-  const data: unknown = document.toJS();
+  // YAML aliases may form graphs, but the input model is a tree. Reject cycles at the alias,
+  // before recursive schema validation can exhaust the stack. Ordinary shared anchors are fine.
+  const active = new Set<unknown>(),
+    visited = new Set<unknown>();
+  const visit = (node: unknown): void => {
+    if (isAlias(node)) {
+      const target = node.resolve(document);
+      if (!target || active.has(target)) {
+        const { line, col } = lines.linePos(node.range?.[0] ?? 0);
+        throw new DiagramError([
+          {
+            code: 'invalid-yaml',
+            message: target
+              ? `circular YAML alias "${node.source}"`
+              : `unresolved YAML alias "${node.source}"`,
+            line,
+            column: col,
+          },
+        ]);
+      }
+      visit(target);
+    } else if ((isMap(node) || isSeq(node)) && !visited.has(node)) {
+      active.add(node);
+      if (isMap(node))
+        for (const pair of node.items) {
+          visit(pair.key);
+          visit(pair.value);
+        }
+      else for (const child of node.items) visit(child);
+      active.delete(node);
+      visited.add(node);
+    }
+  };
+  visit(document.contents);
+  let data: unknown;
+  try {
+    data = document.toJS();
+  } catch (error) {
+    throw new DiagramError([
+      {
+        code: 'invalid-yaml',
+        message: error instanceof Error ? error.message : String(error),
+        line: 1,
+        column: 1,
+      },
+    ]);
+  }
   const parsed = DocumentSchema.safeParse(data);
   if (!parsed.success)
     throw new DiagramError(describeIssues(parsed.error.issues, [], data, source));
@@ -150,6 +205,9 @@ function describeUnion(
   source: Source,
 ): Problem[] {
   const value = valueAt(data, path);
+  if (path.at(-1) === 'label') {
+    return describeIssues(branches[typeof value === 'number' ? 1 : 0] ?? [], path, data, source);
+  }
   if (path.at(-1) === 'align_with') {
     return describeIssues(branches[isRecord(value) ? 1 : 0] ?? [], path, data, source);
   }
