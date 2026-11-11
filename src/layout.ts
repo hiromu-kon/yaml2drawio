@@ -163,9 +163,10 @@ function layoutBase(root: StackNode, alignment: Map<LeafNode, AlignmentPadding>)
         widthToClearLabel(node, labelEnd),
       );
       const height = content.height + padding.top + padding.bottom;
+      const fitted = fitBorderChildren(node, width, height);
       size = {
-        width: width + outside.left + outside.right,
-        height: height + outside.top + outside.bottom,
+        width: fitted.width + outside.left + outside.right,
+        height: fitted.height + outside.top + outside.bottom,
       };
     } else {
       size = measureChildren(node.direction, node.children.map(measure));
@@ -319,6 +320,50 @@ function labelEndOf(group: GroupNode): number {
 
 function leafWidth(leaf: LeafNode): number {
   return Math.max(ICON_SIZE, labelSize(leaf.label).width) + LEAF_PADDING_X * 2;
+}
+
+// Border positions are fractions of the group size. Nearby ports need enough separation for
+// both the icon and the label drawn beside/below it, not just padding from the group's contents.
+function fitBorderChildren(group: GroupNode, width: number, height: number): Size {
+  const children = group.border.map(({ node, position }) => {
+    const [x, y] = POSITION_POINTS[position];
+    const icon = iconSize(node.shape),
+      label = labelSize(node.label),
+      side = sideOf(position);
+    let left = -icon.width / 2,
+      right = icon.width / 2;
+    let top = -icon.height / 2,
+      bottom = icon.height / 2;
+    if (label.width > 0) {
+      if (side === 'left' || side === 'right') {
+        top -= label.height;
+        if (side === 'left') left -= LABEL_GAP + label.width;
+        else right += LABEL_GAP + label.width;
+      } else {
+        left = Math.min(left, -label.width / 2);
+        right = Math.max(right, label.width / 2);
+        bottom = ICON_SIZE / 2 + LABEL_GAP + label.height;
+      }
+    }
+    return { x, y, left, right, top, bottom };
+  });
+  for (const [index, a] of children.entries())
+    for (const b of children.slice(index + 1)) {
+      const [left, right] = a.x <= b.x ? [a, b] : [b, a];
+      const [top, bottom] = a.y <= b.y ? [a, b] : [b, a];
+      const needWidth =
+        left.x === right.x
+          ? Infinity
+          : Math.ceil((left.right - right.left + BORDER_GAP) / (right.x - left.x));
+      const needHeight =
+        top.y === bottom.y
+          ? Infinity
+          : Math.ceil((top.bottom - bottom.top + BORDER_GAP) / (bottom.y - top.y));
+      if (width >= needWidth || height >= needHeight) continue;
+      if (needWidth - width <= needHeight - height) width = needWidth;
+      else height = needHeight;
+    }
+  return { width, height };
 }
 
 /**
